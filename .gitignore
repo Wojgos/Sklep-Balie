@@ -1,0 +1,42 @@
+# Node
+node_modules/
+
+# Angular build outputs (root)
+/dist/
+/dist-ssr/
+/out-tsc/
+/.angular/
+
+# Angular build outputs (frontend workspace)
+/frontend/dist/
+/frontend/dist-ssr/
+/frontend/out-tsc/
+/frontend/.angular/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Coverage and temporary
+coverage/
+.tmp/
+.tmp*/
+.temp/
+
+# Environment files
+.env
+.env.*.local
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.tsbuildinfo
