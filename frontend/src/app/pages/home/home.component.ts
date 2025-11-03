@@ -2,7 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../services/api.service';
-import { Product, Category } from '../../models';
+import { NotificationService } from '../../services/notification.service';
+import { Product, Category, NotificationType } from '../../models';
 import { HeaderComponent } from '../../components/header/header.component';
 import { FooterComponent } from '../../components/footer/footer.component';
 import { ProductCardComponent } from '../../components/product-card/product-card.component';
@@ -24,27 +25,52 @@ import { CategoryCardComponent } from '../../components/category-card/category-c
       
       <main class="flex-1">
         <!-- Hero Section -->
-        <section class="relative h-[80vh] flex items-center justify-center bg-gradient-to-r from-primary/20 to-primary/10">
-          <div class="absolute inset-0 bg-[url('/assets/hero-bg.jpg')] bg-cover bg-center opacity-20"></div>
-          <div class="relative z-10 text-center max-w-4xl mx-auto px-4">
-            <h1 class="font-heading font-bold text-4xl sm:text-5xl lg:text-6xl mb-6" data-testid="text-hero-title">
-              Naturalne Drewniane Balie<br>
-              <span class="text-primary">dla Twojego Ogrodu</span>
+        <section class="relative h-[80vh] flex items-center justify-center">
+          <div class="absolute inset-0 bg-[url('/assets/Wooden_garden_barrel_hero_26de98c6.png')] bg-cover bg-center filter saturate-125 contrast-110 brightness-95"></div>
+          <div class="absolute inset-0 bg-gradient-to-b from-black/65 via-black/55 to-black/35"></div>
+          <div class="relative z-10 text-center max-w-4xl mx-auto px-4 text-white">
+            <h1 class="font-heading font-bold text-4xl sm:text-5xl lg:text-6xl mb-6 tracking-tight drop-shadow-lg" data-testid="text-hero-title">
+              Drewniane Bale Ogrodowe<br>
+              <span>Naturalny Relaks</span>
             </h1>
-            <p class="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto" data-testid="text-hero-subtitle">
-              Odkryj naszą kolekcję ręcznie wykonanych bali ogrodowych, kadzi kąpielowych 
-              i beczek ozdobnych z najwyższej jakości drewna.
+            <p class="text-lg sm:text-xl text-white/90 mb-8 max-w-2xl mx-auto drop-shadow" data-testid="text-hero-subtitle">
+              Odkryj naszą kolekcję drewnianych bali, kadzi i beczek na wodę. Idealne do ogrodu, tarasu i kąpieli. 
+              Profesjonalne doradztwo i szybka dostawa.
             </p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-              <button class="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3 rounded-lg font-semibold transition-colors">
+              <button class="inline-flex items-center justify-center gap-3 bg-[#266741] text-white hover:bg-[#1f5635] px-10 py-4 rounded-full text-lg font-semibold transition-all shadow-lg shadow-black/30">
                 Przeglądaj Produkty
+                <span class="text-2xl leading-none">→</span>
               </button>
-              <button class="border border-primary text-primary hover:bg-primary hover:text-primary-foreground px-8 py-3 rounded-lg font-semibold transition-colors">
+              <button class="inline-flex items-center justify-center bg-white/80 text-[#3a3a3a] hover:bg-white px-10 py-4 rounded-full text-lg font-semibold transition-all shadow-md">
                 Zobacz Realizacje
               </button>
             </div>
-            <p class="text-sm text-muted-foreground mt-6">
-              ⭐ Premium Quality Since 2015 | 10,000+ Satisfied Customers
+            <!-- Notification Test Buttons (for testing purposes) -->
+            <div class="flex flex-wrap gap-2 justify-center mt-4">
+              <button 
+                (click)="testSuccessNotification()"
+                class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded text-sm transition-colors">
+                Test Success
+              </button>
+              <button 
+                (click)="testErrorNotification()"
+                class="bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded text-sm transition-colors">
+                Test Error
+              </button>
+              <button 
+                (click)="testWarningNotification()"
+                class="bg-yellow-600 text-white hover:bg-yellow-700 px-4 py-2 rounded text-sm transition-colors">
+                Test Warning
+              </button>
+              <button 
+                (click)="testInfoNotification()"
+                class="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded text-sm transition-colors">
+                Test Info
+              </button>
+            </div>
+            <p class="text-sm text-white/80 mt-6 tracking-wide">
+              ⭐ Premium Jakość od 2015 · 10,000+ Zadowolonych Klientów
             </p>
           </div>
         </section>
@@ -236,7 +262,7 @@ export class HomeComponent implements OnInit {
     }
   ];
 
-  constructor(private apiService: ApiService) {
+  constructor(private apiService: ApiService, private notificationService: NotificationService) {
     this.categories$ = this.apiService.getCategories();
     this.products$ = this.apiService.getProducts();
   }
@@ -245,6 +271,23 @@ export class HomeComponent implements OnInit {
     this.products$.subscribe(products => {
       this.featuredProducts = products.slice(0, 4);
     });
+  }
+
+  // Test methods for notification service
+  testSuccessNotification(): void {
+    this.notificationService.showSuccess('Produkt został dodany do koszyka!');
+  }
+
+  testErrorNotification(): void {
+    this.notificationService.showError('Wystąpił błąd podczas przetwarzania zamówienia.');
+  }
+
+  testWarningNotification(): void {
+    this.notificationService.showWarning('Mało produktów w magazynie - zostało tylko 3 sztuki.');
+  }
+
+  testInfoNotification(): void {
+    this.notificationService.showInfo('Nowe produkty zostały dodane do naszej oferty!');
   }
 }
 
