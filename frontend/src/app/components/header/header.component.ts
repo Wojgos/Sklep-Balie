@@ -4,11 +4,12 @@ import { RouterModule } from '@angular/router';
 import { Observable } from 'rxjs';
 import { CartService } from '../../services/cart.service';
 import { SearchBarComponent } from '../search-bar/search-bar.component';
+import { CartDrawerComponent } from '../cart-drawer/cart-drawer.component';
 
 @Component({
   selector: 'bg-header',
   standalone: true,
-  imports: [CommonModule, RouterModule, SearchBarComponent],
+  imports: [CommonModule, RouterModule, SearchBarComponent, CartDrawerComponent],
   template: `
     <header class="sticky top-0 z-50 bg-background border-b">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -62,6 +63,22 @@ import { SearchBarComponent } from '../search-bar/search-bar.component';
           </div>
 
           <div class="flex items-center gap-2">
+            <button
+              class="p-2 hover:bg-muted rounded-md transition-colors"
+              (click)="toggleTheme()"
+              [attr.aria-label]="isDarkMode ? 'Przełącz na jasny motyw' : 'Przełącz na ciemny motyw'"
+              data-testid="button-theme"
+            >
+              <!-- Sun/Moon icon -->
+              <svg *ngIf="isDarkMode; else sun" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+              </svg>
+              <ng-template #sun>
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364 6.364l-1.414-1.414M7.05 7.05 5.636 5.636m12.728 0-1.414 1.414M7.05 16.95l-1.414 1.414M12 8a4 4 0 100 8 4 4 0 000-8z"></path>
+                </svg>
+              </ng-template>
+            </button>
             <button
               class="p-2 hover:bg-muted rounded-md transition-colors"
               (click)="toggleSearch()"
@@ -143,6 +160,11 @@ import { SearchBarComponent } from '../search-bar/search-bar.component';
         </div>
       </div>
     </div>
+
+    <!-- Cart Drawer -->
+    <ng-container *ngIf="cartOpen">
+      <bg-cart-drawer (close)="toggleCart()"></bg-cart-drawer>
+    </ng-container>
   `,
   styleUrls: ['./header.component.scss']
 })
@@ -151,6 +173,7 @@ export class HeaderComponent implements OnInit {
   loyaltyOpen = false;
   cartOpen = false;
   mobileMenuOpen = false;
+  isDarkMode = false;
   
   itemCount$: Observable<number>;
 
@@ -158,7 +181,26 @@ export class HeaderComponent implements OnInit {
     this.itemCount$ = this.cartService.itemCount$;
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    const saved = localStorage.getItem('theme');
+    const root = document.documentElement;
+    if (saved === 'dark') {
+      root.classList.add('dark');
+      this.isDarkMode = true;
+    } else if (saved === 'light') {
+      root.classList.remove('dark');
+      this.isDarkMode = false;
+    } else {
+      this.isDarkMode = root.classList.contains('dark');
+    }
+  }
+
+  toggleTheme(): void {
+    const root = document.documentElement;
+    root.classList.toggle('dark');
+    this.isDarkMode = root.classList.contains('dark');
+    localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
+  }
 
   toggleSearch(): void {
     this.searchOpen = !this.searchOpen;

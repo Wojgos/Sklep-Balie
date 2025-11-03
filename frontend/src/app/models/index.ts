@@ -105,3 +105,19 @@ export interface CartItem {
   quantity: number;
 }
 
+// Notification models
+export enum NotificationType {
+  SUCCESS = 'success',
+  ERROR = 'error',
+  WARNING = 'warning',
+  INFO = 'info'
+}
+
+export interface Notification {
+  id: string;
+  message: string;
+  type: NotificationType;
+  duration?: number; // Auto-dismiss duration in milliseconds (null for manual dismiss only)
+  createdAt: Date;
+}
+
