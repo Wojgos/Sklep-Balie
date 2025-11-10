@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Faktura {{ order.id }}</title>
+    <style>
+        /* Importujemy czcionkę, która wspiera polskie znaki */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            font-size: 12px;
+            color: #333;
+            margin: 2cm;
+        }
+        .header {
+            text-align: right;
+            font-size: 10px;
+            color: #777;
+        }
+        h1 {
+            text-align: center;
+            color: #000;
+            border-bottom: 2px solid #555;
+            padding-bottom: 5px;
+        }
+        .details {
+            width: 100%;
+            margin-top: 2cm;
+            margin-bottom: 2cm;
+        }
+        .details td {
+            vertical-align: top;
+            padding: 10px;
+            width: 50%;
+        }
+        .seller-data {
+            background-color: #f4f4f4;
+            border-radius: 5px;
+        }
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1cm;
+        }
+        .invoice-table th, .invoice-table td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        .invoice-table th {
+            background-color: #eee;
+        }
+        /* To jest klucz do zawijania tekstu */
+        .col-product {
+            width: 50%;
+            word-break: break-word;
+        }
+        .col-qty, .col-price {
+            width: 15%;
+            text-align: right;
+        }
+        .col-total {
+            width: 20%;
+            text-align: right;
+        }
+        .summary {
+            margin-top: 1cm;
+            text-align: right;
+        }
+        .summary h2 {
+            font-size: 18px;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        Wygenerowano: {{ order.created_at|date:"d-m-Y H:i" }}
+    </div>
+
+    <h1>Potwierdzenie Zamówienia #{{ order.id }}</h1>
+
+    <table class="details">
+        <tr>
+            <td class="seller-data">
+                <strong>Sprzedawca:</strong><br>
+                Balie Ogrodowe Premium Sp. z o.o.<br>
+                ul. Drzewna 123<br>
+                00-001 Warszawa<br>
+                NIP: 123-456-78-90<br>
+                kontakt@baliepremium.pl
+            </td>
+
+            <td>
+                <strong>Nabywca:</strong><br>
+                {{ order.first_name }} {{ order.last_name }}<br>
+                {{ order.address }}<br>
+                {{ order.postal_code }} {{ order.city }}<br>
+                E-mail: {{ order.email }}
+            </td>
+        </tr>
+    </table>
+
+    <table class="invoice-table">
+        <thead>
+            <tr>
+                <th class="col-product">Produkt</th>
+                <th class="col-qty">Ilość</th>
+                <th class="col-price">Cena/szt.</th>
+                <th class="col-total">Suma</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in order.items.all %}
+            <tr>
+                <td class="col-product">
+                    <strong>{{ item.product_name }}</strong>
+                    </td>
+                <td class="col-qty">{{ item.quantity }}</td>
+                <td class="col-price">{{ item.price|floatformat:2 }} zł</td>
+                <td class="col-total">{{ item.get_cost|floatformat:2 }} zł</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="summary">
+        <h2>Suma całkowita: {{ order.total_price|floatformat:2 }} zł</h2>
+        <p>Status: {{ order.get_status_display }}</p>
+        <p>Płatność: {% if order.paid %}Opłacone{% else %}Oczekuje na płatność{% endif %}</p>
+    </div>
+
+</body>
+</html>
