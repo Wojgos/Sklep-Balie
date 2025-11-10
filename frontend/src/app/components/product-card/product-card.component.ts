@@ -9,9 +9,9 @@ import { CartService } from '../../services/cart.service';
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <a [routerLink]="['/product', product.id]" class="block">
+    <a [routerLink]="['/product', product.id]" class="block h-full">
       <div 
-        class="group overflow-hidden hover:shadow-lg active:shadow-xl transition-all cursor-pointer bg-card border border-card-border rounded-lg"
+        class="group overflow-hidden hover:shadow-lg active:shadow-xl transition-all cursor-pointer bg-card border border-card-border rounded-lg h-full flex flex-col"
         [attr.data-testid]="'card-product-' + product.id"
       >
         <div class="relative aspect-[4/3] overflow-hidden">
@@ -38,7 +38,7 @@ import { CartService } from '../../services/cart.service';
           </button>
         </div>
 
-        <div class="p-4">
+        <div class="p-4 flex flex-col flex-1">
           <div class="flex items-center gap-1 mb-2">
             <ng-container *ngFor="let star of [1,2,3,4,5]; let i = index">
               <svg 
@@ -51,7 +51,7 @@ import { CartService } from '../../services/cart.service';
               </svg>
             </ng-container>
             <span class="text-xs text-muted-foreground ml-1" data-testid="text-rating">
-              ({{ product.rating }}.0)
+              ({{ product.rating }})
             </span>
           </div>
 
@@ -63,7 +63,7 @@ import { CartService } from '../../services/cart.service';
             {{ product.dimensions }}
           </p>
 
-          <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center justify-between gap-2 mt-auto">
             <div>
               <span 
                 *ngIf="product.oldPrice" 

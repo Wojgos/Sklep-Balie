@@ -1,0 +1,183 @@
+// Chatbot specific styles
+.chatbot-container {
+  font-family: inherit;
+}
+
+// Custom scrollbar for messages container
+:host ::ng-deep .messages-container {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground)) transparent;
+}
+
+:host ::ng-deep .messages-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+:host ::ng-deep .messages-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:host ::ng-deep .messages-container::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground));
+  border-radius: 3px;
+}
+
+:host ::ng-deep .messages-container::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--foreground));
+}
+
+// Animation for chat window
+.chat-window {
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Animation for chat button
+.chat-button {
+  animation: bounceIn 0.5s ease-out;
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// Message animations
+.message-enter {
+  animation: messageSlideIn 0.3s ease-out;
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Typing indicator animation
+.typing-dots {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: hsl(var(--muted-foreground));
+  animation: typingBounce 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes typingBounce {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// Quick actions hover effects
+.quick-action {
+  transition: all 0.2s ease;
+}
+
+.quick-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+// Input focus effects
+.chat-input {
+  transition: all 0.2s ease;
+}
+
+.chat-input:focus {
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+}
+
+// Mobile responsiveness
+@media (max-width: 640px) {
+  .chat-window {
+    position: fixed !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    max-height: 100vh !important;
+  }
+  
+  .chat-button {
+    bottom: 1rem !important;
+    right: 1rem !important;
+  }
+}
+
+// Dark mode adjustments
+@media (prefers-color-scheme: dark) {
+  .chat-window {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .chat-window {
+    border-width: 2px;
+  }
+  
+  .message-bubble {
+    border-width: 1px;
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .chat-window,
+  .chat-button,
+  .message-enter,
+  .typing-dot,
+  .quick-action {
+    animation: none !important;
+    transition: none !important;
+  }
+}
