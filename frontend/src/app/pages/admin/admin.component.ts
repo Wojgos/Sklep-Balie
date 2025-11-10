@@ -127,8 +127,8 @@ import { FooterComponent } from '../../components/footer/footer.component';
                           <select 
                             [value]="order.status"
                             (change)="updateOrderStatus(order.id, $event)"
-                            class="px-2 py-1 border border-border rounded text-sm"
-                            data-testid="select-order-status"
+                            class="px-2 py-1 border border-border rounded text-sm bg-background"
+                            data-testid="select-order-status bg-background"
                           >
                             <option value="pending">Oczekujące</option>
                             <option value="processing">Przetwarzane</option>

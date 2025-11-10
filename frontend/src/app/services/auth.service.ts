@@ -25,6 +25,7 @@ export class AuthService {
       address: 'ul. Przykładowa 1',
       city: 'Warszawa',
       postalCode: '00-001',
+      role: 'admin',
       createdAt: new Date('2024-01-01')
     },
     {
@@ -38,6 +39,7 @@ export class AuthService {
       address: 'ul. Testowa 10',
       city: 'Kraków',
       postalCode: '30-001',
+      role: 'user',
       createdAt: new Date('2024-02-01')
     }
   ];
@@ -54,6 +56,10 @@ export class AuthService {
 
   public get isAuthenticated(): boolean {
     return !!this.currentUserValue && !!this.getToken();
+  }
+
+  public get isAdmin(): boolean {
+    return this.isAuthenticated && this.currentUserValue?.role === 'admin';
   }
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
@@ -123,6 +129,7 @@ export class AuthService {
           address: userData.address,
           city: userData.city,
           postalCode: userData.postalCode,
+          role: 'user',
           createdAt: new Date()
         };
 

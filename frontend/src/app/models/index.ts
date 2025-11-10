@@ -9,6 +9,7 @@ export interface User {
   address?: string;
   city?: string;
   postalCode?: string;
+  role?: 'admin' | 'user';
   createdAt?: Date;
 }
 
