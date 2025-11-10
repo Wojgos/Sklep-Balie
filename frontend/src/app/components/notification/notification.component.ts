@@ -9,10 +9,10 @@ import { Notification, NotificationType } from '../../models';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="notification-container fixed top-4 right-4 z-50 space-y-2">
+    <div class="notification-container fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 space-y-2 flex flex-col items-center">
       <div
         *ngFor="let notification of notifications; trackBy: trackByNotificationId"
-        class="notification-item flex items-center max-w-sm w-full bg-white rounded-lg shadow-lg border-l-4 overflow-hidden transform transition-all duration-300 ease-in-out"
+        class="notification-item flex items-center max-w-md w-full bg-white rounded-lg shadow-lg border-l-4 overflow-hidden transform transition-all duration-300 ease-in-out"
         [class]="getNotificationClasses(notification.type)"
         role="alert"
         [attr.aria-live]="notification.type === notificationTypes.ERROR ? 'assertive' : 'polite'"
@@ -107,23 +107,33 @@ import { Notification, NotificationType } from '../../models';
   styles: [`
     .notification-container {
       max-height: calc(100vh - 2rem);
-      overflow-y: auto;
-      /* Prevent horizontal scrollbar on page from slide-in animation */
-      overflow-x: hidden;
+      overflow: visible;
+      min-width: 320px;
+      pointer-events: none;
     }
-    
+
     .notification-item {
-      animation: slideIn 0.3s ease-out;
+      animation: slideUp 0.3s ease-out;
+      pointer-events: auto;
     }
     
-    @keyframes slideIn {
+    @keyframes slideUp {
       from {
-        transform: translateX(100%);
+        transform: translateY(100%);
         opacity: 0;
       }
       to {
-        transform: translateX(0);
+        transform: translateY(0);
         opacity: 1;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .notification-container {
+        min-width: calc(100vw - 2rem);
+        left: 1rem;
+        right: 1rem;
+        transform: none;
       }
     }
   `]
