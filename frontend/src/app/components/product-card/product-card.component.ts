@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Product } from '../../models';
 import { CartService } from '../../services/cart.service';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'bg-product-card',
@@ -79,7 +80,8 @@ import { CartService } from '../../services/cart.service';
           </div>
 
           <button 
-            class="w-full mt-4 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md transition-colors" 
+            class="w-full mt-4 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md transition-all" 
+            [class.animate-bounce-once]="isAdding"
             (click)="addToCart($event)"
             data-testid="button-add-to-cart"
           >
@@ -94,8 +96,12 @@ import { CartService } from '../../services/cart.service';
 export class ProductCardComponent {
   @Input() product!: Product;
   wishlist = false;
+  isAdding = false;
 
-  constructor(private cartService: CartService) {}
+  constructor(
+    private cartService: CartService,
+    private notificationService: NotificationService
+  ) {}
 
   toggleWishlist(event: Event): void {
     event.preventDefault();
@@ -106,9 +112,19 @@ export class ProductCardComponent {
   addToCart(event: Event): void {
     event.preventDefault();
     event.stopPropagation();
+    
+    if (this.isAdding) return;
+    
+    this.isAdding = true;
     this.cartService.addItem(this.product);
-    // TODO: Add toast notification
-    console.log(`Dodano ${this.product.name} do koszyka`);
+    
+    // Show success notification
+    this.notificationService.showSuccess(`${this.product.name} został dodany do koszyka!`);
+    
+    // Reset button state after animation
+    setTimeout(() => {
+      this.isAdding = false;
+    }, 500);
   }
 
   parseFloat(value: string): number {

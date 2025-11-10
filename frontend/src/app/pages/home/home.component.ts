@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { NotificationService } from '../../services/notification.service';
@@ -38,7 +39,9 @@ import { CategoryCardComponent } from '../../components/category-card/category-c
               Profesjonalne doradztwo i szybka dostawa.
             </p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-              <button class="inline-flex items-center justify-center gap-3 bg-[#266741] text-white hover:bg-[#1f5635] px-10 py-4 rounded-full text-lg font-semibold transition-all shadow-lg shadow-black/30">
+              <button 
+                (click)="navigateToProducts()"
+                class="inline-flex items-center justify-center gap-3 bg-[#266741] text-white hover:bg-[#1f5635] px-10 py-4 rounded-full text-lg font-semibold transition-all shadow-lg shadow-black/30">
                 Przeglądaj Produkty
                 <span class="text-2xl leading-none">→</span>
               </button>
@@ -116,13 +119,13 @@ import { CategoryCardComponent } from '../../components/category-card/category-c
             </div>
 
             <div class="text-center">
-              <a 
-                href="#wszystkie" 
+              <button 
+                (click)="navigateToProducts()"
                 class="text-primary font-medium hover:underline"
                 data-testid="link-view-all"
               >
                 Zobacz wszystkie produkty →
-              </a>
+              </button>
             </div>
           </div>
         </section>
@@ -262,7 +265,11 @@ export class HomeComponent implements OnInit {
     }
   ];
 
-  constructor(private apiService: ApiService, private notificationService: NotificationService) {
+  constructor(
+    private apiService: ApiService, 
+    private notificationService: NotificationService,
+    private router: Router
+  ) {
     this.categories$ = this.apiService.getCategories();
     this.products$ = this.apiService.getProducts();
   }
@@ -271,6 +278,10 @@ export class HomeComponent implements OnInit {
     this.products$.subscribe(products => {
       this.featuredProducts = products.slice(0, 4);
     });
+  }
+
+  navigateToProducts(): void {
+    this.router.navigate(['/products']);
   }
 
   // Test methods for notification service

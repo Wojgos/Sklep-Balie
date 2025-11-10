@@ -28,6 +28,7 @@ export class ChatbotService {
   private initializeChat(): void {
     const welcomeMessage: ChatMessage = {
       id: this.generateMessageId(),
+      role: 'assistant',
       content: 'Cześć! Jestem Twoim asystentem. Mogę pomóc Ci znaleźć produkty, odpowiedzieć na pytania o nasze balie ogrodowe lub pomóc w nawigacji po stronie. W czym mogę Ci pomóc?',
       isUser: false,
       timestamp: new Date()
@@ -55,6 +56,7 @@ export class ChatbotService {
     // Add user message to chat
     const userMessage: ChatMessage = {
       id: this.generateMessageId(),
+      role: 'user',
       content: content,
       isUser: true,
       timestamp: new Date()
@@ -66,6 +68,7 @@ export class ChatbotService {
     // Add typing indicator
     const typingMessage: ChatMessage = {
       id: 'typing',
+      role: 'assistant',
       content: '',
       isUser: false,
       timestamp: new Date(),
@@ -101,6 +104,7 @@ export class ChatbotService {
     // Add bot response
     const botMessage: ChatMessage = {
       id: this.generateMessageId(),
+      role: 'assistant',
       content: response.message,
       isUser: false,
       timestamp: new Date()

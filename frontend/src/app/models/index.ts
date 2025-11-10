@@ -121,3 +121,39 @@ export interface Notification {
   createdAt: Date;
 }
 
+// Chatbot models
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: Date;
+  actions?: ChatAction[];
+  isUser?: boolean;
+  isTyping?: boolean;
+}
+
+export interface ChatRequest {
+  message: string;
+  conversationHistory?: ChatMessage[];
+  context?: {
+    currentPage?: string;
+    userIntent?: string;
+    products?: Product[];
+    categories?: Category[];
+    sessionId?: string;
+  };
+}
+
+export interface ChatResponse {
+  message: string;
+  suggestions?: string[];
+  actions?: ChatAction[];
+}
+
+export interface ChatAction {
+  type: 'product' | 'category' | 'link' | 'search' | 'navigate' | 'filter' | 'contact';
+  label: string;
+  value?: string;
+  data?: any;
+}
+

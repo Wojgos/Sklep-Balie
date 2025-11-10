@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { CartService } from '../../services/cart.service';
+import { NotificationService } from '../../services/notification.service';
 import { Product } from '../../models';
 import { HeaderComponent } from '../../components/header/header.component';
 import { FooterComponent } from '../../components/footer/footer.component';
@@ -90,7 +91,8 @@ import { FooterComponent } from '../../components/footer/footer.component';
                 <button 
                   *ngIf="product.stock > 0"
                   (click)="addToCart(product)"
-                  class="w-full bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-semibold transition-colors"
+                  [class.scale-95]="isAdding"
+                  class="w-full bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-semibold transition-all"
                 >
                   Dodaj do koszyka
                 </button>
@@ -115,11 +117,13 @@ import { FooterComponent } from '../../components/footer/footer.component';
 })
 export class ProductDetailsComponent implements OnInit {
   product$: Observable<Product>;
+  isAdding = false;
 
   constructor(
     private route: ActivatedRoute,
     private apiService: ApiService,
-    private cartService: CartService
+    private cartService: CartService,
+    private notificationService: NotificationService
   ) {
     this.product$ = new Observable();
   }
@@ -132,8 +136,18 @@ export class ProductDetailsComponent implements OnInit {
   }
 
   addToCart(product: Product): void {
+    if (this.isAdding) return;
+    
+    this.isAdding = true;
     this.cartService.addItem(product);
-    console.log(`Dodano ${product.name} do koszyka`);
+    
+    // Show success notification
+    this.notificationService.showSuccess(`${product.name} został dodany do koszyka! 🎉`);
+    
+    // Reset button state after animation
+    setTimeout(() => {
+      this.isAdding = false;
+    }, 200);
   }
 
   parseFloat(value: string): number {

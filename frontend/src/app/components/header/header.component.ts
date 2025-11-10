@@ -32,7 +32,7 @@ import { CartDrawerComponent } from '../cart-drawer/cart-drawer.component';
 
             <nav class="hidden lg:flex items-center gap-6">
               <a 
-                href="#produkty" 
+                routerLink="/products"
                 class="text-sm font-medium hover:bg-muted px-3 py-2 rounded-md transition-colors" 
                 data-testid="link-produkty"
               >
@@ -109,7 +109,8 @@ import { CartDrawerComponent } from '../cart-drawer/cart-drawer.component';
             </button>
 
             <button 
-              class="relative p-2 hover:bg-muted rounded-md transition-colors" 
+              class="relative p-2 hover:bg-muted rounded-md transition-all" 
+              [class.animate-bounce]="cartPulse"
               (click)="toggleCart()"
               data-testid="button-cart"
             >
@@ -118,7 +119,8 @@ import { CartDrawerComponent } from '../cart-drawer/cart-drawer.component';
               </svg>
               <span 
                 *ngIf="(itemCount$ | async)! > 0" 
-                class="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center" 
+                class="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center transition-all" 
+                [class.scale-125]="cartPulse"
                 data-testid="text-cart-count"
               >
                 {{ itemCount$ | async }}
@@ -152,7 +154,7 @@ import { CartDrawerComponent } from '../cart-drawer/cart-drawer.component';
             </button>
           </div>
           <nav class="space-y-2">
-            <a href="#produkty" class="block px-3 py-2 rounded-md hover:bg-muted">Produkty</a>
+            <a routerLink="/products" class="block px-3 py-2 rounded-md hover:bg-muted">Produkty</a>
             <a href="#kategorie" class="block px-3 py-2 rounded-md hover:bg-muted">Kategorie</a>
             <a href="#o-nas" class="block px-3 py-2 rounded-md hover:bg-muted">O nas</a>
             <a href="#kontakt" class="block px-3 py-2 rounded-md hover:bg-muted">Kontakt</a>
@@ -174,11 +176,20 @@ export class HeaderComponent implements OnInit {
   cartOpen = false;
   mobileMenuOpen = false;
   isDarkMode = false;
+  cartPulse = false;
   
   itemCount$: Observable<number>;
 
   constructor(private cartService: CartService) {
     this.itemCount$ = this.cartService.itemCount$;
+    
+    // Subscribe to item added events to trigger animation
+    this.cartService.itemAdded$.subscribe(() => {
+      this.cartPulse = true;
+      setTimeout(() => {
+        this.cartPulse = false;
+      }, 600);
+    });
   }
 
   ngOnInit(): void {

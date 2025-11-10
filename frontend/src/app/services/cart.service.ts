@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { CartItem, Product } from '../models';
 
@@ -9,12 +9,17 @@ import { CartItem, Product } from '../models';
 export class CartService {
   private readonly STORAGE_KEY = 'cart';
   private cartSubject = new BehaviorSubject<CartItem[]>(this.loadCartFromStorage());
+  private itemAddedSubject = new Subject<Product>();
 
   constructor() {
     // Subscribe to cart changes and save to localStorage
     this.cartSubject.subscribe(items => {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(items));
     });
+  }
+
+  get itemAdded$(): Observable<Product> {
+    return this.itemAddedSubject.asObservable();
   }
 
   get cart$(): Observable<CartItem[]> {
@@ -45,6 +50,9 @@ export class CartService {
     } else {
       this.cartSubject.next([...currentItems, { product, quantity }]);
     }
+    
+    // Emit event that item was added
+    this.itemAddedSubject.next(product);
   }
 
   removeItem(productId: string): void {
