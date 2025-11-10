@@ -1,0 +1,162 @@
+<div class="register-page">
+  <div class="register-container">
+    <div class="register-card">
+      <!-- Header -->
+      <div class="register-header">
+        <h1 class="register-title">Utwórz konto</h1>
+        <p class="register-subtitle">Dołącz do nas już dziś!</p>
+      </div>
+
+      <!-- Registration Form -->
+      <form (ngSubmit)="onSubmit()" class="register-form">
+        
+        <!-- Username -->
+        <div class="form-group">
+          <label for="username" class="form-label">Nazwa użytkownika *</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            [(ngModel)]="userData.username"
+            class="form-input"
+            placeholder="Wybierz nazwę użytkownika"
+            [disabled]="isLoading"
+            required
+            autocomplete="username"
+          />
+        </div>
+
+        <!-- Email -->
+        <div class="form-group">
+          <label for="email" class="form-label">Email *</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            [(ngModel)]="userData.email"
+            class="form-input"
+            placeholder="twoj@email.com"
+            [disabled]="isLoading"
+            required
+            autocomplete="email"
+          />
+        </div>
+
+        <!-- First and Last Name -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName" class="form-label">Imię *</label>
+            <input
+              type="text"
+              id="firstName"
+              name="firstName"
+              [(ngModel)]="userData.firstName"
+              class="form-input"
+              placeholder="Twoje imię"
+              [disabled]="isLoading"
+              required
+              autocomplete="given-name"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="lastName" class="form-label">Nazwisko *</label>
+            <input
+              type="text"
+              id="lastName"
+              name="lastName"
+              [(ngModel)]="userData.lastName"
+              class="form-input"
+              placeholder="Twoje nazwisko"
+              [disabled]="isLoading"
+              required
+              autocomplete="family-name"
+            />
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+          <label for="password" class="form-label">Hasło *</label>
+          <div class="password-input-wrapper">
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              id="password"
+              name="password"
+              [(ngModel)]="userData.password"
+              class="form-input"
+              placeholder="Co najmniej 6 znaków"
+              [disabled]="isLoading"
+              required
+              autocomplete="new-password"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="togglePasswordVisibility()"
+              [disabled]="isLoading"
+            >
+              <span *ngIf="!showPassword">👁</span>
+              <span *ngIf="showPassword">🙈</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="form-group">
+          <label for="confirmPassword" class="form-label">Potwierdź hasło *</label>
+          <div class="password-input-wrapper">
+            <input
+              [type]="showConfirmPassword ? 'text' : 'password'"
+              id="confirmPassword"
+              name="confirmPassword"
+              [(ngModel)]="userData.confirmPassword"
+              class="form-input"
+              placeholder="Wprowadź hasło ponownie"
+              [disabled]="isLoading"
+              required
+              autocomplete="new-password"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="toggleConfirmPasswordVisibility()"
+              [disabled]="isLoading"
+            >
+              <span *ngIf="!showConfirmPassword">👁</span>
+              <span *ngIf="showConfirmPassword">🙈</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button
+          type="submit"
+          class="btn-submit"
+          [disabled]="isLoading"
+        >
+          <span *ngIf="!isLoading">Utwórz konto</span>
+          <span *ngIf="isLoading" class="loading-spinner">
+            <span class="spinner"></span>
+            Tworzenie...
+          </span>
+        </button>
+      </form>
+
+      <!-- Login Link -->
+      <div class="login-link">
+        <p>
+          Masz już konto?
+          <a [routerLink]="['/login']" class="link">Zaloguj się</a>
+        </p>
+      </div>
+
+      <!-- Back to Home -->
+      <div class="back-home">
+        <a [routerLink]="['/']" class="link-back">
+          ← Powrót do strony głównej
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,89 @@
+<div class="login-page">
+  <div class="login-container">
+    <div class="login-card">
+      <!-- Logo/Header -->
+      <div class="login-header">
+        <h1 class="login-title">Zaloguj się</h1>
+        <p class="login-subtitle">Witaj ponownie!</p>
+      </div>
+
+      <!-- Login Form -->
+      <form (ngSubmit)="onSubmit()" class="login-form">
+        <!-- Username Field -->
+        <div class="form-group">
+          <label for="username" class="form-label">
+            Nazwa użytkownika
+          </label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            [(ngModel)]="credentials.username"
+            class="form-input"
+            placeholder="Wprowadź nazwę użytkownika"
+            [disabled]="isLoading"
+            required
+            autocomplete="username"
+          />
+        </div>
+
+        <!-- Password Field -->
+        <div class="form-group">
+          <label for="password" class="form-label">
+            Hasło
+          </label>
+          <div class="password-input-wrapper">
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              id="password"
+              name="password"
+              [(ngModel)]="credentials.password"
+              class="form-input"
+              placeholder="Wprowadź hasło"
+              [disabled]="isLoading"
+              required
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="togglePasswordVisibility()"
+              [disabled]="isLoading"
+            >
+              <span *ngIf="!showPassword">👁</span>
+              <span *ngIf="showPassword">🙈</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button
+          type="submit"
+          class="btn-submit"
+          [disabled]="isLoading"
+        >
+          <span *ngIf="!isLoading">Zaloguj się</span>
+          <span *ngIf="isLoading" class="loading-spinner">
+            <span class="spinner"></span>
+            Logowanie...
+          </span>
+        </button>
+      </form>
+
+      <!-- Register Link -->
+      <div class="register-link">
+        <p>
+          Nie masz konta?
+          <a [routerLink]="['/register']" class="link">Zarejestruj się</a>
+        </p>
+      </div>
+
+      <!-- Back to Home -->
+      <div class="back-home">
+        <a [routerLink]="['/']" class="link-back">
+          ← Powrót do strony głównej
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

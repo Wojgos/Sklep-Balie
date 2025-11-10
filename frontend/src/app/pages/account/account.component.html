@@ -1,0 +1,330 @@
+<div class="account-page">
+  <div class="account-container">
+    <!-- Header -->
+    <div class="account-header">
+      <div class="user-welcome">
+        <h1 class="welcome-title">Witaj, {{ currentUser?.firstName }}! 👋</h1>
+        <p class="welcome-subtitle">Zarządzaj swoim kontem i zamówieniami</p>
+      </div>
+      <button class="btn-logout" (click)="logout()">
+        <span class="logout-icon">🚪</span>
+        Wyloguj się
+      </button>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="tabs-navigation">
+      <button 
+        class="tab-button" 
+        [class.active]="activeTab === 'profile'"
+        (click)="setActiveTab('profile')"
+      >
+        <span class="tab-icon">👤</span>
+        <span class="tab-label">Profil</span>
+      </button>
+      <button 
+        class="tab-button" 
+        [class.active]="activeTab === 'orders'"
+        (click)="setActiveTab('orders')"
+      >
+        <span class="tab-icon">📦</span>
+        <span class="tab-label">Zamówienia</span>
+      </button>
+      <button 
+        class="tab-button" 
+        [class.active]="activeTab === 'settings'"
+        (click)="setActiveTab('settings')"
+      >
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-label">Ustawienia</span>
+      </button>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      
+      <!-- Profile Tab -->
+      <div *ngIf="activeTab === 'profile'" class="profile-tab">
+        <div class="section-header">
+          <h2 class="section-title">Informacje o profilu</h2>
+          <button class="btn-edit" (click)="toggleEditProfile()">
+            <span *ngIf="!isEditingProfile">Edytuj</span>
+            <span *ngIf="isEditingProfile">Anuluj</span>
+          </button>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-info" *ngIf="!isEditingProfile">
+            <div class="info-row">
+              <div class="info-group">
+                <label class="info-label">Nazwa użytkownika</label>
+                <p class="info-value">{{ currentUser?.username }}</p>
+              </div>
+              <div class="info-group">
+                <label class="info-label">Email</label>
+                <p class="info-value">{{ currentUser?.email }}</p>
+              </div>
+            </div>
+
+            <div class="info-row">
+              <div class="info-group">
+                <label class="info-label">Imię</label>
+                <p class="info-value">{{ currentUser?.firstName }}</p>
+              </div>
+              <div class="info-group">
+                <label class="info-label">Nazwisko</label>
+                <p class="info-value">{{ currentUser?.lastName }}</p>
+              </div>
+            </div>
+
+            <div class="info-group">
+              <label class="info-label">Telefon</label>
+              <p class="info-value">{{ currentUser?.phone || 'Nie podano' }}</p>
+            </div>
+
+            <div class="info-group">
+              <label class="info-label">Adres</label>
+              <p class="info-value" *ngIf="currentUser?.address">
+                {{ currentUser?.address }}<br>
+                {{ currentUser?.postalCode }} {{ currentUser?.city }}
+              </p>
+              <p class="info-value" *ngIf="!currentUser?.address">Nie podano</p>
+            </div>
+
+            <div class="info-group">
+              <label class="info-label">Data rejestracji</label>
+              <p class="info-value">{{ formatDate(currentUser?.createdAt) }}</p>
+            </div>
+          </div>
+
+          <!-- Edit Form -->
+          <form *ngIf="isEditingProfile" (ngSubmit)="saveProfile()" class="edit-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Imię *</label>
+                <input
+                  type="text"
+                  [(ngModel)]="editedUser.firstName"
+                  name="firstName"
+                  class="form-input"
+                  required
+                  [disabled]="isSavingProfile"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nazwisko *</label>
+                <input
+                  type="text"
+                  [(ngModel)]="editedUser.lastName"
+                  name="lastName"
+                  class="form-input"
+                  required
+                  [disabled]="isSavingProfile"
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Email *</label>
+              <input
+                type="email"
+                [(ngModel)]="editedUser.email"
+                name="email"
+                class="form-input"
+                required
+                [disabled]="isSavingProfile"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Telefon</label>
+              <input
+                type="tel"
+                [(ngModel)]="editedUser.phone"
+                name="phone"
+                class="form-input"
+                [disabled]="isSavingProfile"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Adres</label>
+              <input
+                type="text"
+                [(ngModel)]="editedUser.address"
+                name="address"
+                class="form-input"
+                placeholder="ul. Przykładowa 10"
+                [disabled]="isSavingProfile"
+              />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <label class="form-label">Miasto</label>
+                <input
+                  type="text"
+                  [(ngModel)]="editedUser.city"
+                  name="city"
+                  class="form-input"
+                  placeholder="Warszawa"
+                  [disabled]="isSavingProfile"
+                />
+              </div>
+              <div class="form-group flex-1">
+                <label class="form-label">Kod pocztowy</label>
+                <input
+                  type="text"
+                  [(ngModel)]="editedUser.postalCode"
+                  name="postalCode"
+                  class="form-input"
+                  placeholder="00-001"
+                  [disabled]="isSavingProfile"
+                />
+              </div>
+            </div>
+
+            <button type="submit" class="btn-save" [disabled]="isSavingProfile">
+              <span *ngIf="!isSavingProfile">Zapisz zmiany</span>
+              <span *ngIf="isSavingProfile">Zapisywanie...</span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Orders Tab -->
+      <div *ngIf="activeTab === 'orders'" class="orders-tab">
+        <div class="section-header">
+          <h2 class="section-title">Moje zamówienia</h2>
+        </div>
+
+        <div *ngIf="isLoadingOrders" class="loading-state">
+          <div class="spinner-large"></div>
+          <p>Ładowanie zamówień...</p>
+        </div>
+
+        <div *ngIf="!isLoadingOrders && orders.length === 0" class="empty-state">
+          <div class="empty-icon">📭</div>
+          <h3>Brak zamówień</h3>
+          <p>Nie masz jeszcze żadnych zamówień</p>
+          <a href="/" class="btn-primary">Rozpocznij zakupy</a>
+        </div>
+
+        <div *ngIf="!isLoadingOrders && orders.length > 0" class="orders-list">
+          <div *ngFor="let order of orders" class="order-card">
+            <div class="order-header">
+              <div class="order-info">
+                <h3 class="order-number">Zamówienie #{{ order.id }}</h3>
+                <p class="order-date">{{ formatDate(order.createdAt) }}</p>
+              </div>
+              <div class="order-status" [ngClass]="getOrderStatusClass(order.status)">
+                {{ getOrderStatusText(order.status) }}
+              </div>
+            </div>
+            <div class="order-details">
+              <div class="order-detail-item">
+                <span class="detail-label">Adres dostawy:</span>
+                <span class="detail-value">{{ order.address }}, {{ order.postalCode }} {{ order.city }}</span>
+              </div>
+              <div class="order-detail-item">
+                <span class="detail-label">Suma:</span>
+                <span class="detail-value price">{{ order.totalPrice }} zł</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div *ngIf="activeTab === 'settings'" class="settings-tab">
+        <div class="section-header">
+          <h2 class="section-title">Ustawienia konta</h2>
+        </div>
+
+        <div class="settings-card">
+          <div class="setting-item">
+            <div class="setting-info">
+              <h3 class="setting-title">Zmiana hasła</h3>
+              <p class="setting-description">Zaktualizuj hasło do swojego konta</p>
+            </div>
+            <button class="btn-secondary" (click)="togglePasswordChange()">
+              <span *ngIf="!isChangingPassword">Zmień hasło</span>
+              <span *ngIf="isChangingPassword">Anuluj</span>
+            </button>
+          </div>
+
+          <form *ngIf="isChangingPassword" (ngSubmit)="changePassword()" class="password-form">
+            <div class="form-group">
+              <label class="form-label">Obecne hasło</label>
+              <div class="password-input-wrapper">
+                <input
+                  [type]="showCurrentPassword ? 'text' : 'password'"
+                  [(ngModel)]="passwordData.currentPassword"
+                  name="currentPassword"
+                  class="form-input"
+                  required
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  (click)="showCurrentPassword = !showCurrentPassword"
+                >
+                  <span *ngIf="!showCurrentPassword">👁</span>
+                  <span *ngIf="showCurrentPassword">🙈</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Nowe hasło</label>
+              <div class="password-input-wrapper">
+                <input
+                  [type]="showNewPassword ? 'text' : 'password'"
+                  [(ngModel)]="passwordData.newPassword"
+                  name="newPassword"
+                  class="form-input"
+                  required
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  (click)="showNewPassword = !showNewPassword"
+                >
+                  <span *ngIf="!showNewPassword">👁</span>
+                  <span *ngIf="showNewPassword">🙈</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Potwierdź nowe hasło</label>
+              <div class="password-input-wrapper">
+                <input
+                  [type]="showConfirmPassword ? 'text' : 'password'"
+                  [(ngModel)]="passwordData.confirmPassword"
+                  name="confirmPassword"
+                  class="form-input"
+                  required
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  (click)="showConfirmPassword = !showConfirmPassword"
+                >
+                  <span *ngIf="!showConfirmPassword">👁</span>
+                  <span *ngIf="showConfirmPassword">🙈</span>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-save">
+              Zmień hasło
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
