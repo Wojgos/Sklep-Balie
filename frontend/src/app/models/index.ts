@@ -64,6 +64,22 @@ export interface InsertCategory {
   productCount?: number;
 }
 
+// Product Variant models
+export interface ProductVariant {
+  id: string;
+  name: string;
+  value: string;
+  priceModifier?: number; // Dodatkowa opłata lub zniżka
+  stockModifier?: number; // Modyfikator stanu magazynowego
+}
+
+export interface ProductAttribute {
+  id: string;
+  name: string; // np. "Kolor", "Rozmiar"
+  type: 'color' | 'size' | 'text';
+  variants: ProductVariant[];
+}
+
 // Product models
 export interface Product {
   id: string;
@@ -78,6 +94,7 @@ export interface Product {
   stock: number;
   material: string | null;
   createdAt: Date;
+  attributes?: ProductAttribute[]; // Opcjonalne atrybuty z wariantami
 }
 
 export interface InsertProduct {

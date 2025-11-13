@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Observable, combineLatest, map } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { Product, Category } from '../../models';
@@ -336,7 +336,8 @@ export class ProductsComponent implements OnInit {
 
   constructor(
     private apiService: ApiService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
@@ -353,7 +354,13 @@ export class ProductsComponent implements OnInit {
         .map(p => p.material)
         .filter(m => m !== null && m !== undefined))] as string[];
       
-      this.applyFilters();
+      // Check for category filter in query params
+      this.route.queryParams.subscribe(params => {
+        if (params['category']) {
+          this.selectedCategory = params['category'];
+        }
+        this.applyFilters();
+      });
     });
   }
 

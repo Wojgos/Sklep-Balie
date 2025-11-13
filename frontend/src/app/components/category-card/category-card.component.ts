@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { Category } from '../../models';
 
 @Component({
@@ -9,6 +10,7 @@ import { Category } from '../../models';
   template: `
     <div 
       class="group cursor-pointer bg-card border border-card-border rounded-lg overflow-hidden hover:shadow-lg transition-all"
+      (click)="navigateToProducts()"
       [attr.data-testid]="'card-category-' + category.name"
     >
       <div class="relative aspect-[4/3] overflow-hidden">
@@ -39,5 +41,13 @@ import { Category } from '../../models';
 })
 export class CategoryCardComponent {
   @Input() category!: Category;
+
+  constructor(private router: Router) {}
+
+  navigateToProducts(): void {
+    this.router.navigate(['/products'], { 
+      queryParams: { category: this.category.id } 
+    });
+  }
 }
 

@@ -69,6 +69,33 @@ import { FooterComponent } from '../../components/footer/footer.component';
                 </div>
               </div>
 
+              <!-- Product Variants Configuration -->
+              <div *ngIf="product.attributes && product.attributes.length > 0" class="border-t pt-6">
+                <h3 class="font-semibold text-lg mb-4">Konfiguracja produktu</h3>
+                <div class="space-y-4">
+                  <div *ngFor="let attribute of product.attributes" class="space-y-2">
+                    <label class="block text-sm font-medium">
+                      {{ attribute.name }}
+                    </label>
+                    <div class="grid grid-cols-3 gap-2">
+                      <button
+                        *ngFor="let variant of attribute.variants"
+                        (click)="selectVariant(attribute.id, variant.id)"
+                        [class]="getVariantButtonClass(attribute.id, variant.id)"
+                        class="px-4 py-2 text-sm font-medium rounded-lg border transition-colors"
+                      >
+                        <div class="text-left">
+                          <div>{{ variant.name }}</div>
+                          <div class="text-xs opacity-75" *ngIf="variant.priceModifier && variant.priceModifier !== 0">
+                            {{ variant.priceModifier > 0 ? '+' : '' }}{{ variant.priceModifier }} PLN
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div class="border-t pt-6">
                 <div class="flex items-center gap-4 mb-6">
                   <div>
@@ -76,16 +103,31 @@ import { FooterComponent } from '../../components/footer/footer.component';
                       {{ parseFloat(product.oldPrice) | number:'1.2-2' }} PLN
                     </span>
                     <span class="text-3xl font-bold">
-                      {{ parseFloat(product.price) | number:'1.2-2' }} PLN
+                      {{ getFinalPrice(product) | number:'1.2-2' }} PLN
+                    </span>
+                    <span *ngIf="getTotalPriceModifier() !== 0" class="text-sm text-muted-foreground ml-2">
+                      (bazowa: {{ parseFloat(product.price) | number:'1.2-2' }} PLN)
                     </span>
                   </div>
                 </div>
 
-                <div class="flex items-center gap-4 mb-6">
-                  <span class="text-sm text-muted-foreground">Stan magazynowy:</span>
-                  <span [class]="product.stock > 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                    {{ product.stock > 0 ? product.stock + ' szt.' : 'Brak w magazynie' }}
-                  </span>
+                <div class="space-y-3 mb-6">
+                  <div class="flex items-center gap-4">
+                    <span class="text-sm text-muted-foreground">Stan magazynowy:</span>
+                    <span [class]="product.stock > 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                      {{ product.stock > 0 ? product.stock + ' szt.' : 'Brak w magazynie' }}
+                    </span>
+                  </div>
+                  
+                  <div class="flex items-center gap-4" *ngIf="product.stock > 0">
+                    <span class="text-sm text-muted-foreground">Czas dostawy:</span>
+                    <span class="text-foreground font-semibold flex items-center gap-2">
+                      <svg class="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      {{ getDeliveryTime(product.stock) }}
+                    </span>
+                  </div>
                 </div>
 
                 <button 
@@ -117,7 +159,9 @@ import { FooterComponent } from '../../components/footer/footer.component';
 })
 export class ProductDetailsComponent implements OnInit {
   product$: Observable<Product>;
+  product: Product | null = null;
   isAdding = false;
+  selectedVariants: { [attributeId: string]: string } = {}; // attributeId -> variantId
 
   constructor(
     private route: ActivatedRoute,
@@ -132,6 +176,18 @@ export class ProductDetailsComponent implements OnInit {
     const productId = this.route.snapshot.paramMap.get('id');
     if (productId) {
       this.product$ = this.apiService.getProduct(productId);
+      
+      // Initialize default variants (first option for each attribute)
+      this.product$.subscribe(product => {
+        this.product = product;
+        if (product.attributes) {
+          product.attributes.forEach(attr => {
+            if (attr.variants.length > 0) {
+              this.selectedVariants[attr.id] = attr.variants[0].id;
+            }
+          });
+        }
+      });
     }
   }
 
@@ -152,5 +208,48 @@ export class ProductDetailsComponent implements OnInit {
 
   parseFloat(value: string): number {
     return parseFloat(value);
+  }
+
+  getDeliveryTime(stock: number): string {
+    if (stock >= 10) {
+      return '2-3 dni robocze';
+    } else if (stock >= 5) {
+      return '3-5 dni roboczych';
+    } else {
+      return '5-7 dni roboczych';
+    }
+  }
+
+  selectVariant(attributeId: string, variantId: string): void {
+    this.selectedVariants[attributeId] = variantId;
+  }
+
+  getVariantButtonClass(attributeId: string, variantId: string): string {
+    const isSelected = this.selectedVariants[attributeId] === variantId;
+    return isSelected 
+      ? 'bg-primary text-primary-foreground border-primary' 
+      : 'bg-background hover:bg-muted border-border';
+  }
+
+  getTotalPriceModifier(): number {
+    let total = 0;
+    
+    if (this.product && this.product.attributes) {
+      this.product.attributes.forEach(attr => {
+        const selectedVariantId = this.selectedVariants[attr.id];
+        const variant = attr.variants.find(v => v.id === selectedVariantId);
+        if (variant && variant.priceModifier) {
+          total += variant.priceModifier;
+        }
+      });
+    }
+    
+    return total;
+  }
+
+  getFinalPrice(product: Product): number {
+    const basePrice = parseFloat(product.price);
+    const modifier = this.getTotalPriceModifier();
+    return basePrice + modifier;
   }
 }

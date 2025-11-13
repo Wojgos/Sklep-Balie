@@ -59,7 +59,29 @@ export class MockDataService {
       image: 'assets/Wooden_garden_barrel_hero_26de98c6.png',
       stock: 15,
       material: 'Dąb',
-      createdAt: new Date('2024-01-15')
+      createdAt: new Date('2024-01-15'),
+      attributes: [
+        {
+          id: 'size-1',
+          name: 'Rozmiar',
+          type: 'size',
+          variants: [
+            { id: 'size-s', name: 'Mały', value: '50x50x70 cm', priceModifier: -50 },
+            { id: 'size-m', name: 'Średni', value: '60x60x80 cm', priceModifier: 0 },
+            { id: 'size-l', name: 'Duży', value: '70x70x90 cm', priceModifier: 50 }
+          ]
+        },
+        {
+          id: 'finish-1',
+          name: 'Wykończenie',
+          type: 'text',
+          variants: [
+            { id: 'finish-natural', name: 'Naturalne', value: 'Naturalne drewno', priceModifier: 0 },
+            { id: 'finish-oiled', name: 'Olejowane', value: 'Olejowane', priceModifier: 30 },
+            { id: 'finish-varnished', name: 'Lakierowane', value: 'Lakierowane', priceModifier: 50 }
+          ]
+        }
+      ]
     },
     {
       id: '2',
@@ -157,7 +179,29 @@ export class MockDataService {
       image: 'assets/Oak_barrel_water_tub_da291514.png',
       stock: 3,
       material: 'Dąb',
-      createdAt: new Date('2024-02-10')
+      createdAt: new Date('2024-02-10'),
+      attributes: [
+        {
+          id: 'wood-type',
+          name: 'Rodzaj drewna',
+          type: 'text',
+          variants: [
+            { id: 'oak', name: 'Dąb', value: 'Dąb europejski', priceModifier: 0 },
+            { id: 'larch', name: 'Modrzew', value: 'Modrzew syberyjski', priceModifier: 100 },
+            { id: 'cedar', name: 'Cedr', value: 'Cedr kanadyjski', priceModifier: 200 }
+          ]
+        },
+        {
+          id: 'accessories',
+          name: 'Wyposażenie',
+          type: 'text',
+          variants: [
+            { id: 'basic', name: 'Podstawowe', value: 'Bez dodatków', priceModifier: 0 },
+            { id: 'steps', name: 'Ze schodkami', value: 'Schodki drewniane', priceModifier: 150 },
+            { id: 'full', name: 'Pełne', value: 'Schodki + ławka', priceModifier: 300 }
+          ]
+        }
+      ]
     },
     {
       id: '9',
@@ -179,19 +223,72 @@ export class MockDataService {
     {
       id: '1',
       customerName: 'Jan Kowalski',
-      email: 'jan.kowalski@email.com',
-      phone: '123-456-789',
-      address: 'ul. Ogrodowa 1',
-      city: 'Warszawa',
-      postalCode: '00-001',
+      email: 'user@example.com',
+      phone: '+48 987 654 321',
+      address: 'ul. Testowa 10',
+      city: 'Kraków',
+      postalCode: '30-001',
       totalPrice: '449.98',
-      status: 'completed',
+      status: 'delivered',
       notes: 'Dostawa na parter',
-      createdAt: new Date('2024-01-20')
+      createdAt: new Date('2024-10-15')
+    },
+    {
+      id: '2',
+      customerName: 'Jan Kowalski',
+      email: 'user@example.com',
+      phone: '+48 987 654 321',
+      address: 'ul. Testowa 10',
+      city: 'Kraków',
+      postalCode: '30-001',
+      totalPrice: '899.99',
+      status: 'shipped',
+      notes: 'Proszę zadzwonić przed dostawą',
+      createdAt: new Date('2024-11-05')
+    },
+    {
+      id: '3',
+      customerName: 'Jan Kowalski',
+      email: 'user@example.com',
+      phone: '+48 987 654 321',
+      address: 'ul. Testowa 10',
+      city: 'Kraków',
+      postalCode: '30-001',
+      totalPrice: '258.93',
+      status: 'processing',
+      notes: null,
+      createdAt: new Date('2024-11-10')
+    },
+    {
+      id: '4',
+      customerName: 'Jan Kowalski',
+      email: 'user@example.com',
+      phone: '+48 987 654 321',
+      address: 'ul. Testowa 10',
+      city: 'Kraków',
+      postalCode: '30-001',
+      totalPrice: '699.99',
+      status: 'pending',
+      notes: 'Zamówienie na prezent',
+      createdAt: new Date('2024-11-12')
+    },
+    {
+      id: '5',
+      customerName: 'Jan Kowalski',
+      email: 'user@example.com',
+      phone: '+48 987 654 321',
+      address: 'ul. Leśna 5',
+      city: 'Warszawa',
+      postalCode: '02-500',
+      totalPrice: '149.99',
+      status: 'delivered',
+      notes: 'Dostawa pod drzwi',
+      createdAt: new Date('2024-09-20')
     }
   ];
 
   private orderItems: OrderItem[] = [
+    // Zamówienie #1 - Dostarczone (2x produkt)
     {
       id: '1',
       orderId: '1',
@@ -203,10 +300,54 @@ export class MockDataService {
     {
       id: '2',
       orderId: '1',
-      productId: '2',
-      productName: 'Beczka na wodę deszczową',
+      productId: '3',
+      productName: 'Dekoracyjna beczka na rośliny',
       quantity: 1,
-      price: '199.99'
+      price: '149.99'
+    },
+    // Zamówienie #2 - Wysłane (1x produkt premium)
+    {
+      id: '3',
+      orderId: '2',
+      productId: '8',
+      productName: 'Wanna ogrodowa dębowa',
+      quantity: 1,
+      price: '899.99'
+    },
+    // Zamówienie #3 - W realizacji (3x produkty konstrukcyjne)
+    {
+      id: '4',
+      orderId: '3',
+      productId: '7',
+      productName: 'Słupki ogrodzeniowe dębowe',
+      quantity: 3,
+      price: '24.99'
+    },
+    {
+      id: '5',
+      orderId: '3',
+      productId: '4',
+      productName: 'Deski cedrowe tarasowe',
+      quantity: 4,
+      price: '45.99'
+    },
+    // Zamówienie #4 - Oczekujące (1x produkt)
+    {
+      id: '6',
+      orderId: '4',
+      productId: '9',
+      productName: 'Owalna wanna ogrodowa',
+      quantity: 1,
+      price: '699.99'
+    },
+    // Zamówienie #5 - Dostarczone (1x produkt)
+    {
+      id: '7',
+      orderId: '5',
+      productId: '3',
+      productName: 'Dekoracyjna beczka na rośliny',
+      quantity: 1,
+      price: '149.99'
     }
   ];
 

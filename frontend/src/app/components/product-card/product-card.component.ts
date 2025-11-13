@@ -4,11 +4,12 @@ import { RouterModule } from '@angular/router';
 import { Product } from '../../models';
 import { CartService } from '../../services/cart.service';
 import { NotificationService } from '../../services/notification.service';
+import { ProductQuickViewComponent } from '../product-quick-view/product-quick-view.component';
 
 @Component({
   selector: 'bg-product-card',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, ProductQuickViewComponent],
   template: `
     <a [routerLink]="['/product', product.id]" class="block h-full">
       <div 
@@ -21,6 +22,21 @@ import { NotificationService } from '../../services/notification.service';
             [alt]="product.name"
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
+          
+          <!-- Quick View Button -->
+          <button
+            (click)="openQuickView($event)"
+            class="absolute top-3 left-3 w-9 h-9 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+            data-testid="button-quick-view"
+            title="Szybki podgląd"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+            </svg>
+          </button>
+
+          <!-- Wishlist Button -->
           <button
             (click)="toggleWishlist($event)"
             [class]="'absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-colors ' + 
@@ -90,6 +106,13 @@ import { NotificationService } from '../../services/notification.service';
         </div>
       </div>
     </a>
+
+    <!-- Quick View Modal -->
+    <bg-product-quick-view
+      *ngIf="showQuickView"
+      [product]="product"
+      (close)="showQuickView = false"
+    ></bg-product-quick-view>
   `,
   styleUrls: ['./product-card.component.scss']
 })
@@ -97,6 +120,7 @@ export class ProductCardComponent {
   @Input() product!: Product;
   wishlist = false;
   isAdding = false;
+  showQuickView = false;
 
   constructor(
     private cartService: CartService,
@@ -107,6 +131,12 @@ export class ProductCardComponent {
     event.preventDefault();
     event.stopPropagation();
     this.wishlist = !this.wishlist;
+  }
+
+  openQuickView(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.showQuickView = true;
   }
 
   addToCart(event: Event): void {
