@@ -6,18 +6,13 @@ import { ApiService } from '../../services/api.service';
 import { CartService } from '../../services/cart.service';
 import { NotificationService } from '../../services/notification.service';
 import { Product } from '../../models';
-import { HeaderComponent } from '../../components/header/header.component';
-import { FooterComponent } from '../../components/footer/footer.component';
 
 @Component({
   selector: 'bg-product-details',
   standalone: true,
-  imports: [CommonModule, HeaderComponent, FooterComponent],
+  imports: [CommonModule],
   template: `
-    <div class="min-h-screen flex flex-col">
-      <bg-header></bg-header>
-      
-      <main class="flex-1 py-12 bg-background" *ngIf="product$ | async as product">
+    <div class="flex-1 py-12 bg-background" *ngIf="product$ | async as product">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <!-- Product Image -->
@@ -150,9 +145,6 @@ import { FooterComponent } from '../../components/footer/footer.component';
             </div>
           </div>
         </div>
-      </main>
-
-      <bg-footer></bg-footer>
     </div>
   `,
   styleUrls: ['./product-details.component.scss']

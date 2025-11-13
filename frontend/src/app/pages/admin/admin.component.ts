@@ -4,20 +4,15 @@ import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { Product, Category, Order, InsertProduct, InsertCategory, SalesStatistics, LowStockAlert, OrderItem } from '../../models';
-import { HeaderComponent } from '../../components/header/header.component';
-import { FooterComponent } from '../../components/footer/footer.component';
 
 type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics';
 
 @Component({
   selector: 'bg-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, HeaderComponent, FooterComponent],
+  imports: [CommonModule, FormsModule],
   template: `
-    <div class="min-h-screen flex flex-col bg-background">
-      <bg-header></bg-header>
-
-      <main class="flex-1 py-8">
+    <div class="flex-1 bg-background py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <!-- Header -->
           <div class="mb-8">
@@ -412,9 +407,6 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics';
             </div>
           </div>
         </div>
-      </main>
-
-      <bg-footer></bg-footer>
     </div>
 
     <!-- Product Modal -->

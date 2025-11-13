@@ -5,8 +5,6 @@ import { Observable } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { NotificationService } from '../../services/notification.service';
 import { Product, Category, NotificationType } from '../../models';
-import { HeaderComponent } from '../../components/header/header.component';
-import { FooterComponent } from '../../components/footer/footer.component';
 import { ProductCardComponent } from '../../components/product-card/product-card.component';
 import { CategoryCardComponent } from '../../components/category-card/category-card.component';
 
@@ -15,16 +13,11 @@ import { CategoryCardComponent } from '../../components/category-card/category-c
   standalone: true,
   imports: [
     CommonModule, 
-    HeaderComponent, 
-    FooterComponent, 
     ProductCardComponent, 
     CategoryCardComponent
   ],
   template: `
-    <div class="min-h-screen flex flex-col">
-      <bg-header></bg-header>
-      
-      <main class="flex-1">
+    <div class="flex-1">
         <!-- Hero Section -->
         <section class="relative h-[80vh] flex items-center justify-center">
           <div class="absolute inset-0 bg-[url('/assets/Wooden_garden_barrel_hero_26de98c6.png')] bg-cover bg-center filter saturate-125 contrast-110 brightness-95"></div>
@@ -214,9 +207,6 @@ import { CategoryCardComponent } from '../../components/category-card/category-c
             </div>
           </div>
         </section>
-      </main>
-
-      <bg-footer></bg-footer>
     </div>
   `,
   styleUrls: ['./home.component.scss']

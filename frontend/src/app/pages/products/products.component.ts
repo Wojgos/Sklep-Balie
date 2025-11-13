@@ -5,8 +5,6 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Observable, combineLatest, map } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { Product, Category } from '../../models';
-import { HeaderComponent } from '../../components/header/header.component';
-import { FooterComponent } from '../../components/footer/footer.component';
 import { ProductCardComponent } from '../../components/product-card/product-card.component';
 
 type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'rating-desc' | 'newest';
@@ -17,15 +15,10 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
   imports: [
     CommonModule, 
     FormsModule,
-    HeaderComponent, 
-    FooterComponent, 
     ProductCardComponent
   ],
   template: `
-    <div class="min-h-screen flex flex-col bg-background">
-      <bg-header></bg-header>
-      
-      <main class="flex-1">
+    <div class="flex-1 bg-background">
         <!-- Page Header -->
         <section class="bg-primary text-primary-foreground py-12">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -301,9 +294,6 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
             </div>
           </ng-template>
         </div>
-      </main>
-
-      <bg-footer></bg-footer>
     </div>
   `,
   styles: [`

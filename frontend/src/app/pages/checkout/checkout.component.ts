@@ -6,18 +6,14 @@ import { Observable } from 'rxjs';
 import { CartService } from '../../services/cart.service';
 import { ApiService } from '../../services/api.service';
 import { CartItem } from '../../models';
-import { HeaderComponent } from '../../components/header/header.component';
-import { FooterComponent } from '../../components/footer/footer.component';
 
 @Component({
   selector: 'bg-checkout',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HeaderComponent, FooterComponent],
+  imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="min-h-screen flex flex-col">
-      <bg-header></bg-header>
-
-      <main class="flex-1 py-12 bg-muted/30" *ngIf="!orderSuccess && (cart$ | async)!.length > 0">
+    <div class="flex-1">
+      <div class="py-12 bg-muted/30" *ngIf="!orderSuccess && (cart$ | async)!.length > 0">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 class="font-heading font-bold text-3xl sm:text-4xl mb-8" data-testid="text-checkout-title">
             Finalizacja zamówienia
@@ -203,10 +199,10 @@ import { FooterComponent } from '../../components/footer/footer.component';
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
       <!-- Empty Cart State -->
-      <main *ngIf="!orderSuccess && (cart$ | async)!.length === 0" class="flex-1 flex items-center justify-center">
+      <div *ngIf="!orderSuccess && (cart$ | async)!.length === 0" class="flex-1 flex items-center justify-center">
         <div class="text-center">
           <svg class="h-24 w-24 text-muted-foreground mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
@@ -219,10 +215,10 @@ import { FooterComponent } from '../../components/footer/footer.component';
             Wróć do strony głównej
           </button>
         </div>
-      </main>
+      </div>
 
       <!-- Success State -->
-      <main *ngIf="orderSuccess" class="flex-1 flex items-center justify-center">
+      <div *ngIf="orderSuccess" class="flex-1 flex items-center justify-center">
         <div class="text-center max-w-md">
           <div class="mb-6">
             <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
@@ -242,9 +238,7 @@ import { FooterComponent } from '../../components/footer/footer.component';
             Za chwilę zostaniesz przekierowany na stronę główną...
           </p>
         </div>
-      </main>
-
-      <bg-footer></bg-footer>
+      </div>
     </div>
   `,
   styleUrls: ['./checkout.component.scss']
