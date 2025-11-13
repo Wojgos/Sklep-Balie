@@ -7,7 +7,10 @@ import {
   OrderItem, 
   InsertProduct, 
   InsertOrder, 
-  InsertOrderItem 
+  InsertOrderItem,
+  InsertCategory,
+  SalesStatistics,
+  LowStockAlert
 } from '../models';
 import { MockDataService } from './mock-data.service';
 
@@ -67,6 +70,33 @@ export class ApiService {
 
   updateOrderStatus(id: string, status: string): Observable<Order> {
     return this.mockDataService.updateOrderStatus(id, status);
+  }
+
+  updateOrder(id: string, updates: Partial<Order>): Observable<Order> {
+    return this.mockDataService.updateOrder(id, updates);
+  }
+
+  // Category management
+  createCategory(category: InsertCategory): Observable<Category> {
+    return this.mockDataService.createCategory(category);
+  }
+
+  updateCategory(id: string, category: Partial<InsertCategory>): Observable<Category> {
+    return this.mockDataService.updateCategory(id, category);
+  }
+
+  deleteCategory(id: string): Observable<void> {
+    return this.mockDataService.deleteCategory(id);
+  }
+
+  // Statistics
+  getSalesStatistics(startDate?: Date, endDate?: Date): Observable<SalesStatistics> {
+    return this.mockDataService.getSalesStatistics(startDate, endDate);
+  }
+
+  // Low stock alerts
+  getLowStockAlerts(threshold?: number): Observable<LowStockAlert[]> {
+    return this.mockDataService.getLowStockAlerts(threshold);
   }
 }
 

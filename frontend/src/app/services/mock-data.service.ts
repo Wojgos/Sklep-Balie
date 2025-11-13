@@ -7,7 +7,10 @@ import {
   OrderItem, 
   InsertProduct, 
   InsertOrder, 
-  InsertOrderItem 
+  InsertOrderItem,
+  InsertCategory,
+  SalesStatistics,
+  LowStockAlert
 } from '../models';
 
 @Injectable({
@@ -468,5 +471,152 @@ export class MockDataService {
     }
     order.status = status;
     return of(order).pipe(delay(300));
+  }
+
+  updateOrder(id: string, updates: Partial<Order>): Observable<Order> {
+    const order = this.orders.find(o => o.id === id);
+    if (!order) {
+      throw new Error(`Order with id ${id} not found`);
+    }
+    Object.assign(order, updates);
+    return of(order).pipe(delay(300));
+  }
+
+  // Category management methods
+  createCategory(category: InsertCategory): Observable<Category> {
+    const newCategory: Category = {
+      id: (this.categories.length + 1).toString(),
+      name: category.name,
+      description: category.description || null,
+      image: category.image,
+      productCount: category.productCount || 0
+    };
+    this.categories.push(newCategory);
+    return of(newCategory).pipe(delay(500));
+  }
+
+  updateCategory(id: string, category: Partial<InsertCategory>): Observable<Category> {
+    const index = this.categories.findIndex(c => c.id === id);
+    if (index === -1) {
+      throw new Error(`Category with id ${id} not found`);
+    }
+    this.categories[index] = { ...this.categories[index], ...category };
+    return of(this.categories[index]).pipe(delay(400));
+  }
+
+  deleteCategory(id: string): Observable<void> {
+    const index = this.categories.findIndex(c => c.id === id);
+    if (index === -1) {
+      throw new Error(`Category with id ${id} not found`);
+    }
+    this.categories.splice(index, 1);
+    return of(undefined).pipe(delay(300));
+  }
+
+  // Statistics methods
+  getSalesStatistics(startDate?: Date, endDate?: Date): Observable<SalesStatistics> {
+    const filteredOrders = this.orders.filter(order => {
+      if (!startDate && !endDate) return true;
+      const orderDate = new Date(order.createdAt);
+      if (startDate && orderDate < startDate) return false;
+      if (endDate && orderDate > endDate) return false;
+      return true;
+    });
+
+    const totalRevenue = filteredOrders.reduce((sum, order) => 
+      sum + parseFloat(order.totalPrice), 0);
+    const totalOrders = filteredOrders.length;
+    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+    // Top products
+    const productSales = new Map<string, { product: Product, quantity: number, revenue: number }>();
+    filteredOrders.forEach(order => {
+      const items = this.orderItems.filter(item => item.orderId === order.id);
+      items.forEach(item => {
+        const product = this.products.find(p => p.id === item.productId);
+        if (product) {
+          const existing = productSales.get(item.productId);
+          const itemRevenue = parseFloat(item.price) * item.quantity;
+          if (existing) {
+            existing.quantity += item.quantity;
+            existing.revenue += itemRevenue;
+          } else {
+            productSales.set(item.productId, {
+              product,
+              quantity: item.quantity,
+              revenue: itemRevenue
+            });
+          }
+        }
+      });
+    });
+
+    const topProducts = Array.from(productSales.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+
+    // Revenue by category
+    const categoryRevenue = new Map<string, number>();
+    filteredOrders.forEach(order => {
+      const items = this.orderItems.filter(item => item.orderId === order.id);
+      items.forEach(item => {
+        const product = this.products.find(p => p.id === item.productId);
+        if (product) {
+          const itemRevenue = parseFloat(item.price) * item.quantity;
+          categoryRevenue.set(
+            product.categoryId,
+            (categoryRevenue.get(product.categoryId) || 0) + itemRevenue
+          );
+        }
+      });
+    });
+
+    const revenueByCategory = Array.from(categoryRevenue.entries())
+      .map(([categoryId, revenue]) => ({
+        category: this.categories.find(c => c.id === categoryId)!,
+        revenue
+      }))
+      .filter(item => item.category);
+
+    // Orders by status
+    const statusCounts = new Map<string, number>();
+    filteredOrders.forEach(order => {
+      statusCounts.set(order.status, (statusCounts.get(order.status) || 0) + 1);
+    });
+
+    const ordersByStatus = Array.from(statusCounts.entries()).map(([status, count]) => ({
+      status,
+      count
+    }));
+
+    const statistics: SalesStatistics = {
+      period: startDate && endDate 
+        ? `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`
+        : 'All time',
+      totalRevenue,
+      totalOrders,
+      totalProducts: this.products.length,
+      averageOrderValue,
+      topProducts,
+      revenueByCategory,
+      ordersByStatus
+    };
+
+    return of(statistics).pipe(delay(600));
+  }
+
+  // Low stock alerts
+  getLowStockAlerts(threshold: number = 10): Observable<LowStockAlert[]> {
+    const alerts: LowStockAlert[] = this.products
+      .filter(product => product.stock <= threshold)
+      .map(product => ({
+        product,
+        currentStock: product.stock,
+        threshold,
+        suggestedOrder: Math.max(20 - product.stock, 10)
+      }))
+      .sort((a, b) => a.currentStock - b.currentStock);
+
+    return of(alerts).pipe(delay(300));
   }
 }

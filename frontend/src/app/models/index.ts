@@ -212,3 +212,33 @@ export interface ChatAction {
   data?: any;
 }
 
+// Sales Statistics models
+export interface SalesStatistics {
+  period: string;
+  totalRevenue: number;
+  totalOrders: number;
+  totalProducts: number;
+  averageOrderValue: number;
+  topProducts: {
+    product: Product;
+    quantity: number;
+    revenue: number;
+  }[];
+  revenueByCategory: {
+    category: Category;
+    revenue: number;
+  }[];
+  ordersByStatus: {
+    status: string;
+    count: number;
+  }[];
+}
+
+// Low Stock Alert models
+export interface LowStockAlert {
+  product: Product;
+  currentStock: number;
+  threshold: number;
+  suggestedOrder: number;
+}
+
