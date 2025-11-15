@@ -677,6 +677,51 @@ export class MockDataService {
     return of(products).pipe(delay(300));
   }
 
+  getSimilarProducts(productId: string, limit: number = 4): Observable<Product[]> {
+    const targetProduct = this.products.find(p => p.id === productId);
+    if (!targetProduct) {
+      return of([]).pipe(delay(200));
+    }
+
+    const similarProducts = this.products
+      .filter(p => p.id !== productId && p.categoryId === targetProduct.categoryId)
+      .sort((a, b) => b.rating - a.rating || b.stock - a.stock)
+      .slice(0, limit);
+
+    return of(similarProducts).pipe(delay(250));
+  }
+
+  getFrequentlyBoughtTogether(productId: string, limit: number = 4): Observable<Product[]> {
+    const orderIds = new Set(
+      this.orderItems
+        .filter(item => item.productId === productId)
+        .map(item => item.orderId)
+    );
+
+    if (orderIds.size === 0) {
+      return of([]).pipe(delay(200));
+    }
+
+    const productFrequency = new Map<string, number>();
+
+    this.orderItems.forEach(item => {
+      if (orderIds.has(item.orderId) && item.productId !== productId) {
+        productFrequency.set(
+          item.productId,
+          (productFrequency.get(item.productId) || 0) + item.quantity
+        );
+      }
+    });
+
+    const rankedProducts = Array.from(productFrequency.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => this.products.find(product => product.id === id))
+      .filter((product): product is Product => Boolean(product))
+      .slice(0, limit);
+
+    return of(rankedProducts).pipe(delay(250));
+  }
+
   createProduct(product: any): Observable<Product> {
     const newProduct: Product = {
       id: (this.products.length + 1).toString(),

@@ -68,6 +68,14 @@ export class ApiService {
     return this.mockDataService.getProductsByCategory(categoryId);
   }
 
+  getSimilarProducts(productId: string, limit: number = 4): Observable<Product[]> {
+    return this.mockDataService.getSimilarProducts(productId, limit);
+  }
+
+  getFrequentlyBoughtTogether(productId: string, limit: number = 4): Observable<Product[]> {
+    return this.mockDataService.getFrequentlyBoughtTogether(productId, limit);
+  }
+
   createProduct(product: InsertProduct): Observable<Product> {
     return this.mockDataService.createProduct(product);
   }

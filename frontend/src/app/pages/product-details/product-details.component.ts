@@ -6,13 +6,15 @@ import { ApiService } from '../../services/api.service';
 import { CartService } from '../../services/cart.service';
 import { NotificationService } from '../../services/notification.service';
 import { Product } from '../../models';
+import { ProductCardComponent } from '../../components/product-card/product-card.component';
 
 @Component({
   selector: 'bg-product-details',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ProductCardComponent],
   template: `
-    <div class="flex-1 py-12 bg-background" *ngIf="product$ | async as product">
+    <ng-container *ngIf="product$ | async as product">
+      <div class="flex-1 py-12 bg-background">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <!-- Product Image -->
@@ -124,7 +126,7 @@ import { Product } from '../../models';
                     </span>
                   </div>
                 </div>
-
+                
                 <button 
                   *ngIf="product.stock > 0"
                   (click)="addToCart(product)"
@@ -145,7 +147,76 @@ import { Product } from '../../models';
             </div>
           </div>
         </div>
-    </div>
+      </div>
+
+      <!-- Similar products section -->
+      <section class="py-12 bg-muted/40 border-t border-border" *ngIf="isSimilarLoading || similarProducts.length">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+              <p class="text-sm font-medium text-primary uppercase tracking-wide mb-1">
+                Rekomendacje produktów
+              </p>
+              <h2 class="text-2xl font-heading font-semibold">
+                Propozycje podobnych produktów
+              </h2>
+            </div>
+          </div>
+
+          <div *ngIf="isSimilarLoading" class="text-muted-foreground">
+            Ładowanie propozycji...
+          </div>
+
+          <div 
+            *ngIf="!isSimilarLoading && similarProducts.length > 0" 
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          >
+            <bg-product-card 
+              *ngFor="let similar of similarProducts" 
+              [product]="similar"
+            ></bg-product-card>
+          </div>
+
+          <div *ngIf="!isSimilarLoading && similarProducts.length === 0" class="text-muted-foreground text-center">
+            Aktualnie brak podobnych produktów do wyświetlenia.
+          </div>
+        </div>
+      </section>
+
+      <!-- Bought together section -->
+      <section class="py-12 bg-background border-t border-border" *ngIf="isBoughtTogetherLoading || boughtTogetherProducts.length">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+              <p class="text-sm font-medium text-primary uppercase tracking-wide mb-1">
+                Inspiracje zakupowe
+              </p>
+              <h2 class="text-2xl font-heading font-semibold">
+                Inni kupili też…
+              </h2>
+            </div>
+          </div>
+
+          <div *ngIf="isBoughtTogetherLoading" class="text-muted-foreground">
+            Analizujemy zamówienia klientów...
+          </div>
+
+          <div 
+            *ngIf="!isBoughtTogetherLoading && boughtTogetherProducts.length > 0" 
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          >
+            <bg-product-card 
+              *ngFor="let productItem of boughtTogetherProducts" 
+              [product]="productItem"
+            ></bg-product-card>
+          </div>
+
+          <div *ngIf="!isBoughtTogetherLoading && boughtTogetherProducts.length === 0" class="text-muted-foreground text-center">
+            Nie mamy jeszcze danych o wspólnych zakupach dla tego produktu.
+          </div>
+        </div>
+      </section>
+    </ng-container>
   `,
   styleUrls: ['./product-details.component.scss']
 })
@@ -154,6 +225,10 @@ export class ProductDetailsComponent implements OnInit {
   product: Product | null = null;
   isAdding = false;
   selectedVariants: { [attributeId: string]: string } = {}; // attributeId -> variantId
+  similarProducts: Product[] = [];
+  boughtTogetherProducts: Product[] = [];
+  isSimilarLoading = false;
+  isBoughtTogetherLoading = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -179,6 +254,9 @@ export class ProductDetailsComponent implements OnInit {
             }
           });
         }
+
+        this.loadSimilarProducts(product.id);
+        this.loadBoughtTogetherProducts(product.id);
       });
     }
   }
@@ -243,5 +321,35 @@ export class ProductDetailsComponent implements OnInit {
     const basePrice = parseFloat(product.price);
     const modifier = this.getTotalPriceModifier();
     return basePrice + modifier;
+  }
+
+  private loadSimilarProducts(productId: string): void {
+    this.isSimilarLoading = true;
+    this.apiService.getSimilarProducts(productId).subscribe({
+      next: (products) => {
+        this.similarProducts = products;
+      },
+      error: () => {
+        this.similarProducts = [];
+      },
+      complete: () => {
+        this.isSimilarLoading = false;
+      }
+    });
+  }
+
+  private loadBoughtTogetherProducts(productId: string): void {
+    this.isBoughtTogetherLoading = true;
+    this.apiService.getFrequentlyBoughtTogether(productId).subscribe({
+      next: (products) => {
+        this.boughtTogetherProducts = products;
+      },
+      error: () => {
+        this.boughtTogetherProducts = [];
+      },
+      complete: () => {
+        this.isBoughtTogetherLoading = false;
+      }
+    });
   }
 }
