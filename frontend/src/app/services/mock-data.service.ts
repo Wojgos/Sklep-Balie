@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, delay } from 'rxjs';
+import { Observable, of, delay, map } from 'rxjs';
 import { 
   Product, 
   Category, 
@@ -10,7 +10,12 @@ import {
   InsertOrderItem,
   InsertCategory,
   SalesStatistics,
-  LowStockAlert
+  LowStockAlert,
+  Ticket,
+  TicketMessage,
+  InsertTicket,
+  TicketReply,
+  User
 } from '../models';
 
 @Injectable({
@@ -354,6 +359,115 @@ export class MockDataService {
     }
   ];
 
+  // Mock users for tickets
+  private mockUsers: User[] = [
+    {
+      id: '1',
+      username: 'admin',
+      email: 'admin@example.com',
+      firstName: 'Admin',
+      lastName: 'User',
+      role: 'admin',
+      phone: '+48 123 456 789',
+      address: 'ul. Przykładowa 1',
+      city: 'Warszawa',
+      postalCode: '00-001'
+    },
+    {
+      id: '2',
+      username: 'user',
+      email: 'user@example.com',
+      firstName: 'Jan',
+      lastName: 'Kowalski',
+      role: 'user',
+      phone: '+48 987 654 321',
+      address: 'ul. Testowa 10',
+      city: 'Kraków',
+      postalCode: '30-001'
+    }
+  ];
+
+  private tickets: Ticket[] = [
+    {
+      id: '1',
+      user: this.mockUsers[1], // Jan Kowalski
+      subject: 'Pytanie o dostawę',
+      status: 'new',
+      created_at: new Date('2024-11-10T10:30:00'),
+      updated_at: new Date('2024-11-10T10:30:00'),
+      messages: [
+        {
+          id: '1',
+          author_id: 2,
+          body: 'Witam, chciałbym zapytać o czas dostawy dla zamówienia #123. Czy mogą Państwo podać orientacyjną datę?',
+          created_at: new Date('2024-11-10T10:30:00')
+        }
+      ],
+      participants: [this.mockUsers[1]]
+    },
+    {
+      id: '2',
+      user: this.mockUsers[1],
+      subject: 'Problem z produktem',
+      status: 'in_progress',
+      created_at: new Date('2024-11-08T14:20:00'),
+      updated_at: new Date('2024-11-09T09:15:00'),
+      messages: [
+        {
+          id: '2',
+          author_id: 2,
+          body: 'Otrzymałem wadliwy produkt. Beczka ma pęknięcie na dnie. Co mogę zrobić w tej sytuacji?',
+          created_at: new Date('2024-11-08T14:20:00')
+        },
+        {
+          id: '3',
+          author_id: 1,
+          body: 'Dzień dobry, bardzo przepraszamy za problem. Proszę o przesłanie zdjęć uszkodzenia na nasz adres email. Przygotujemy wymianę produktu.',
+          created_at: new Date('2024-11-09T09:15:00')
+        },
+        {
+          id: '4',
+          author_id: 2,
+          body: 'Dziękuję za szybką odpowiedź. Zdjęcia zostały wysłane.',
+          created_at: new Date('2024-11-09T10:00:00')
+        }
+      ],
+      participants: [this.mockUsers[1], this.mockUsers[0]]
+    },
+    {
+      id: '3',
+      user: this.mockUsers[1],
+      subject: 'Zapytanie o dostępność produktu',
+      status: 'closed',
+      created_at: new Date('2024-11-05T16:45:00'),
+      updated_at: new Date('2024-11-06T11:30:00'),
+      messages: [
+        {
+          id: '5',
+          author_id: 2,
+          body: 'Czy w najbliższym czasie będzie dostępna beczka 100L w kolorze ciemnym?',
+          created_at: new Date('2024-11-05T16:45:00')
+        },
+        {
+          id: '6',
+          author_id: 1,
+          body: 'Tak, planujemy dostawę za około 2 tygodnie. Możemy Państwa powiadomić o dostępności.',
+          created_at: new Date('2024-11-06T09:00:00')
+        },
+        {
+          id: '7',
+          author_id: 2,
+          body: 'Super, dziękuję za informację!',
+          created_at: new Date('2024-11-06T11:30:00')
+        }
+      ],
+      participants: [this.mockUsers[1], this.mockUsers[0]]
+    }
+  ];
+
+  private ticketIdCounter = 4;
+  private messageIdCounter = 8;
+
   // Categories methods
   getCategories(): Observable<Category[]> {
     return of(this.categories).pipe(delay(300));
@@ -385,7 +499,7 @@ export class MockDataService {
     return of(products).pipe(delay(300));
   }
 
-  createProduct(product: InsertProduct): Observable<Product> {
+  createProduct(product: any): Observable<Product> {
     const newProduct: Product = {
       id: (this.products.length + 1).toString(),
       name: product.name,
@@ -398,13 +512,14 @@ export class MockDataService {
       image: product.image,
       stock: product.stock || 0,
       material: product.material || null,
-      createdAt: new Date()
+      createdAt: new Date(),
+      attributes: product.attributes || []
     };
     this.products.push(newProduct);
     return of(newProduct).pipe(delay(500));
   }
 
-  updateProduct(id: string, product: Partial<InsertProduct>): Observable<Product> {
+  updateProduct(id: string, product: any): Observable<Product> {
     const index = this.products.findIndex(p => p.id === id);
     if (index === -1) {
       throw new Error(`Product with id ${id} not found`);
@@ -618,5 +733,98 @@ export class MockDataService {
       .sort((a, b) => a.currentStock - b.currentStock);
 
     return of(alerts).pipe(delay(300));
+  }
+
+  // Support Tickets methods
+  getMyTickets(userId: string = '2'): Observable<Ticket[]> {
+    // Return tickets for current user (mock user id = 2)
+    const userTickets = this.tickets.filter(t => t.user.id === userId);
+    return of(userTickets).pipe(delay(400));
+  }
+
+  getAllTickets(): Observable<Ticket[]> {
+    // Admin endpoint - return all tickets
+    return of(this.tickets).pipe(delay(400));
+  }
+
+  getTicket(id: string): Observable<Ticket> {
+    const ticket = this.tickets.find(t => t.id === id);
+    if (!ticket) {
+      throw new Error(`Ticket with id ${id} not found`);
+    }
+    return of(ticket).pipe(delay(300));
+  }
+
+  createTicket(ticketData: InsertTicket, userId: string = '2'): Observable<Ticket> {
+    const user = this.mockUsers.find(u => u.id === userId) || this.mockUsers[1];
+    
+    const newTicket: Ticket = {
+      id: this.ticketIdCounter.toString(),
+      user: user,
+      subject: ticketData.subject,
+      status: 'new',
+      created_at: new Date(),
+      updated_at: new Date(),
+      messages: [
+        {
+          id: this.messageIdCounter.toString(),
+          author_id: parseInt(userId),
+          body: ticketData.body,
+          created_at: new Date()
+        }
+      ],
+      participants: [user]
+    };
+
+    this.ticketIdCounter++;
+    this.messageIdCounter++;
+    this.tickets.push(newTicket);
+
+    return of(newTicket).pipe(delay(500));
+  }
+
+  replyToTicket(ticketId: string, reply: TicketReply, userId: string = '2'): Observable<void> {
+    const ticket = this.tickets.find(t => t.id === ticketId);
+    if (!ticket) {
+      throw new Error(`Ticket with id ${ticketId} not found`);
+    }
+
+    const newMessage: TicketMessage = {
+      id: this.messageIdCounter.toString(),
+      author_id: parseInt(userId),
+      body: reply.body,
+      created_at: new Date()
+    };
+
+    this.messageIdCounter++;
+    ticket.messages = ticket.messages || [];
+    ticket.messages.push(newMessage);
+    ticket.updated_at = new Date();
+    ticket.status = 'new'; // Set to 'new' when user replies
+
+    // Add user to participants if not already there
+    const user = this.mockUsers.find(u => u.id === userId);
+    if (user && !ticket.participants?.some(p => p.id === userId)) {
+      ticket.participants = ticket.participants || [];
+      ticket.participants.push(user);
+    }
+
+    return of(undefined).pipe(delay(500));
+  }
+
+  adminReplyToTicket(ticketId: string, reply: TicketReply): Observable<void> {
+    return this.replyToTicket(ticketId, reply, '1'); // Admin user id = 1
+  }
+
+  updateTicketStatus(ticketId: string, status: 'new' | 'in_progress' | 'closed'): Observable<Ticket> {
+    const ticket = this.tickets.find(t => t.id === ticketId);
+    if (!ticket) {
+      throw new Error(`Ticket with id ${ticketId} not found`);
+    }
+
+    ticket.status = status;
+    ticket.updated_at = new Date();
+
+    return of(ticket).pipe(delay(400));
   }
 }

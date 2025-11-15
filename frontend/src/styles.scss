@@ -208,6 +208,26 @@
   }
 }
 
+/* Dark mode input text color */
+.dark {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  textarea {
+    color: #ffffff !important;
+  }
+  
+  /* Keep select options white in dark mode */
+  select option {
+    color: #ffffff !important;
+    background-color: hsl(var(--background)) !important;
+  }
+}
+
 /* Angular Material compatibility */
 .mat-typography {
   font-family: var(--font-sans);

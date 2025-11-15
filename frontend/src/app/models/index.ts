@@ -242,3 +242,35 @@ export interface LowStockAlert {
   suggestedOrder: number;
 }
 
+// Support Ticket models
+export interface TicketMessage {
+  id: string;
+  author_id: number;
+  body: string;
+  created_at: Date;
+}
+
+export interface Ticket {
+  id: string;
+  user: User;
+  subject: string;
+  status: 'new' | 'in_progress' | 'closed';
+  created_at: Date;
+  updated_at: Date;
+  messages?: TicketMessage[];
+  participants?: User[];
+}
+
+export interface InsertTicket {
+  subject: string;
+  body: string;
+}
+
+export interface TicketReply {
+  body: string;
+}
+
+export interface TicketStatusUpdate {
+  status: 'new' | 'in_progress' | 'closed';
+}
+

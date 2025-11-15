@@ -3,9 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../services/api.service';
-import { Product, Category, Order, InsertProduct, InsertCategory, SalesStatistics, LowStockAlert, OrderItem } from '../../models';
+import { Product, Category, Order, InsertProduct, InsertCategory, SalesStatistics, LowStockAlert, OrderItem, ProductAttribute, ProductVariant, Ticket, TicketReply, TicketStatusUpdate } from '../../models';
 
-type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics';
+type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' | 'support';
 
 @Component({
   selector: 'bg-admin',
@@ -406,6 +406,78 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics';
               </div>
             </div>
           </div>
+
+          <!-- Support Tab -->
+          <div *ngIf="activeTab === 'support'" class="space-y-6">
+            <div class="flex justify-between items-center">
+              <h2 class="text-2xl font-semibold">Zarządzanie Zgłoszeniami</h2>
+              <div class="flex gap-2">
+                <button
+                  *ngFor="let status of supportStatusFilters"
+                  (click)="selectedSupportStatus = status.value"
+                  [class]="selectedSupportStatus === status.value 
+                    ? 'bg-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold transition-colors'
+                    : 'bg-muted text-foreground px-4 py-2 rounded-lg font-semibold hover:bg-muted/80 transition-colors'"
+                >
+                  {{ status.label }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Loading State -->
+            <div *ngIf="loadingTickets" class="flex justify-center py-16">
+              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+
+            <!-- Tickets List -->
+            <div *ngIf="!loadingTickets" class="bg-card border border-card-border rounded-lg overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full">
+                  <thead class="bg-muted">
+                    <tr>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">ID</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">Temat</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">Użytkownik</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">Status</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">Wiadomości</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">Ostatnia aktualizacja</th>
+                      <th class="px-4 py-3 text-right text-sm font-semibold">Akcje</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let ticket of getFilteredTickets()" 
+                        class="border-t border-card-border hover:bg-muted/50">
+                      <td class="px-4 py-3">#{{ ticket.id }}</td>
+                      <td class="px-4 py-3 font-medium">{{ ticket.subject }}</td>
+                      <td class="px-4 py-3">{{ ticket.user.firstName }} {{ ticket.user.lastName }}</td>
+                      <td class="px-4 py-3">
+                        <span 
+                          class="px-3 py-1 rounded-full text-xs font-medium"
+                          [ngClass]="{
+                            'bg-blue-100 text-blue-800': ticket.status === 'new',
+                            'bg-yellow-100 text-yellow-800': ticket.status === 'in_progress',
+                            'bg-green-100 text-green-800': ticket.status === 'closed'
+                          }"
+                        >
+                          {{ getSupportStatusLabel(ticket.status) }}
+                        </span>
+                      </td>
+                      <td class="px-4 py-3">{{ ticket.messages?.length || 0 }}</td>
+                      <td class="px-4 py-3 text-sm">{{ ticket.updated_at | date:'dd.MM.yyyy HH:mm' }}</td>
+                      <td class="px-4 py-3 text-right">
+                        <button
+                          (click)="viewSupportTicket(ticket)"
+                          class="text-primary hover:underline text-sm font-medium"
+                        >
+                          Szczegóły
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
     </div>
 
@@ -534,6 +606,190 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics';
               />
             </div>
 
+            <!-- Attributes Section -->
+            <div class="border-t border-border pt-4 mt-4">
+              <div class="flex justify-between items-center mb-3">
+                <h3 class="text-lg font-semibold">Atrybuty i warianty produktu</h3>
+                <button 
+                  type="button"
+                  (click)="showAttributeSection = !showAttributeSection"
+                  class="text-sm text-primary hover:underline"
+                >
+                  {{ showAttributeSection ? 'Ukryj' : '+ Dodaj atrybut' }}
+                </button>
+              </div>
+
+              <!-- Add Attribute Form -->
+              <div *ngIf="showAttributeSection" class="bg-muted/50 p-4 rounded-lg mb-4">
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Nazwa atrybutu</label>
+                    <input 
+                      type="text" 
+                      [(ngModel)]="currentAttribute.name" 
+                      [ngModelOptions]="{standalone: true}"
+                      placeholder="np. Rozmiar, Kolor"
+                      class="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Typ</label>
+                    <select 
+                      [(ngModel)]="currentAttribute.type"
+                      [ngModelOptions]="{standalone: true}"
+                      class="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
+                    >
+                      <option value="">Wybierz typ</option>
+                      <option value="size">Rozmiar</option>
+                      <option value="color">Kolor</option>
+                      <option value="text">Tekst</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  <button 
+                    type="button"
+                    (click)="addAttribute()"
+                    class="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90"
+                  >
+                    {{ editingAttributeIndex >= 0 ? 'Aktualizuj' : 'Dodaj' }} atrybut
+                  </button>
+                  <button 
+                    type="button"
+                    (click)="cancelAttributeEdit()"
+                    class="px-3 py-1 border border-border rounded text-sm hover:bg-muted"
+                  >
+                    Anuluj
+                  </button>
+                </div>
+              </div>
+
+              <!-- Attributes List -->
+              <div *ngIf="productForm.attributes && productForm.attributes.length > 0" class="space-y-3">
+                <div *ngFor="let attr of productForm.attributes; let attrIdx = index" 
+                     class="bg-muted/30 p-3 rounded-lg">
+                  <div class="flex justify-between items-start mb-2">
+                    <div>
+                      <span class="font-medium">{{ attr.name }}</span>
+                      <span class="text-xs text-muted-foreground ml-2">({{ attr.type }})</span>
+                    </div>
+                    <div class="flex gap-1">
+                      <button 
+                        type="button"
+                        (click)="editAttribute(attrIdx)"
+                        class="p-1 hover:bg-muted rounded text-xs"
+                        title="Edytuj"
+                      >
+                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                      </button>
+                      <button 
+                        type="button"
+                        (click)="deleteAttribute(attrIdx)"
+                        class="p-1 hover:bg-destructive/10 text-destructive rounded text-xs"
+                        title="Usuń"
+                      >
+                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Variants -->
+                  <div class="ml-3 space-y-2">
+                    <div *ngFor="let variant of attr.variants; let varIdx = index" 
+                         class="flex justify-between items-center bg-background p-2 rounded text-sm">
+                      <div>
+                        <span class="font-medium">{{ variant.name }}</span>
+                        <span class="text-muted-foreground ml-2">{{ variant.value }}</span>
+                        <span *ngIf="variant.priceModifier && variant.priceModifier !== 0" class="text-xs ml-2">
+                          ({{ variant.priceModifier > 0 ? '+' : '' }}{{ variant.priceModifier }} PLN)
+                        </span>
+                      </div>
+                      <div class="flex gap-1">
+                        <button 
+                          type="button"
+                          (click)="editVariant(attrIdx, varIdx)"
+                          class="p-1 hover:bg-muted rounded"
+                          title="Edytuj"
+                        >
+                          <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                          </svg>
+                        </button>
+                        <button 
+                          type="button"
+                          (click)="deleteVariant(attrIdx, varIdx)"
+                          class="p-1 hover:bg-destructive/10 text-destructive rounded"
+                          title="Usuń"
+                        >
+                          <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Add Variant Form -->
+                    <div class="bg-background p-2 rounded text-sm">
+                      <div class="grid grid-cols-2 gap-2 mb-2">
+                        <input 
+                          type="text" 
+                          [(ngModel)]="currentVariant.name"
+                          [ngModelOptions]="{standalone: true}"
+                          placeholder="Nazwa wariantu"
+                          class="px-2 py-1 border border-border rounded text-sm bg-background"
+                        />
+                        <input 
+                          type="text" 
+                          [(ngModel)]="currentVariant.value"
+                          [ngModelOptions]="{standalone: true}"
+                          placeholder="Wartość"
+                          class="px-2 py-1 border border-border rounded text-sm bg-background"
+                        />
+                      </div>
+                      <div class="grid grid-cols-2 gap-2 mb-2">
+                        <input 
+                          type="number" 
+                          [(ngModel)]="currentVariant.priceModifier"
+                          [ngModelOptions]="{standalone: true}"
+                          placeholder="Modyfikator ceny (PLN)"
+                          step="0.01"
+                          class="px-2 py-1 border border-border rounded text-sm bg-background"
+                        />
+                        <input 
+                          type="number" 
+                          [(ngModel)]="currentVariant.stockModifier"
+                          [ngModelOptions]="{standalone: true}"
+                          placeholder="Modyfikator stanu"
+                          class="px-2 py-1 border border-border rounded text-sm bg-background"
+                        />
+                      </div>
+                      <div class="flex gap-2">
+                        <button 
+                          type="button"
+                          (click)="addVariant(attrIdx)"
+                          class="px-2 py-1 bg-primary text-primary-foreground rounded text-xs hover:bg-primary/90"
+                        >
+                          {{ editingVariantIndex >= 0 ? 'Aktualizuj' : '+ Dodaj' }} wariant
+                        </button>
+                        <button 
+                          *ngIf="editingVariantIndex >= 0"
+                          type="button"
+                          (click)="cancelVariantEdit()"
+                          class="px-2 py-1 border border-border rounded text-xs hover:bg-muted"
+                        >
+                          Anuluj
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="flex justify-end gap-3 pt-4">
               <button 
                 type="button"
@@ -627,11 +883,29 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics';
         <div class="p-6">
           <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-semibold">Szczegóły zamówienia #{{ selectedOrder.id }}</h2>
-            <button (click)="closeOrderModal()" class="text-muted-foreground hover:text-foreground">
-              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
+            <div class="flex items-center gap-2">
+              <button 
+                (click)="downloadInvoice(selectedOrder.id)"
+                class="px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center gap-2"
+                title="Pobierz fakturę PDF"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                </svg>
+                Faktura PDF
+              </button>
+              <button 
+                (click)="openOrderEditModal()"
+                class="px-3 py-1 text-sm border border-border rounded hover:bg-muted transition-colors"
+              >
+                Edytuj
+              </button>
+              <button (click)="closeOrderModal()" class="text-muted-foreground hover:text-foreground">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div class="space-y-6">
@@ -690,6 +964,226 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics';
         </div>
       </div>
     </div>
+
+    <!-- Order Edit Modal -->
+    <div *ngIf="showOrderEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" (click)="closeOrderEditModal()">
+      <div class="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+        <div class="p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold">Edytuj zamówienie</h2>
+            <button (click)="closeOrderEditModal()" class="text-muted-foreground hover:text-foreground">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <form (submit)="saveOrderEdit($event)" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-2">Imię i nazwisko</label>
+              <input 
+                type="text" 
+                [(ngModel)]="orderEditForm.customerName" 
+                name="customerName"
+                required
+                class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+              />
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-2">Email</label>
+                <input 
+                  type="email" 
+                  [(ngModel)]="orderEditForm.email" 
+                  name="email"
+                  required
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-2">Telefon</label>
+                <input 
+                  type="tel" 
+                  [(ngModel)]="orderEditForm.phone" 
+                  name="phone"
+                  required
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-2">Adres</label>
+              <input 
+                type="text" 
+                [(ngModel)]="orderEditForm.address" 
+                name="address"
+                required
+                class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+              />
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-2">Miasto</label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="orderEditForm.city" 
+                  name="city"
+                  required
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-2">Kod pocztowy</label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="orderEditForm.postalCode" 
+                  name="postalCode"
+                  required
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-2">Uwagi</label>
+              <textarea 
+                [(ngModel)]="orderEditForm.notes" 
+                name="notes"
+                rows="3"
+                class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+              ></textarea>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4">
+              <button 
+                type="button"
+                (click)="closeOrderEditModal()"
+                class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              >
+                Anuluj
+              </button>
+              <button 
+                type="submit"
+                class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                Zapisz
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Support Ticket Details Modal -->
+    <div *ngIf="showTicketModal && selectedTicket" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" (click)="closeTicketModal()">
+      <div class="bg-background rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+        <div class="p-6">
+          <div class="flex justify-between items-start mb-6">
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-2">
+                <h2 class="text-2xl font-semibold">{{ selectedTicket.subject }}</h2>
+                <span 
+                  class="px-3 py-1 rounded-full text-xs font-medium"
+                  [ngClass]="{
+                    'bg-blue-100 text-blue-800': selectedTicket.status === 'new',
+                    'bg-yellow-100 text-yellow-800': selectedTicket.status === 'in_progress',
+                    'bg-green-100 text-green-800': selectedTicket.status === 'closed'
+                  }"
+                >
+                  {{ getSupportStatusLabel(selectedTicket.status) }}
+                </span>
+              </div>
+              <div class="flex items-center gap-4 text-sm text-muted-foreground">
+                <span>Zgłoszenie #{{ selectedTicket.id }}</span>
+                <span>{{ selectedTicket.user.firstName }} {{ selectedTicket.user.lastName }}</span>
+                <span>{{ selectedTicket.created_at | date:'dd.MM.yyyy HH:mm' }}</span>
+              </div>
+            </div>
+            <button (click)="closeTicketModal()" class="text-muted-foreground hover:text-foreground">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Status Change -->
+          <div class="mb-6 p-4 bg-muted/50 rounded-lg">
+            <label class="block text-sm font-medium mb-2">Zmień status zgłoszenia</label>
+            <div class="flex gap-2">
+              <select
+                [(ngModel)]="ticketStatusForm"
+                class="flex-1 px-3 py-2 border border-border rounded-lg bg-background"
+              >
+                <option value="new">Nowe</option>
+                <option value="in_progress">W trakcie</option>
+                <option value="closed">Zamknięte</option>
+              </select>
+              <button
+                (click)="updateTicketStatus()"
+                class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                Zapisz status
+              </button>
+            </div>
+          </div>
+
+          <!-- Messages -->
+          <div class="space-y-4 mb-6 max-h-96 overflow-y-auto">
+            <h3 class="font-semibold">Historia konwersacji</h3>
+            <div
+              *ngFor="let message of selectedTicket.messages"
+              class="flex"
+              [ngClass]="{'justify-end': !isAdminMessage(message.author_id)}"
+            >
+              <div 
+                class="max-w-[80%] rounded-lg p-4"
+                [ngClass]="{
+                  'bg-muted': isAdminMessage(message.author_id),
+                  'bg-primary/10 border border-primary/20': !isAdminMessage(message.author_id)
+                }"
+              >
+                <p class="text-sm font-medium mb-1">
+                  {{ getTicketAuthorName(message.author_id) }}
+                </p>
+                <p class="whitespace-pre-line">{{ message.body }}</p>
+                <p class="text-xs text-muted-foreground mt-2">
+                  {{ message.created_at | date:'dd.MM.yyyy HH:mm' }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reply Form -->
+          <div class="border-t border-border pt-4">
+            <form (ngSubmit)="replyToSupportTicket()" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-2">Odpowiedź administratora</label>
+                <textarea
+                  [(ngModel)]="ticketReplyText"
+                  name="reply"
+                  required
+                  rows="4"
+                  class="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                  placeholder="Napisz odpowiedź dla klienta..."
+                ></textarea>
+              </div>
+              <div class="flex justify-end">
+                <button
+                  type="submit"
+                  [disabled]="!ticketReplyText.trim()"
+                  class="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                >
+                  Wyślij odpowiedź
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
   `,
   styleUrls: ['./admin.component.scss']
 })
@@ -701,7 +1195,8 @@ export class AdminComponent implements OnInit {
     { id: 'categories' as TabType, label: 'Kategorie' },
     { id: 'orders' as TabType, label: 'Zamówienia' },
     { id: 'lowStock' as TabType, label: 'Niski stan' },
-    { id: 'statistics' as TabType, label: 'Statystyki' }
+    { id: 'statistics' as TabType, label: 'Statystyki' },
+    { id: 'support' as TabType, label: 'Zgłoszenia' }
   ];
 
   products$: Observable<Product[]>;
@@ -714,15 +1209,24 @@ export class AdminComponent implements OnInit {
   showProductModal = false;
   showCategoryModal = false;
   showOrderModal = false;
+  showOrderEditModal = false;
   
   editingProduct: Product | null = null;
   editingCategory: Category | null = null;
   selectedOrder: Order | null = null;
   orderItems: OrderItem[] = [];
+  orderEditForm: Partial<Order> = {};
 
   // Forms
-  productForm: Partial<InsertProduct> = {};
+  productForm: Partial<InsertProduct & { attributes?: ProductAttribute[] }> = {};
   categoryForm: Partial<InsertCategory> = {};
+
+  // Attribute management
+  currentAttribute: Partial<ProductAttribute> = {};
+  currentVariant: Partial<ProductVariant> = {};
+  editingAttributeIndex: number = -1;
+  editingVariantIndex: number = -1;
+  showAttributeSection: boolean = false;
 
   // Statistics filters
   statsStartDate: string = '';
@@ -730,6 +1234,21 @@ export class AdminComponent implements OnInit {
 
   // Low stock threshold
   lowStockThreshold: number = 10;
+
+  // Support tickets
+  allTickets: Ticket[] = [];
+  selectedTicket: Ticket | null = null;
+  showTicketModal: boolean = false;
+  loadingTickets: boolean = false;
+  selectedSupportStatus: string = 'all';
+  ticketStatusForm: string = 'new';
+  ticketReplyText: string = '';
+  supportStatusFilters = [
+    { label: 'Wszystkie', value: 'all' },
+    { label: 'Nowe', value: 'new' },
+    { label: 'W trakcie', value: 'in_progress' },
+    { label: 'Zamknięte', value: 'closed' }
+  ];
 
   private allCategories: Category[] = [];
 
@@ -743,6 +1262,7 @@ export class AdminComponent implements OnInit {
 
   ngOnInit(): void {
     this.categories$.subscribe(cats => this.allCategories = cats);
+    this.loadSupportTickets();
   }
 
   // Utility methods
@@ -779,12 +1299,14 @@ export class AdminComponent implements OnInit {
         categoryId: product.categoryId,
         image: product.image,
         stock: product.stock,
-        material: product.material || ''
+        material: product.material || '',
+        attributes: product.attributes ? JSON.parse(JSON.stringify(product.attributes)) : []
       };
     } else {
-      this.productForm = { stock: 0, price: '0' };
+      this.productForm = { stock: 0, price: '0', attributes: [] };
     }
     this.showProductModal = true;
+    this.showAttributeSection = false;
   }
 
   closeProductModal(): void {
@@ -796,7 +1318,7 @@ export class AdminComponent implements OnInit {
   saveProduct(event: Event): void {
     event.preventDefault();
     
-    const productData: InsertProduct = {
+    const productData: any = {
       name: this.productForm.name!,
       description: this.productForm.description,
       dimensions: this.productForm.dimensions!,
@@ -805,7 +1327,8 @@ export class AdminComponent implements OnInit {
       categoryId: this.productForm.categoryId!,
       image: this.productForm.image!,
       stock: Number(this.productForm.stock) || 0,
-      material: this.productForm.material
+      material: this.productForm.material,
+      attributes: this.productForm.attributes || []
     };
 
     if (this.editingProduct) {
@@ -848,6 +1371,101 @@ export class AdminComponent implements OnInit {
         }
       });
     }
+  }
+
+  // Attribute management methods
+  addAttribute(): void {
+    if (!this.currentAttribute.name || !this.currentAttribute.type) {
+      alert('Nazwa i typ atrybutu są wymagane');
+      return;
+    }
+
+    const newAttribute: ProductAttribute = {
+      id: `attr-${Date.now()}`,
+      name: this.currentAttribute.name,
+      type: this.currentAttribute.type as 'color' | 'size' | 'text',
+      variants: []
+    };
+
+    if (!this.productForm.attributes) {
+      this.productForm.attributes = [];
+    }
+
+    if (this.editingAttributeIndex >= 0) {
+      this.productForm.attributes[this.editingAttributeIndex] = {
+        ...newAttribute,
+        variants: this.productForm.attributes[this.editingAttributeIndex].variants
+      };
+      this.editingAttributeIndex = -1;
+    } else {
+      this.productForm.attributes.push(newAttribute);
+    }
+
+    this.currentAttribute = {};
+    this.showAttributeSection = false;
+  }
+
+  editAttribute(index: number): void {
+    const attr = this.productForm.attributes![index];
+    this.currentAttribute = {
+      name: attr.name,
+      type: attr.type
+    };
+    this.editingAttributeIndex = index;
+    this.showAttributeSection = true;
+  }
+
+  deleteAttribute(index: number): void {
+    if (confirm('Czy na pewno chcesz usunąć ten atrybut?')) {
+      this.productForm.attributes!.splice(index, 1);
+    }
+  }
+
+  addVariant(attributeIndex: number): void {
+    if (!this.currentVariant.name || !this.currentVariant.value) {
+      alert('Nazwa i wartość wariantu są wymagane');
+      return;
+    }
+
+    const newVariant: ProductVariant = {
+      id: `variant-${Date.now()}`,
+      name: this.currentVariant.name,
+      value: this.currentVariant.value,
+      priceModifier: this.currentVariant.priceModifier || 0,
+      stockModifier: this.currentVariant.stockModifier || 0
+    };
+
+    if (this.editingVariantIndex >= 0) {
+      this.productForm.attributes![attributeIndex].variants[this.editingVariantIndex] = newVariant;
+      this.editingVariantIndex = -1;
+    } else {
+      this.productForm.attributes![attributeIndex].variants.push(newVariant);
+    }
+
+    this.currentVariant = {};
+  }
+
+  editVariant(attributeIndex: number, variantIndex: number): void {
+    const variant = this.productForm.attributes![attributeIndex].variants[variantIndex];
+    this.currentVariant = { ...variant };
+    this.editingVariantIndex = variantIndex;
+  }
+
+  deleteVariant(attributeIndex: number, variantIndex: number): void {
+    if (confirm('Czy na pewno chcesz usunąć ten wariant?')) {
+      this.productForm.attributes![attributeIndex].variants.splice(variantIndex, 1);
+    }
+  }
+
+  cancelAttributeEdit(): void {
+    this.currentAttribute = {};
+    this.editingAttributeIndex = -1;
+    this.showAttributeSection = false;
+  }
+
+  cancelVariantEdit(): void {
+    this.currentVariant = {};
+    this.editingVariantIndex = -1;
   }
 
   // Category methods
@@ -961,6 +1579,55 @@ export class AdminComponent implements OnInit {
     this.orderItems = [];
   }
 
+  openOrderEditModal(): void {
+    if (this.selectedOrder) {
+      this.orderEditForm = {
+        customerName: this.selectedOrder.customerName,
+        email: this.selectedOrder.email,
+        phone: this.selectedOrder.phone,
+        address: this.selectedOrder.address,
+        city: this.selectedOrder.city,
+        postalCode: this.selectedOrder.postalCode,
+        notes: this.selectedOrder.notes || ''
+      };
+      this.showOrderEditModal = true;
+    }
+  }
+
+  closeOrderEditModal(): void {
+    this.showOrderEditModal = false;
+    this.orderEditForm = {};
+  }
+
+  saveOrderEdit(event: Event): void {
+    event.preventDefault();
+    
+    if (!this.selectedOrder) return;
+
+    const updates: Partial<Order> = {
+      customerName: this.orderEditForm.customerName,
+      email: this.orderEditForm.email,
+      phone: this.orderEditForm.phone,
+      address: this.orderEditForm.address,
+      city: this.orderEditForm.city,
+      postalCode: this.orderEditForm.postalCode,
+      notes: this.orderEditForm.notes
+    };
+
+    this.apiService.updateOrder(this.selectedOrder.id, updates).subscribe({
+      next: (updatedOrder) => {
+        this.selectedOrder = { ...this.selectedOrder!, ...updatedOrder };
+        this.orders$ = this.apiService.getOrders();
+        this.closeOrderEditModal();
+        alert('Zamówienie zaktualizowane pomyślnie!');
+      },
+      error: (err) => {
+        console.error('Błąd aktualizacji zamówienia:', err);
+        alert('Błąd podczas aktualizacji zamówienia');
+      }
+    });
+  }
+
   // Low stock methods
   loadLowStockAlerts(): void {
     this.lowStockAlerts$ = this.apiService.getLowStockAlerts(this.lowStockThreshold);
@@ -993,5 +1660,127 @@ export class AdminComponent implements OnInit {
     const startDate = this.statsStartDate ? new Date(this.statsStartDate) : undefined;
     const endDate = this.statsEndDate ? new Date(this.statsEndDate) : undefined;
     this.statistics$ = this.apiService.getSalesStatistics(startDate, endDate);
+  }
+
+  // Support ticket methods
+  loadSupportTickets(): void {
+    this.loadingTickets = true;
+    this.apiService.getAllTickets().subscribe({
+      next: (tickets) => {
+        this.allTickets = tickets;
+        this.loadingTickets = false;
+      },
+      error: (err) => {
+        console.error('Error loading tickets:', err);
+        alert('Błąd podczas ładowania zgłoszeń');
+        this.loadingTickets = false;
+      }
+    });
+  }
+
+  getFilteredTickets(): Ticket[] {
+    if (this.selectedSupportStatus === 'all') {
+      return this.allTickets;
+    }
+    return this.allTickets.filter(t => t.status === this.selectedSupportStatus);
+  }
+
+  viewSupportTicket(ticket: Ticket): void {
+    this.loadingTickets = true;
+    this.apiService.getAdminTicket(ticket.id).subscribe({
+      next: (fullTicket) => {
+        this.selectedTicket = fullTicket;
+        this.ticketStatusForm = fullTicket.status;
+        this.ticketReplyText = '';
+        this.showTicketModal = true;
+        this.loadingTickets = false;
+      },
+      error: (err) => {
+        console.error('Error loading ticket details:', err);
+        alert('Błąd podczas ładowania szczegółów zgłoszenia');
+        this.loadingTickets = false;
+      }
+    });
+  }
+
+  closeTicketModal(): void {
+    this.showTicketModal = false;
+    this.selectedTicket = null;
+    this.ticketReplyText = '';
+  }
+
+  updateTicketStatus(): void {
+    if (!this.selectedTicket) return;
+
+    const statusUpdate: TicketStatusUpdate = {
+      status: this.ticketStatusForm as 'new' | 'in_progress' | 'closed'
+    };
+
+    this.apiService.updateTicketStatus(this.selectedTicket.id, statusUpdate).subscribe({
+      next: (updatedTicket) => {
+        alert('Status zgłoszenia został zaktualizowany');
+        this.loadSupportTickets();
+        if (this.selectedTicket) {
+          this.selectedTicket.status = updatedTicket.status;
+        }
+      },
+      error: (err) => {
+        console.error('Error updating ticket status:', err);
+        alert('Błąd podczas aktualizacji statusu zgłoszenia');
+      }
+    });
+  }
+
+  replyToSupportTicket(): void {
+    if (!this.selectedTicket || !this.ticketReplyText.trim()) return;
+
+    const reply: TicketReply = {
+      body: this.ticketReplyText
+    };
+
+    this.apiService.adminReplyToTicket(this.selectedTicket.id, reply).subscribe({
+      next: () => {
+        alert('Odpowiedź została wysłana');
+        this.ticketReplyText = '';
+        // Reload ticket details
+        if (this.selectedTicket) {
+          this.viewSupportTicket(this.selectedTicket);
+        }
+      },
+      error: (err) => {
+        console.error('Error replying to ticket:', err);
+        alert('Błąd podczas wysyłania odpowiedzi');
+      }
+    });
+  }
+
+  getSupportStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      'new': 'Nowe',
+      'in_progress': 'W trakcie',
+      'closed': 'Zamknięte'
+    };
+    return labels[status] || status;
+  }
+
+  isAdminMessage(authorId: number): boolean {
+    // Check if the message is from admin (not from the ticket creator)
+    if (!this.selectedTicket) return false;
+    return this.selectedTicket.user.id !== authorId.toString();
+  }
+
+  getTicketAuthorName(authorId: number): string {
+    if (!this.selectedTicket) return 'Nieznany';
+    
+    const participant = this.selectedTicket.participants?.find(p => p.id === authorId.toString());
+    if (participant) {
+      return `${participant.firstName} ${participant.lastName}`;
+    }
+    
+    return this.isAdminMessage(authorId) ? 'Administrator' : 'Klient';
+  }
+
+  downloadInvoice(orderId: string): void {
+    this.apiService.downloadInvoice(orderId, `faktura_${orderId}.pdf`);
   }
 }
