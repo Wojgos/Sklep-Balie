@@ -15,7 +15,13 @@ import {
   Ticket,
   InsertTicket,
   TicketReply,
-  TicketStatusUpdate
+  TicketStatusUpdate,
+  LoyaltyProgram,
+  LoyaltyReward,
+  UserLoyaltyPoints,
+  RedeemedReward,
+  InsertLoyaltyProgram,
+  InsertLoyaltyReward
 } from '../models';
 import { MockDataService } from './mock-data.service';
 import { AuthService } from './auth.service';
@@ -218,6 +224,84 @@ export class ApiService {
     //   error: (error) => {
     //     console.error('Error downloading invoice:', error);
     //   }
+    // });
+  }
+
+  // Loyalty Program - Admin API
+  getLoyaltyProgram(): Observable<LoyaltyProgram | null> {
+    return this.mockDataService.getLoyaltyProgram();
+    // Real API call (uncomment when backend is ready):
+    // return this.http.get<LoyaltyProgram>(`${this.apiUrl}/loyalty/program/`, {
+    //   headers: this.getAuthHeaders()
+    // });
+  }
+
+  createOrUpdateLoyaltyProgram(program: InsertLoyaltyProgram): Observable<LoyaltyProgram> {
+    return this.mockDataService.createOrUpdateLoyaltyProgram(program);
+    // Real API call (uncomment when backend is ready):
+    // return this.http.post<LoyaltyProgram>(`${this.apiUrl}/loyalty/program/`, program, {
+    //   headers: this.getAuthHeaders()
+    // });
+  }
+
+  // Loyalty Rewards - Admin API
+  getLoyaltyRewards(): Observable<LoyaltyReward[]> {
+    return this.mockDataService.getLoyaltyRewards();
+    // Real API call (uncomment when backend is ready):
+    // return this.http.get<LoyaltyReward[]>(`${this.apiUrl}/loyalty/rewards/`, {
+    //   headers: this.getAuthHeaders()
+    // });
+  }
+
+  createLoyaltyReward(reward: InsertLoyaltyReward): Observable<LoyaltyReward> {
+    return this.mockDataService.createLoyaltyReward(reward);
+    // Real API call (uncomment when backend is ready):
+    // return this.http.post<LoyaltyReward>(`${this.apiUrl}/loyalty/rewards/`, reward, {
+    //   headers: this.getAuthHeaders()
+    // });
+  }
+
+  updateLoyaltyReward(id: string, reward: Partial<InsertLoyaltyReward>): Observable<LoyaltyReward> {
+    return this.mockDataService.updateLoyaltyReward(id, reward);
+    // Real API call (uncomment when backend is ready):
+    // return this.http.patch<LoyaltyReward>(`${this.apiUrl}/loyalty/rewards/${id}/`, reward, {
+    //   headers: this.getAuthHeaders()
+    // });
+  }
+
+  deleteLoyaltyReward(id: string): Observable<void> {
+    return this.mockDataService.deleteLoyaltyReward(id);
+    // Real API call (uncomment when backend is ready):
+    // return this.http.delete<void>(`${this.apiUrl}/loyalty/rewards/${id}/`, {
+    //   headers: this.getAuthHeaders()
+    // });
+  }
+
+  // Loyalty - User API
+  getUserLoyaltyPoints(): Observable<UserLoyaltyPoints> {
+    const userId = this.authService.currentUserValue?.id || '2';
+    return this.mockDataService.getUserLoyaltyPoints(userId);
+    // Real API call (uncomment when backend is ready):
+    // return this.http.get<UserLoyaltyPoints>(`${this.apiUrl}/loyalty/my-points/`, {
+    //   headers: this.getAuthHeaders()
+    // });
+  }
+
+  redeemReward(rewardId: string): Observable<RedeemedReward> {
+    const userId = this.authService.currentUserValue?.id || '2';
+    return this.mockDataService.redeemReward(userId, rewardId);
+    // Real API call (uncomment when backend is ready):
+    // return this.http.post<RedeemedReward>(`${this.apiUrl}/loyalty/rewards/${rewardId}/redeem/`, {}, {
+    //   headers: this.getAuthHeaders()
+    // });
+  }
+
+  getMyRedeemedRewards(): Observable<RedeemedReward[]> {
+    const userId = this.authService.currentUserValue?.id || '2';
+    return this.mockDataService.getMyRedeemedRewards(userId);
+    // Real API call (uncomment when backend is ready):
+    // return this.http.get<RedeemedReward[]>(`${this.apiUrl}/loyalty/my-rewards/`, {
+    //   headers: this.getAuthHeaders()
     // });
   }
 }

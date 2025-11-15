@@ -3,9 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../services/api.service';
-import { Product, Category, Order, InsertProduct, InsertCategory, SalesStatistics, LowStockAlert, OrderItem, ProductAttribute, ProductVariant, Ticket, TicketReply, TicketStatusUpdate } from '../../models';
+import { Product, Category, Order, InsertProduct, InsertCategory, SalesStatistics, LowStockAlert, OrderItem, ProductAttribute, ProductVariant, Ticket, TicketReply, TicketStatusUpdate, LoyaltyProgram, LoyaltyReward, InsertLoyaltyProgram, InsertLoyaltyReward } from '../../models';
 
-type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' | 'support';
+type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' | 'support' | 'loyalty';
 
 @Component({
   selector: 'bg-admin',
@@ -475,6 +475,141 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loyalty Program Tab -->
+          <div *ngIf="activeTab === 'loyalty'" class="space-y-6">
+            <!-- Program Configuration -->
+            <div class="bg-card border border-card-border rounded-lg p-6">
+              <h2 class="text-2xl font-semibold mb-6">Konfiguracja Programu Lojalnościowego</h2>
+              
+              <form *ngIf="loyaltyProgram" (submit)="saveLoyaltyProgram($event)" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium mb-2">Nazwa programu</label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="loyaltyProgramForm.name" 
+                    name="name"
+                    required
+                    class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium mb-2">Opis</label>
+                  <textarea 
+                    [(ngModel)]="loyaltyProgramForm.description" 
+                    name="description"
+                    rows="2"
+                    class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                  ></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium mb-2">Punkty za 1 PLN</label>
+                    <input 
+                      type="number" 
+                      [(ngModel)]="loyaltyProgramForm.pointsPerZloty" 
+                      name="pointsPerZloty"
+                      step="0.1"
+                      min="0"
+                      required
+                      class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                    />
+                  </div>
+
+                  <div class="flex items-end">
+                    <label class="inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        [(ngModel)]="loyaltyProgramForm.isActive" 
+                        name="isActive"
+                        class="w-4 h-4 text-primary border-border rounded focus:ring-primary"
+                      />
+                      <span class="ml-2 text-sm font-medium">Program aktywny</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-4">
+                  <button 
+                    type="submit"
+                    class="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2 rounded-lg font-semibold transition-colors"
+                  >
+                    Zapisz konfigurację
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Rewards Management -->
+            <div>
+              <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-semibold">Nagrody</h2>
+                <button 
+                  (click)="openRewardModal()"
+                  class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg font-semibold transition-colors"
+                >
+                  + Dodaj Nagrodę
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div *ngFor="let reward of loyaltyRewards$ | async" 
+                     class="bg-card border border-card-border rounded-lg p-4">
+                  <div class="flex justify-between items-start mb-3">
+                    <h3 class="font-semibold text-lg">{{ reward.name }}</h3>
+                    <span 
+                      class="px-2 py-1 rounded text-xs font-medium"
+                      [ngClass]="reward.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+                    >
+                      {{ reward.isActive ? 'Aktywna' : 'Nieaktywna' }}
+                    </span>
+                  </div>
+                  
+                  <p class="text-sm text-muted-foreground mb-4">{{ reward.description }}</p>
+                  
+                  <div class="space-y-2 mb-4">
+                    <div class="flex justify-between text-sm">
+                      <span class="text-muted-foreground">Koszt:</span>
+                      <span class="font-semibold">{{ reward.pointsCost }} punktów</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                      <span class="text-muted-foreground">Typ:</span>
+                      <span class="font-medium">{{ getRewardTypeLabel(reward.rewardType) }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                      <span class="text-muted-foreground">Wartość:</span>
+                      <span class="font-medium">{{ formatRewardValue(reward) }}</span>
+                    </div>
+                    <div *ngIf="reward.usageLimit" class="flex justify-between text-sm">
+                      <span class="text-muted-foreground">Limit użyć:</span>
+                      <span class="font-medium">{{ reward.usageLimit }}</span>
+                    </div>
+                    <div *ngIf="reward.validUntil" class="flex justify-between text-sm">
+                      <span class="text-muted-foreground">Ważna do:</span>
+                      <span class="font-medium">{{ reward.validUntil | date:'dd.MM.yyyy' }}</span>
+                    </div>
+                  </div>
+
+                  <div class="flex gap-2">
+                    <button
+                      (click)="openRewardModal(reward)"
+                      class="flex-1 px-3 py-2 text-sm bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+                    >
+                      Edytuj
+                    </button>
+                    <button
+                      (click)="deleteReward(reward.id)"
+                      class="flex-1 px-3 py-2 text-sm bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors"
+                    >
+                      Usuń
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1184,6 +1319,157 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
         </div>
       </div>
     </div>
+
+    <!-- Loyalty Reward Modal -->
+    <div *ngIf="showRewardModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" (click)="closeRewardModal()">
+      <div class="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+        <div class="p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold">{{ editingReward ? 'Edytuj Nagrodę' : 'Dodaj Nagrodę' }}</h2>
+            <button (click)="closeRewardModal()" class="text-muted-foreground hover:text-foreground">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <form (submit)="saveReward($event)" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-2">Nazwa nagrody</label>
+              <input 
+                type="text" 
+                [(ngModel)]="rewardForm.name" 
+                name="name"
+                required
+                class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-2">Opis</label>
+              <textarea 
+                [(ngModel)]="rewardForm.description" 
+                name="description"
+                rows="2"
+                class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+              ></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-2">Koszt w punktach</label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="rewardForm.pointsCost" 
+                  name="pointsCost"
+                  min="1"
+                  required
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-2">Typ nagrody</label>
+                <select 
+                  [(ngModel)]="rewardForm.rewardType" 
+                  name="rewardType"
+                  required
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                >
+                  <option value="discount_percentage">Zniżka procentowa</option>
+                  <option value="discount_fixed">Zniżka stała (PLN)</option>
+                  <option value="free_shipping">Darmowa dostawa</option>
+                  <option value="free_product">Darmowy produkt</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-2">
+                  {{ rewardForm.rewardType === 'discount_percentage' ? 'Wartość (%)' : 
+                     rewardForm.rewardType === 'discount_fixed' ? 'Wartość (PLN)' : 
+                     rewardForm.rewardType === 'free_product' ? 'ID produktu' : 'Wartość' }}
+                </label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="rewardForm.rewardValue" 
+                  name="rewardValue"
+                  [min]="0"
+                  [max]="rewardForm.rewardType === 'discount_percentage' ? 100 : null"
+                  [step]="rewardForm.rewardType === 'discount_percentage' || rewardForm.rewardType === 'discount_fixed' ? '0.01' : '1'"
+                  required
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-2">Limit użyć (opcjonalne)</label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="rewardForm.usageLimit" 
+                  name="usageLimit"
+                  min="1"
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                  placeholder="Brak limitu"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-2">Ważne do (opcjonalne)</label>
+                <input 
+                  type="date" 
+                  [(ngModel)]="rewardForm.validUntilString" 
+                  name="validUntil"
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+              </div>
+
+              <div class="flex items-end">
+                <label class="inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    [(ngModel)]="rewardForm.isActive" 
+                    name="isActive"
+                    class="w-4 h-4 text-primary border-border rounded focus:ring-primary"
+                  />
+                  <span class="ml-2 text-sm font-medium">Nagroda aktywna</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-2">URL obrazka (opcjonalne)</label>
+              <input 
+                type="text" 
+                [(ngModel)]="rewardForm.image" 
+                name="image"
+                placeholder="assets/..."
+                class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+              />
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4">
+              <button 
+                type="button"
+                (click)="closeRewardModal()"
+                class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              >
+                Anuluj
+              </button>
+              <button 
+                type="submit"
+                class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                {{ editingReward ? 'Zapisz zmiany' : 'Dodaj nagrodę' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   `,
   styleUrls: ['./admin.component.scss']
 })
@@ -1196,7 +1482,8 @@ export class AdminComponent implements OnInit {
     { id: 'orders' as TabType, label: 'Zamówienia' },
     { id: 'lowStock' as TabType, label: 'Niski stan' },
     { id: 'statistics' as TabType, label: 'Statystyki' },
-    { id: 'support' as TabType, label: 'Zgłoszenia' }
+    { id: 'support' as TabType, label: 'Zgłoszenia' },
+    { id: 'loyalty' as TabType, label: 'System Lojalnościowy' }
   ];
 
   products$: Observable<Product[]>;
@@ -1250,6 +1537,43 @@ export class AdminComponent implements OnInit {
     { label: 'Zamknięte', value: 'closed' }
   ];
 
+  // Loyalty Program variables
+  loyaltyProgram: LoyaltyProgram | null = null;
+  loyaltyRewards$: Observable<LoyaltyReward[]>;
+  showRewardModal: boolean = false;
+  editingReward: LoyaltyReward | null = null;
+  
+  loyaltyProgramForm: {
+    name: string;
+    description: string;
+    pointsPerZloty: number;
+    isActive: boolean;
+  } = {
+    name: '',
+    description: '',
+    pointsPerZloty: 1,
+    isActive: true
+  };
+
+  rewardForm: {
+    name: string;
+    description: string;
+    pointsCost: number;
+    rewardType: 'discount_percentage' | 'discount_fixed' | 'free_product' | 'free_shipping';
+    rewardValue: number;
+    isActive: boolean;
+    image?: string;
+    validUntilString?: string;
+    usageLimit?: number;
+  } = {
+    name: '',
+    description: '',
+    pointsCost: 100,
+    rewardType: 'discount_percentage',
+    rewardValue: 5,
+    isActive: true
+  };
+
   private allCategories: Category[] = [];
 
   constructor(private apiService: ApiService) {
@@ -1258,11 +1582,13 @@ export class AdminComponent implements OnInit {
     this.orders$ = this.apiService.getOrders();
     this.lowStockAlerts$ = this.apiService.getLowStockAlerts(this.lowStockThreshold);
     this.statistics$ = this.apiService.getSalesStatistics();
+    this.loyaltyRewards$ = this.apiService.getLoyaltyRewards();
   }
 
   ngOnInit(): void {
     this.categories$.subscribe(cats => this.allCategories = cats);
     this.loadSupportTickets();
+    this.loadLoyaltyProgram();
   }
 
   // Utility methods
@@ -1782,5 +2108,165 @@ export class AdminComponent implements OnInit {
 
   downloadInvoice(orderId: string): void {
     this.apiService.downloadInvoice(orderId, `faktura_${orderId}.pdf`);
+  }
+
+  // Loyalty Program methods
+  loadLoyaltyProgram(): void {
+    this.apiService.getLoyaltyProgram().subscribe({
+      next: (program) => {
+        this.loyaltyProgram = program;
+        if (program) {
+          this.loyaltyProgramForm = {
+            name: program.name,
+            description: program.description,
+            pointsPerZloty: program.pointsPerZloty,
+            isActive: program.isActive
+          };
+        }
+      },
+      error: (err) => {
+        console.error('Error loading loyalty program:', err);
+      }
+    });
+  }
+
+  saveLoyaltyProgram(event: Event): void {
+    event.preventDefault();
+    
+    const programData: InsertLoyaltyProgram = {
+      name: this.loyaltyProgramForm.name,
+      description: this.loyaltyProgramForm.description,
+      pointsPerZloty: this.loyaltyProgramForm.pointsPerZloty,
+      isActive: this.loyaltyProgramForm.isActive
+    };
+
+    this.apiService.createOrUpdateLoyaltyProgram(programData).subscribe({
+      next: (program) => {
+        this.loyaltyProgram = program;
+        alert('Konfiguracja programu lojalnościowego została zapisana');
+      },
+      error: (err) => {
+        console.error('Error saving loyalty program:', err);
+        alert('Błąd podczas zapisywania konfiguracji');
+      }
+    });
+  }
+
+  // Reward methods
+  openRewardModal(reward?: LoyaltyReward): void {
+    if (reward) {
+      this.editingReward = reward;
+      this.rewardForm = {
+        name: reward.name,
+        description: reward.description,
+        pointsCost: reward.pointsCost,
+        rewardType: reward.rewardType,
+        rewardValue: reward.rewardValue,
+        isActive: reward.isActive,
+        image: reward.image,
+        validUntilString: reward.validUntil ? new Date(reward.validUntil).toISOString().split('T')[0] : undefined,
+        usageLimit: reward.usageLimit || undefined
+      };
+    } else {
+      this.editingReward = null;
+      this.rewardForm = {
+        name: '',
+        description: '',
+        pointsCost: 100,
+        rewardType: 'discount_percentage',
+        rewardValue: 5,
+        isActive: true
+      };
+    }
+    this.showRewardModal = true;
+  }
+
+  closeRewardModal(): void {
+    this.showRewardModal = false;
+    this.editingReward = null;
+  }
+
+  saveReward(event: Event): void {
+    event.preventDefault();
+    
+    const rewardData: InsertLoyaltyReward = {
+      name: this.rewardForm.name,
+      description: this.rewardForm.description,
+      pointsCost: this.rewardForm.pointsCost,
+      rewardType: this.rewardForm.rewardType,
+      rewardValue: this.rewardForm.rewardValue,
+      isActive: this.rewardForm.isActive,
+      image: this.rewardForm.image,
+      validUntil: this.rewardForm.validUntilString ? new Date(this.rewardForm.validUntilString) : undefined,
+      usageLimit: this.rewardForm.usageLimit
+    };
+
+    if (this.editingReward) {
+      // Update existing reward
+      this.apiService.updateLoyaltyReward(this.editingReward.id, rewardData).subscribe({
+        next: () => {
+          this.loyaltyRewards$ = this.apiService.getLoyaltyRewards();
+          this.closeRewardModal();
+          alert('Nagroda została zaktualizowana');
+        },
+        error: (err) => {
+          console.error('Error updating reward:', err);
+          alert('Błąd podczas aktualizacji nagrody');
+        }
+      });
+    } else {
+      // Create new reward
+      this.apiService.createLoyaltyReward(rewardData).subscribe({
+        next: () => {
+          this.loyaltyRewards$ = this.apiService.getLoyaltyRewards();
+          this.closeRewardModal();
+          alert('Nagroda została dodana');
+        },
+        error: (err) => {
+          console.error('Error creating reward:', err);
+          alert('Błąd podczas tworzenia nagrody');
+        }
+      });
+    }
+  }
+
+  deleteReward(rewardId: string): void {
+    if (!confirm('Czy na pewno chcesz usunąć tę nagrodę?')) return;
+
+    this.apiService.deleteLoyaltyReward(rewardId).subscribe({
+      next: () => {
+        this.loyaltyRewards$ = this.apiService.getLoyaltyRewards();
+        alert('Nagroda została usunięta');
+      },
+      error: (err) => {
+        console.error('Error deleting reward:', err);
+        alert('Błąd podczas usuwania nagrody');
+      }
+    });
+  }
+
+  getRewardTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      'discount_percentage': 'Zniżka procentowa',
+      'discount_fixed': 'Zniżka stała',
+      'free_shipping': 'Darmowa dostawa',
+      'free_product': 'Darmowy produkt'
+    };
+    return labels[type] || type;
+  }
+
+  formatRewardValue(reward: LoyaltyReward): string {
+    switch (reward.rewardType) {
+      case 'discount_percentage':
+        return `${reward.rewardValue}%`;
+      case 'discount_fixed':
+        return `${reward.rewardValue} PLN`;
+      case 'free_shipping':
+        return 'Darmowa dostawa';
+      case 'free_product':
+        return `Produkt #${reward.rewardValue}`;
+      default:
+        return reward.rewardValue.toString();
+    }
   }
 }

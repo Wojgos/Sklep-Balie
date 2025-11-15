@@ -15,7 +15,14 @@ import {
   TicketMessage,
   InsertTicket,
   TicketReply,
-  User
+  User,
+  LoyaltyProgram,
+  LoyaltyReward,
+  UserLoyaltyPoints,
+  LoyaltyTransaction,
+  RedeemedReward,
+  InsertLoyaltyProgram,
+  InsertLoyaltyReward
 } from '../models';
 
 @Injectable({
@@ -468,6 +475,177 @@ export class MockDataService {
   private ticketIdCounter = 4;
   private messageIdCounter = 8;
 
+  // Loyalty Program data
+  private loyaltyProgram: LoyaltyProgram | null = {
+    id: '1',
+    name: 'Program Lojalnościowy BarrelGarden',
+    description: 'Zbieraj punkty za każde zamówienie i wymieniaj je na atrakcyjne nagrody!',
+    pointsPerZloty: 1, // 1 punkt za każdą złotówkę
+    isActive: true,
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01')
+  };
+
+  private loyaltyRewards: LoyaltyReward[] = [
+    {
+      id: '1',
+      name: 'Zniżka 5%',
+      description: 'Zniżka 5% na następne zamówienie',
+      pointsCost: 100,
+      rewardType: 'discount_percentage',
+      rewardValue: 5,
+      isActive: true,
+      image: 'assets/reward-5-percent.png',
+      usageLimit: undefined,
+      createdAt: new Date('2024-01-01')
+    },
+    {
+      id: '2',
+      name: 'Zniżka 10%',
+      description: 'Zniżka 10% na następne zamówienie',
+      pointsCost: 250,
+      rewardType: 'discount_percentage',
+      rewardValue: 10,
+      isActive: true,
+      image: 'assets/reward-10-percent.png',
+      usageLimit: 1,
+      createdAt: new Date('2024-01-01')
+    },
+    {
+      id: '3',
+      name: 'Zniżka 50 PLN',
+      description: 'Rabat 50 PLN na następne zamówienie',
+      pointsCost: 500,
+      rewardType: 'discount_fixed',
+      rewardValue: 50,
+      isActive: true,
+      image: 'assets/reward-50-pln.png',
+      usageLimit: undefined,
+      createdAt: new Date('2024-01-01')
+    },
+    {
+      id: '4',
+      name: 'Darmowa dostawa',
+      description: 'Darmowa dostawa na następne zamówienie',
+      pointsCost: 150,
+      rewardType: 'free_shipping',
+      rewardValue: 0,
+      isActive: true,
+      image: 'assets/reward-free-shipping.png',
+      usageLimit: undefined,
+      createdAt: new Date('2024-01-01')
+    },
+    {
+      id: '5',
+      name: 'Zniżka 20%',
+      description: 'Zniżka 20% na następne zamówienie - limitowana oferta!',
+      pointsCost: 800,
+      rewardType: 'discount_percentage',
+      rewardValue: 20,
+      isActive: true,
+      image: 'assets/reward-20-percent.png',
+      validUntil: new Date('2025-12-31'),
+      usageLimit: 1,
+      createdAt: new Date('2024-01-01')
+    }
+  ];
+
+  private userLoyaltyData: Map<string, UserLoyaltyPoints> = new Map([
+    ['2', { // Jan Kowalski
+      userId: '2',
+      totalPoints: 2308,
+      availablePoints: 1558,
+      usedPoints: 750,
+      currentTier: 'Silver',
+      tierProgress: 62,
+      history: [
+        {
+          id: '1',
+          userId: '2',
+          type: 'earned',
+          points: 450,
+          description: 'Punkty za zamówienie #1',
+          orderId: '1',
+          createdAt: new Date('2024-10-15')
+        },
+        {
+          id: '2',
+          userId: '2',
+          type: 'earned',
+          points: 900,
+          description: 'Punkty za zamówienie #2',
+          orderId: '2',
+          createdAt: new Date('2024-11-05')
+        },
+        {
+          id: '3',
+          userId: '2',
+          type: 'spent',
+          points: -250,
+          description: 'Wymiana na: Zniżka 10%',
+          rewardId: '2',
+          createdAt: new Date('2024-11-07')
+        },
+        {
+          id: '4',
+          userId: '2',
+          type: 'earned',
+          points: 258,
+          description: 'Punkty za zamówienie #3',
+          orderId: '3',
+          createdAt: new Date('2024-11-10')
+        },
+        {
+          id: '5',
+          userId: '2',
+          type: 'earned',
+          points: 700,
+          description: 'Punkty za zamówienie #4',
+          orderId: '4',
+          createdAt: new Date('2024-11-12')
+        },
+        {
+          id: '6',
+          userId: '2',
+          type: 'spent',
+          points: -500,
+          description: 'Wymiana na: Zniżka 50 PLN',
+          rewardId: '3',
+          createdAt: new Date('2024-11-13')
+        }
+      ]
+    }]
+  ]);
+
+  private redeemedRewards: RedeemedReward[] = [
+    {
+      id: '1',
+      userId: '2',
+      rewardId: '2',
+      reward: this.loyaltyRewards[1],
+      pointsSpent: 250,
+      code: 'LOYALTY10-ABCD1234',
+      isUsed: false,
+      expiresAt: new Date('2025-01-31'),
+      createdAt: new Date('2024-11-07')
+    },
+    {
+      id: '2',
+      userId: '2',
+      rewardId: '3',
+      reward: this.loyaltyRewards[2],
+      pointsSpent: 500,
+      code: 'LOYALTY50-EFGH5678',
+      isUsed: false,
+      expiresAt: new Date('2025-01-31'),
+      createdAt: new Date('2024-11-13')
+    }
+  ];
+
+  private rewardIdCounter = 6;
+  private transactionIdCounter = 7;
+  private redeemedRewardIdCounter = 3;
+
   // Categories methods
   getCategories(): Observable<Category[]> {
     return of(this.categories).pipe(delay(300));
@@ -826,5 +1004,195 @@ export class MockDataService {
     ticket.updated_at = new Date();
 
     return of(ticket).pipe(delay(400));
+  }
+
+  // Loyalty Program methods - Admin
+  getLoyaltyProgram(): Observable<LoyaltyProgram | null> {
+    return of(this.loyaltyProgram).pipe(delay(300));
+  }
+
+  createOrUpdateLoyaltyProgram(program: InsertLoyaltyProgram): Observable<LoyaltyProgram> {
+    if (this.loyaltyProgram) {
+      // Update existing
+      this.loyaltyProgram = {
+        ...this.loyaltyProgram,
+        ...program,
+        updatedAt: new Date()
+      };
+    } else {
+      // Create new
+      this.loyaltyProgram = {
+        id: '1',
+        ...program,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+    }
+    return of(this.loyaltyProgram).pipe(delay(500));
+  }
+
+  // Loyalty Rewards methods - Admin
+  getLoyaltyRewards(): Observable<LoyaltyReward[]> {
+    return of(this.loyaltyRewards).pipe(delay(300));
+  }
+
+  createLoyaltyReward(reward: InsertLoyaltyReward): Observable<LoyaltyReward> {
+    const newReward: LoyaltyReward = {
+      id: this.rewardIdCounter.toString(),
+      ...reward,
+      createdAt: new Date()
+    };
+    this.rewardIdCounter++;
+    this.loyaltyRewards.push(newReward);
+    return of(newReward).pipe(delay(500));
+  }
+
+  updateLoyaltyReward(id: string, reward: Partial<InsertLoyaltyReward>): Observable<LoyaltyReward> {
+    const index = this.loyaltyRewards.findIndex(r => r.id === id);
+    if (index === -1) {
+      throw new Error(`Reward with id ${id} not found`);
+    }
+    this.loyaltyRewards[index] = { ...this.loyaltyRewards[index], ...reward };
+    return of(this.loyaltyRewards[index]).pipe(delay(400));
+  }
+
+  deleteLoyaltyReward(id: string): Observable<void> {
+    const index = this.loyaltyRewards.findIndex(r => r.id === id);
+    if (index === -1) {
+      throw new Error(`Reward with id ${id} not found`);
+    }
+    this.loyaltyRewards.splice(index, 1);
+    return of(undefined).pipe(delay(300));
+  }
+
+  // Loyalty methods - User
+  getUserLoyaltyPoints(userId: string): Observable<UserLoyaltyPoints> {
+    let userPoints = this.userLoyaltyData.get(userId);
+    
+    if (!userPoints) {
+      // Initialize new user with 0 points
+      userPoints = {
+        userId,
+        totalPoints: 0,
+        availablePoints: 0,
+        usedPoints: 0,
+        currentTier: 'Bronze',
+        tierProgress: 0,
+        history: []
+      };
+      this.userLoyaltyData.set(userId, userPoints);
+    }
+
+    return of(userPoints).pipe(delay(300));
+  }
+
+  redeemReward(userId: string, rewardId: string): Observable<RedeemedReward> {
+    const reward = this.loyaltyRewards.find(r => r.id === rewardId);
+    if (!reward) {
+      throw new Error(`Reward with id ${rewardId} not found`);
+    }
+
+    if (!reward.isActive) {
+      throw new Error('This reward is no longer active');
+    }
+
+    let userPoints = this.userLoyaltyData.get(userId);
+    if (!userPoints) {
+      throw new Error('User loyalty data not found');
+    }
+
+    if (userPoints.availablePoints < reward.pointsCost) {
+      throw new Error('Insufficient points');
+    }
+
+    // Deduct points
+    userPoints.availablePoints -= reward.pointsCost;
+    userPoints.usedPoints += reward.pointsCost;
+
+    // Add transaction
+    const transaction: LoyaltyTransaction = {
+      id: this.transactionIdCounter.toString(),
+      userId,
+      type: 'spent',
+      points: -reward.pointsCost,
+      description: `Wymiana na: ${reward.name}`,
+      rewardId,
+      createdAt: new Date()
+    };
+    this.transactionIdCounter++;
+    userPoints.history.push(transaction);
+
+    // Create redeemed reward
+    const code = `LOYALTY${reward.rewardValue}-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+    const redeemedReward: RedeemedReward = {
+      id: this.redeemedRewardIdCounter.toString(),
+      userId,
+      rewardId,
+      reward,
+      pointsSpent: reward.pointsCost,
+      code,
+      isUsed: false,
+      expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days from now
+      createdAt: new Date()
+    };
+    this.redeemedRewardIdCounter++;
+    this.redeemedRewards.push(redeemedReward);
+
+    return of(redeemedReward).pipe(delay(500));
+  }
+
+  getMyRedeemedRewards(userId: string): Observable<RedeemedReward[]> {
+    const userRewards = this.redeemedRewards.filter(r => r.userId === userId);
+    return of(userRewards).pipe(delay(300));
+  }
+
+  // Helper method to add loyalty points when order is created
+  private addLoyaltyPointsForOrder(userId: string, orderId: string, totalPrice: number): void {
+    if (!this.loyaltyProgram || !this.loyaltyProgram.isActive) {
+      return;
+    }
+
+    const points = Math.floor(totalPrice * this.loyaltyProgram.pointsPerZloty);
+    
+    let userPoints = this.userLoyaltyData.get(userId);
+    if (!userPoints) {
+      userPoints = {
+        userId,
+        totalPoints: 0,
+        availablePoints: 0,
+        usedPoints: 0,
+        currentTier: 'Bronze',
+        tierProgress: 0,
+        history: []
+      };
+      this.userLoyaltyData.set(userId, userPoints);
+    }
+
+    userPoints.totalPoints += points;
+    userPoints.availablePoints += points;
+
+    const transaction: LoyaltyTransaction = {
+      id: this.transactionIdCounter.toString(),
+      userId,
+      type: 'earned',
+      points,
+      description: `Punkty za zamówienie #${orderId}`,
+      orderId,
+      createdAt: new Date()
+    };
+    this.transactionIdCounter++;
+    userPoints.history.push(transaction);
+
+    // Calculate tier (simple calculation)
+    if (userPoints.totalPoints >= 3000) {
+      userPoints.currentTier = 'Gold';
+      userPoints.tierProgress = Math.min(100, ((userPoints.totalPoints - 3000) / 2000) * 100);
+    } else if (userPoints.totalPoints >= 1000) {
+      userPoints.currentTier = 'Silver';
+      userPoints.tierProgress = ((userPoints.totalPoints - 1000) / 2000) * 100;
+    } else {
+      userPoints.currentTier = 'Bronze';
+      userPoints.tierProgress = (userPoints.totalPoints / 1000) * 100;
+    }
   }
 }

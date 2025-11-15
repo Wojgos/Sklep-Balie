@@ -274,3 +274,81 @@ export interface TicketStatusUpdate {
   status: 'new' | 'in_progress' | 'closed';
 }
 
+// Loyalty Program models
+export interface LoyaltyProgram {
+  id: string;
+  name: string;
+  description: string;
+  pointsPerZloty: number; // Ile punktów za 1 PLN
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LoyaltyReward {
+  id: string;
+  name: string;
+  description: string;
+  pointsCost: number;
+  rewardType: 'discount_percentage' | 'discount_fixed' | 'free_product' | 'free_shipping';
+  rewardValue: number; // Wartość zniżki lub ID produktu
+  isActive: boolean;
+  image?: string;
+  validUntil?: Date;
+  usageLimit?: number; // Limit użyć na użytkownika (null = bez limitu)
+  createdAt: Date;
+}
+
+export interface UserLoyaltyPoints {
+  userId: string;
+  totalPoints: number;
+  availablePoints: number;
+  usedPoints: number;
+  currentTier?: string;
+  tierProgress?: number; // Procent do następnego poziomu
+  history: LoyaltyTransaction[];
+}
+
+export interface LoyaltyTransaction {
+  id: string;
+  userId: string;
+  type: 'earned' | 'spent' | 'expired';
+  points: number;
+  description: string;
+  orderId?: string;
+  rewardId?: string;
+  createdAt: Date;
+}
+
+export interface RedeemedReward {
+  id: string;
+  userId: string;
+  rewardId: string;
+  reward: LoyaltyReward;
+  pointsSpent: number;
+  code?: string; // Kod kuponu jeśli applicable
+  isUsed: boolean;
+  usedAt?: Date;
+  expiresAt?: Date;
+  createdAt: Date;
+}
+
+export interface InsertLoyaltyProgram {
+  name: string;
+  description: string;
+  pointsPerZloty: number;
+  isActive: boolean;
+}
+
+export interface InsertLoyaltyReward {
+  name: string;
+  description: string;
+  pointsCost: number;
+  rewardType: 'discount_percentage' | 'discount_fixed' | 'free_product' | 'free_shipping';
+  rewardValue: number;
+  isActive: boolean;
+  image?: string;
+  validUntil?: Date;
+  usageLimit?: number;
+}
+
