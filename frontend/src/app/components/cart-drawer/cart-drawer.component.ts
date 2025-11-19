@@ -45,7 +45,9 @@ import { CartService } from '../../services/cart.service';
               <div class="flex items-start justify-between gap-2">
                 <div class="min-w-0">
                   <h3 class="font-semibold truncate">{{ item.product.name }}</h3>
-                  <p class="text-sm text-muted-foreground truncate">{{ item.product.dimensions }}</p>
+                  <p class="text-sm text-muted-foreground truncate">
+                    {{ item.product.variantSummary || item.product.dimensions }}
+                  </p>
                 </div>
                 <div class="font-bold whitespace-nowrap">{{ parseFloat(item.product.price) | number:'1.2-2' }} PLN</div>
               </div>

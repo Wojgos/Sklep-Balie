@@ -43,3 +43,9 @@ Thumbs.db
 
 # github
 .github/
+
+# Python virtual environments
+venv/
+.venv/
+**/venv/
+**/.venv/

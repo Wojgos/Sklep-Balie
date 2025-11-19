@@ -8,34 +8,35 @@ import { Category } from '../../models';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div 
-      class="group cursor-pointer bg-card border border-card-border rounded-lg overflow-hidden hover:shadow-lg transition-all"
-      (click)="navigateToProducts()"
+    <article 
+      class="category-card"
+      (click)="navigateToFeaturedCategory()"
       [attr.data-testid]="'card-category-' + category.name"
     >
-      <div class="relative aspect-[4/3] overflow-hidden">
+      <div class="category-card__image">
         <img 
           [src]="category.image" 
           [alt]="category.name"
-          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          loading="lazy"
         />
-        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-        <div class="absolute bottom-4 left-4 text-white">
-          <h3 class="font-heading font-bold text-xl mb-1" data-testid="text-category-name">
-            {{ category.name }}
-          </h3>
-          <p class="text-sm opacity-90" data-testid="text-product-count">
-            {{ category.productCount }} produktów
+        <div class="category-card__overlay">
+          <p class="category-card__count" data-testid="text-product-count">
+            {{ totalProductCount }} {{ totalProductCount === 1 ? 'produkt' : 'produktów' }}
           </p>
         </div>
       </div>
-      
-      <div class="p-4">
-        <p class="text-sm text-muted-foreground" data-testid="text-category-description">
+
+      <div class="category-card__content">
+        <h3 data-testid="text-category-name">{{ category.name }}</h3>
+        <p class="category-card__description" data-testid="text-category-description">
           {{ category.description }}
         </p>
+        <button class="category-card__cta" type="button" (click)="navigateToFeaturedCategory($event)">
+          Zobacz produkty
+          <span aria-hidden="true">→</span>
+        </button>
       </div>
-    </div>
+    </article>
   `,
   styleUrls: ['./category-card.component.scss']
 })
@@ -44,10 +45,28 @@ export class CategoryCardComponent {
 
   constructor(private router: Router) {}
 
-  navigateToProducts(): void {
+  get totalProductCount(): number {
+    return this.category.totalProductCount ?? this.category.productCount ?? 0;
+  }
+
+  get childCategories(): Category[] {
+    return this.category.childCategories ?? [];
+  }
+
+  navigateToCategory(target: Category, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+
     this.router.navigate(['/products'], { 
-      queryParams: { category: this.category.id } 
+      queryParams: { category: target.id } 
     });
+  }
+
+  navigateToFeaturedCategory(event?: MouseEvent): void {
+    const preferredTarget = this.childCategories[0] ?? this.category;
+    this.navigateToCategory(preferredTarget, event);
   }
 }
 
