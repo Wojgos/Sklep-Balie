@@ -28,6 +28,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/register/register.component').then(m => m.RegisterComponent)
   },
   {
+    path: 'auth/verify-email/:key',
+    loadComponent: () => import('./pages/verify-email/verify-email.component').then(m => m.VerifyEmailComponent)
+  },
+  {
     path: 'account',
     loadComponent: () => import('./pages/account/account.component').then(m => m.AccountComponent),
     canActivate: [authGuard]
@@ -52,4 +56,3 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/not-found/not-found.component').then(m => m.NotFoundComponent)
   }
 ];
-

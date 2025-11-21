@@ -137,6 +137,10 @@ export class AuthService {
     );
   }
 
+  verifyEmail(key: string): Observable<any> {
+    return this.http.post<any>(`${this.AUTH_URL}/registration/verify-email/`, { key });
+  }
+
   loadCurrentUser(): Observable<User> {
     // Using USERS_URL/profile/ to get loyalty points and full profile
     return this.http.get<User>(`${this.USERS_URL}/profile/`).pipe(
