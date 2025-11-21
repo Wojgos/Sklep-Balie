@@ -1,6 +1,9 @@
-import { Component, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { Subject, debounceTime, distinctUntilChanged, switchMap, takeUntil, filter, finalize } from 'rxjs';
+import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'bg-search-bar',
@@ -13,7 +16,7 @@ import { FormsModule } from '@angular/forms';
           type="search"
           [(ngModel)]="searchQuery"
           (input)="onSearch()"
-          (keyup.enter)="onSearch()"
+          (keyup.enter)="onEnter()"
           placeholder="Szukaj produktów..."
           class="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           data-testid="input-search"
@@ -57,7 +60,7 @@ import { FormsModule } from '@angular/forms';
       
       <!-- No Results -->
       <div 
-        *ngIf="searchQuery && searchResults.length === 0 && !isSearching" 
+        *ngIf="searchQuery && searchResults.length === 0 && !isSearching && hasSearched" 
         class="absolute top-full left-0 right-0 mt-1 bg-popover border border-popover-border rounded-lg shadow-lg z-50"
       >
         <div class="p-4 text-center text-muted-foreground text-sm">
@@ -68,55 +71,75 @@ import { FormsModule } from '@angular/forms';
   `,
   styleUrls: ['./search-bar.component.scss']
 })
-export class SearchBarComponent implements OnInit {
+export class SearchBarComponent implements OnInit, OnDestroy {
   @Output() close = new EventEmitter<void>();
   
   searchQuery = '';
   searchResults: any[] = [];
   isSearching = false;
+  hasSearched = false;
+  
+  private searchSubject = new Subject<string>();
+  private destroy$ = new Subject<void>();
 
-  ngOnInit(): void {}
+  constructor(
+    private apiService: ApiService,
+    private router: Router
+  ) {}
+
+  ngOnInit(): void {
+    this.searchSubject.pipe(
+      takeUntil(this.destroy$),
+      debounceTime(300),
+      distinctUntilChanged(),
+      filter(query => {
+        if (!query.trim()) {
+          this.searchResults = [];
+          this.isSearching = false;
+          this.hasSearched = false;
+          return false;
+        }
+        return true;
+      }),
+      switchMap(query => {
+        this.isSearching = true;
+        this.hasSearched = false;
+        return this.apiService.searchProducts(query).pipe(
+          finalize(() => this.isSearching = false)
+        );
+      })
+    ).subscribe({
+      next: (results) => {
+        this.searchResults = results;
+        this.hasSearched = true;
+      },
+      error: (err) => {
+        console.error('Search error:', err);
+        this.searchResults = [];
+        this.isSearching = false;
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   onSearch(): void {
-    if (!this.searchQuery.trim()) {
-      this.searchResults = [];
-      return;
-    }
+    this.searchSubject.next(this.searchQuery);
+  }
 
-    this.isSearching = true;
-    
-    // Mock search - replace with actual API call
-    setTimeout(() => {
-      this.searchResults = this.mockSearch(this.searchQuery);
-      this.isSearching = false;
-    }, 300);
+  onEnter(): void {
+    this.onSearch();
   }
 
   selectResult(result: any): void {
-    // Navigate to product or handle selection
-    console.log('Selected product:', result);
+    const identifier = result.slug || result.id;
+    this.router.navigate(['/product', identifier]);
+    this.searchQuery = '';
+    this.searchResults = [];
+    this.hasSearched = false;
     this.close.emit();
   }
-
-  private mockSearch(query: string): any[] {
-    const mockProducts = [
-      {
-        id: '1',
-        name: 'Balia Ogrodowa Dębowa Duża',
-        price: '1899.99',
-        image: '/assets/generated_images/Oak_barrel_water_tub_da291514.png'
-      },
-      {
-        id: '2',
-        name: 'Owalna Kadź Kąpielowa',
-        price: '3499.99',
-        image: '/assets/generated_images/Oval_garden_bathtub_565f5ffe.png'
-      }
-    ];
-
-    return mockProducts.filter(product => 
-      product.name.toLowerCase().includes(query.toLowerCase())
-    );
-  }
 }
-

@@ -69,7 +69,7 @@ import { RouterModule } from '@angular/router';
             <div class="space-y-2 text-sm text-muted-foreground">
               <p>📧 info&#64;barrelgarden.pl</p>
               <p>📞 +48 123 456 789</p>
-              <p>📍 ul. Ogrodowa 123<br>00-001 Warszawa</p>
+              <p>📍 ul. Wiejska 45<br>00-001 Białystok</p>
               <p>🕒 Pn-Pt: 8:00-18:00<br>Sb: 9:00-15:00</p>
             </div>
           </div>

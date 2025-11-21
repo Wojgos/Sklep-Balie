@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, catchError, map, switchMap } from 'rxjs';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { 
   Product, 
   Category, 
@@ -149,14 +149,6 @@ export class ApiService {
     private http: HttpClient,
     private authService: AuthService
   ) {}
-
-  private getAuthHeaders(): HttpHeaders {
-    const token = this.authService.getToken();
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    });
-  }
 
   private slugify(value: string): string {
     return value
@@ -418,6 +410,36 @@ export class ApiService {
       );
   }
 
+  searchProducts(query: string): Observable<Product[]> {
+    return this.http
+      .get<BackendProductResponse[]>(`${this.apiUrl}/shop/search/?q=${encodeURIComponent(query)}`)
+      .pipe(
+        map(products => {
+          const uniqueProducts = new Map<string, Product>();
+          products.forEach(product => {
+            const mapped = this.mapProductFromApi(product);
+            const key = mapped.slug || mapped.id;
+            if (!uniqueProducts.has(key)) {
+              uniqueProducts.set(key, mapped);
+            }
+          });
+          return Array.from(uniqueProducts.values());
+        }),
+        catchError(error => {
+          console.error('Nie udało się wyszukać produktów, używam danych mock.', error);
+          // Fallback to filtering local mock products if backend fails
+          return this.mockDataService.getProducts().pipe(
+            map(products => 
+              products.filter(product => 
+                product.name.toLowerCase().includes(query.toLowerCase()) ||
+                (product.description && product.description.toLowerCase().includes(query.toLowerCase()))
+              )
+            )
+          );
+        })
+      );
+  }
+
   getSimilarProducts(productId: string, limit: number = 4): Observable<Product[]> {
     return this.getProduct(productId).pipe(
       switchMap(product =>
@@ -518,68 +540,52 @@ export class ApiService {
     const userId = this.authService.currentUserValue?.id || '2';
     return this.mockDataService.getMyTickets(userId);
     // Real API call (uncomment when backend is ready):
-    // return this.http.get<Ticket[]>(`${this.apiUrl}/support/tickets/`, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.get<Ticket[]>(`${this.apiUrl}/support/tickets/`);
   }
 
   getTicket(id: string): Observable<Ticket> {
     return this.mockDataService.getTicket(id);
     // Real API call (uncomment when backend is ready):
-    // return this.http.get<Ticket>(`${this.apiUrl}/support/tickets/${id}/`, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.get<Ticket>(`${this.apiUrl}/support/tickets/${id}/`);
   }
 
   createTicket(ticket: InsertTicket): Observable<Ticket> {
     const userId = this.authService.currentUserValue?.id || '2';
     return this.mockDataService.createTicket(ticket, userId);
     // Real API call (uncomment when backend is ready):
-    // return this.http.post<Ticket>(`${this.apiUrl}/support/tickets/`, ticket, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.post<Ticket>(`${this.apiUrl}/support/tickets/`, ticket);
   }
 
   replyToTicket(id: string, reply: TicketReply): Observable<void> {
     const userId = this.authService.currentUserValue?.id || '2';
     return this.mockDataService.replyToTicket(id, reply, userId);
     // Real API call (uncomment when backend is ready):
-    // return this.http.post<void>(`${this.apiUrl}/support/tickets/${id}/reply/`, reply, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.post<void>(`${this.apiUrl}/support/tickets/${id}/reply/`, reply);
   }
 
   // Support Tickets - Admin API (using mocks for now)
   getAllTickets(): Observable<Ticket[]> {
     return this.mockDataService.getAllTickets();
     // Real API call (uncomment when backend is ready):
-    // return this.http.get<Ticket[]>(`${this.apiUrl}/support/admin/tickets/`, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.get<Ticket[]>(`${this.apiUrl}/support/admin/tickets/`);
   }
 
   getAdminTicket(id: string): Observable<Ticket> {
     return this.mockDataService.getTicket(id);
     // Real API call (uncomment when backend is ready):
-    // return this.http.get<Ticket>(`${this.apiUrl}/support/admin/tickets/${id}/`, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.get<Ticket>(`${this.apiUrl}/support/admin/tickets/${id}/`);
   }
 
   adminReplyToTicket(id: string, reply: TicketReply): Observable<void> {
     return this.mockDataService.adminReplyToTicket(id, reply);
     // Real API call (uncomment when backend is ready):
-    // return this.http.post<void>(`${this.apiUrl}/support/admin/tickets/${id}/reply/`, reply, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.post<void>(`${this.apiUrl}/support/admin/tickets/${id}/reply/`, reply);
   }
 
   updateTicketStatus(id: string, status: TicketStatusUpdate): Observable<Ticket> {
     return this.mockDataService.updateTicketStatus(id, status.status);
     // Real API call (uncomment when backend is ready):
-    // return this.http.patch<Ticket>(`${this.apiUrl}/support/admin/tickets/${id}/`, status, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.patch<Ticket>(`${this.apiUrl}/support/admin/tickets/${id}/`, status);
   }
 
   // PDF Generation (mock for now - shows alert)
@@ -591,7 +597,6 @@ export class ApiService {
     
     // Real API call (uncomment when backend is ready):
     // return this.http.get(`${this.apiUrl}/orders/${orderId}/invoice/`, {
-    //   headers: this.getAuthHeaders(),
     //   responseType: 'blob'
     // });
   }
@@ -620,50 +625,38 @@ export class ApiService {
   getLoyaltyProgram(): Observable<LoyaltyProgram | null> {
     return this.mockDataService.getLoyaltyProgram();
     // Real API call (uncomment when backend is ready):
-    // return this.http.get<LoyaltyProgram>(`${this.apiUrl}/loyalty/program/`, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.get<LoyaltyProgram>(`${this.apiUrl}/loyalty/program/`);
   }
 
   createOrUpdateLoyaltyProgram(program: InsertLoyaltyProgram): Observable<LoyaltyProgram> {
     return this.mockDataService.createOrUpdateLoyaltyProgram(program);
     // Real API call (uncomment when backend is ready):
-    // return this.http.post<LoyaltyProgram>(`${this.apiUrl}/loyalty/program/`, program, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.post<LoyaltyProgram>(`${this.apiUrl}/loyalty/program/`, program);
   }
 
   // Loyalty Rewards - Admin API
   getLoyaltyRewards(): Observable<LoyaltyReward[]> {
     return this.mockDataService.getLoyaltyRewards();
     // Real API call (uncomment when backend is ready):
-    // return this.http.get<LoyaltyReward[]>(`${this.apiUrl}/loyalty/rewards/`, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.get<LoyaltyReward[]>(`${this.apiUrl}/loyalty/rewards/`);
   }
 
   createLoyaltyReward(reward: InsertLoyaltyReward): Observable<LoyaltyReward> {
     return this.mockDataService.createLoyaltyReward(reward);
     // Real API call (uncomment when backend is ready):
-    // return this.http.post<LoyaltyReward>(`${this.apiUrl}/loyalty/rewards/`, reward, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.post<LoyaltyReward>(`${this.apiUrl}/loyalty/rewards/`, reward);
   }
 
   updateLoyaltyReward(id: string, reward: Partial<InsertLoyaltyReward>): Observable<LoyaltyReward> {
     return this.mockDataService.updateLoyaltyReward(id, reward);
     // Real API call (uncomment when backend is ready):
-    // return this.http.patch<LoyaltyReward>(`${this.apiUrl}/loyalty/rewards/${id}/`, reward, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.patch<LoyaltyReward>(`${this.apiUrl}/loyalty/rewards/${id}/`, reward);
   }
 
   deleteLoyaltyReward(id: string): Observable<void> {
     return this.mockDataService.deleteLoyaltyReward(id);
     // Real API call (uncomment when backend is ready):
-    // return this.http.delete<void>(`${this.apiUrl}/loyalty/rewards/${id}/`, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.delete<void>(`${this.apiUrl}/loyalty/rewards/${id}/`);
   }
 
   // Loyalty - User API
@@ -671,27 +664,20 @@ export class ApiService {
     const userId = this.authService.currentUserValue?.id || '2';
     return this.mockDataService.getUserLoyaltyPoints(userId);
     // Real API call (uncomment when backend is ready):
-    // return this.http.get<UserLoyaltyPoints>(`${this.apiUrl}/loyalty/my-points/`, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.get<UserLoyaltyPoints>(`${this.apiUrl}/loyalty/my-points/`);
   }
 
   redeemReward(rewardId: string): Observable<RedeemedReward> {
     const userId = this.authService.currentUserValue?.id || '2';
     return this.mockDataService.redeemReward(userId, rewardId);
     // Real API call (uncomment when backend is ready):
-    // return this.http.post<RedeemedReward>(`${this.apiUrl}/loyalty/rewards/${rewardId}/redeem/`, {}, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.post<RedeemedReward>(`${this.apiUrl}/loyalty/rewards/${rewardId}/redeem/`, {});
   }
 
   getMyRedeemedRewards(): Observable<RedeemedReward[]> {
     const userId = this.authService.currentUserValue?.id || '2';
     return this.mockDataService.getMyRedeemedRewards(userId);
     // Real API call (uncomment when backend is ready):
-    // return this.http.get<RedeemedReward[]>(`${this.apiUrl}/loyalty/my-rewards/`, {
-    //   headers: this.getAuthHeaders()
-    // });
+    // return this.http.get<RedeemedReward[]>(`${this.apiUrl}/loyalty/my-rewards/`);
   }
 }
-
