@@ -1,27 +1,13 @@
-# Stage 1: Build the Angular application
-FROM node:20 as build
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Install dependencies
 COPY package*.json ./
-RUN npm ci
 
-# Copy source code
+RUN npm install
+
+RUN npm install -g @angular/cli
+
 COPY . .
 
-# Build the application
-RUN npm run build
-
-# Stage 2: Serve the application with Nginx
-FROM nginx:alpine
-
-# Copy the build output to replace the default nginx contents.
-COPY --from=build /app/dist/barrel-garden /usr/share/nginx/html
-
-# Copy custom nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port 80
-EXPOSE 80
-
+CMD ["ng", "serve", "--host", "0.0.0.0", "--disable-host-check", "--poll", "2000"]

@@ -1,35 +1,32 @@
 version: '3.8'
 
 services:
-  backend:
-    build: ./backend
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - ./backend:/app
-    ports:
-      - "8000:8000"
+  db:
+    image: postgres:15
+    container_name: estore_postgres
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - ELASTICSEARCH_HOST=http://elasticsearch:9200
-    depends_on:
-      - redis
-      - elasticsearch
-
-  frontend:
-    build: ./frontend
+      - POSTGRES_DB=estore_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=rafalinzynierka123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     ports:
-      - "4200:80"
-    depends_on:
-      - backend
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7
+    container_name: estore_redis
     ports:
       - "6379:6379"
 
   elasticsearch:
-    image: elasticsearch:8.11.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: estore_elastic
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -39,32 +36,81 @@ services:
     volumes:
       - es_data:/usr/share/elasticsearch/data
 
+  backend:
+    build: ./backend
+    container_name: estore_backend
+    volumes:
+      - ./backend:/app # Hot-reload (zmiany w kodzie widoczne od razu)
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=estore_db
+      - DB_USER=postgres
+      - DB_PASS=rafalinzynierka123
+      - REDIS_URL=redis://redis:6379/0
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    depends_on:
+      - db
+      - redis
+      - elasticsearch
+
   celery_worker:
     build: ./backend
-    command: celery -A EStore worker -l info
+    container_name: estore_celery_worker
+    # Wymuszamy użycie naszego skryptu entrypoint, żeby czekał na bazę/ES
+    entrypoint: /app/entrypoint.sh
+    command: celery -A EStore worker --loglevel=info
     volumes:
       - ./backend:/app
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - ELASTICSEARCH_HOST=http://elasticsearch:9200
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=estore_db
+      - DB_USER=postgres
+      - DB_PASS=rafalinzynierka123
+      - REDIS_URL=redis://redis:6379/0
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    restart: always
     depends_on:
       - backend
       - redis
+      - elasticsearch
 
   celery_beat:
     build: ./backend
-    command: celery -A EStore beat -l info
+    container_name: estore_celery_beat
+    entrypoint: /app/entrypoint.sh
+    command: sh -c "rm -f celerybeat.pid && celery -A EStore beat --loglevel=info"
     volumes:
       - ./backend:/app
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - ELASTICSEARCH_HOST=http://elasticsearch:9200
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=estore_db
+      - DB_USER=postgres
+      - DB_PASS=rafalinzynierka123
+      - REDIS_URL=redis://redis:6379/0
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    restart: always
     depends_on:
       - backend
       - redis
+      - elasticsearch
+
+  frontend:
+    build: ./frontend
+    container_name: estore_frontend
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
 
 volumes:
+  postgres_data:
   es_data:
 
