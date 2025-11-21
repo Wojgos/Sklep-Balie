@@ -1,12 +1,17 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { NotificationService } from '../../services/notification.service';
 import { Product, Category, NotificationType } from '../../models';
 import { ProductCardComponent } from '../../components/product-card/product-card.component';
 import { CategoryCardComponent } from '../../components/category-card/category-card.component';
+
+type CategoryCardData = Category & {
+  childCategories: Category[];
+  totalProductCount: number;
+};
 
 @Component({
   selector: 'bg-home',
@@ -74,21 +79,26 @@ import { CategoryCardComponent } from '../../components/category-card/category-c
         <!-- Categories Section -->
         <section id="kategorie" class="py-16 bg-background">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-              <h2 class="font-heading font-bold text-3xl sm:text-4xl mb-4" data-testid="text-categories-title">
+            <div class="text-center mb-12 space-y-4">
+              <p class="text-sm uppercase tracking-[0.3em] text-primary/80">
+                Oferta Premium
+              </p>
+              <h2 class="font-heading font-bold text-3xl sm:text-4xl" data-testid="text-categories-title">
                 Kategorie Produktów
               </h2>
               <p class="text-muted-foreground max-w-2xl mx-auto" data-testid="text-categories-subtitle">
-                Odkryj naszą szeroką gamę drewnianych bali i kadzi dla Twojego ogrodu
+                Odkryj naszą szeroką gamę drewnianych bali, jacuzzi i akcesoriów dla Twojego ogrodu.
               </p>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <bg-category-card 
-                *ngFor="let category of categories$ | async" 
-                [category]="category"
-              ></bg-category-card>
-            </div>
+            <ng-container *ngIf="categoryCards$ | async as categoryCards">
+              <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                <bg-category-card 
+                  *ngFor="let category of categoryCards" 
+                  [category]="category"
+                ></bg-category-card>
+              </div>
+            </ng-container>
           </div>
         </section>
 
@@ -212,7 +222,7 @@ import { CategoryCardComponent } from '../../components/category-card/category-c
   styleUrls: ['./home.component.scss']
 })
 export class HomeComponent implements OnInit {
-  categories$: Observable<Category[]>;
+  categoryCards$: Observable<CategoryCardData[]>;
   products$: Observable<Product[]>;
   featuredProducts: Product[] = [];
 
@@ -260,7 +270,9 @@ export class HomeComponent implements OnInit {
     private notificationService: NotificationService,
     private router: Router
   ) {
-    this.categories$ = this.apiService.getCategories();
+    this.categoryCards$ = this.apiService.getCategories().pipe(
+      map(categories => this.buildCategoryCards(categories))
+    );
     this.products$ = this.apiService.getProducts();
   }
 
@@ -272,6 +284,39 @@ export class HomeComponent implements OnInit {
 
   navigateToProducts(): void {
     this.router.navigate(['/products']);
+  }
+
+  private buildCategoryCards(categories: Category[]): CategoryCardData[] {
+    const childrenMap = categories.reduce<Map<string, Category[]>>((acc, category) => {
+      if (category.parent) {
+        const siblings = acc.get(category.parent) ?? [];
+        siblings.push(category);
+        acc.set(category.parent, siblings);
+      }
+      return acc;
+    }, new Map());
+
+    const totalsCache = new Map<string, number>();
+    const getChildren = (id: string): Category[] => childrenMap.get(id) ?? [];
+
+    const calculateTotal = (category: Category): number => {
+      if (totalsCache.has(category.id)) {
+        return totalsCache.get(category.id)!;
+      }
+      const children = getChildren(category.id);
+      const total = (category.productCount ?? 0) + children.reduce((sum, child) => sum + calculateTotal(child), 0);
+      totalsCache.set(category.id, total);
+      return total;
+    };
+
+    return categories
+      .filter(category => !category.parent)
+      .map(category => ({
+        ...category,
+        childCategories: getChildren(category.id),
+        totalProductCount: calculateTotal(category)
+      }))
+      .sort((a, b) => b.totalProductCount - a.totalProductCount);
   }
 
   // Test methods for notification service

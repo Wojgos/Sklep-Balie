@@ -2,6 +2,7 @@
 from rest_framework import viewsets, generics
 from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Count
 from elasticsearch_dsl.query import MultiMatch
 
 from EStore.permissions import IsAdminUserOrReadOnly
@@ -19,7 +20,7 @@ from .serializers import (
 
 # Usuwamy 'TranslatableModelViewSet'
 class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all()
+    queryset = Category.objects.all().annotate(product_count=Count('products'))
     serializer_class = CategorySerializer
     lookup_field = 'slug'
     permission_classes = [IsAdminUserOrReadOnly]

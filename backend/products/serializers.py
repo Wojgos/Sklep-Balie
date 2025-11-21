@@ -7,9 +7,11 @@ from .models import (
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    product_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Category
-        fields = ['id', 'name', 'slug', 'parent']
+        fields = ['id', 'name', 'slug', 'parent', 'product_count']
 
 
 class AttributeValueSerializer(serializers.ModelSerializer):
@@ -63,12 +65,15 @@ class ProductSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
     # Zmieniamy z powrotem na StringRelatedField lub SlugRelatedField
     category = serializers.SlugRelatedField(slug_field='slug', read_only=True)
+    category_id = serializers.IntegerField(source='category.id', read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
         lookup_field = 'slug'
         fields = [
-            'id', 'category', 'name', 'slug', 'description',
-            'available', 'variants', 'images'
+            'id', 'category', 'category_id', 'category_name', 'name',
+            'slug', 'description', 'available', 'variants', 'images',
+            'created_at', 'updated_at'
         ]

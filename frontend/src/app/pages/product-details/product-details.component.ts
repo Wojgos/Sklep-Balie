@@ -255,8 +255,9 @@ export class ProductDetailsComponent implements OnInit {
           });
         }
 
-        this.loadSimilarProducts(product.id);
-        this.loadBoughtTogetherProducts(product.id);
+        const productKey = product.slug || product.id;
+        this.loadSimilarProducts(productKey);
+        this.loadBoughtTogetherProducts(productKey);
       });
     }
   }

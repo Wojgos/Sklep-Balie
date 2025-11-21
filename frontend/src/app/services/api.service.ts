@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { Observable, of, catchError, map, switchMap } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { 
   Product, 
@@ -26,11 +26,123 @@ import {
 import { MockDataService } from './mock-data.service';
 import { AuthService } from './auth.service';
 
+type CategoryVisual = {
+  image: string;
+  description: string;
+  defaultProductCount: number;
+};
+
+interface BackendCategoryResponse {
+  id: number;
+  name: string;
+  slug?: string;
+  parent?: number | null;
+  product_count?: number;
+  description?: string | null;
+  image?: string | null;
+}
+
+interface BackendVariantAttributeResponse {
+  attribute: string;
+  value: string;
+}
+
+interface BackendProductImageResponse {
+  id: number;
+  image: string;
+  alt_text?: string | null;
+  is_main: boolean;
+}
+
+interface BackendProductVariantResponse {
+  id: number;
+  product: number;
+  sku: string;
+  name: string;
+  price: string;
+  stock: number;
+  low_stock_threshold: number;
+  available: boolean;
+  attributes_details: BackendVariantAttributeResponse[];
+  images: BackendProductImageResponse[];
+}
+
+interface BackendProductResponse {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  available: boolean;
+  category: string | null;
+  category_id?: number | null;
+  category_name?: string | null;
+  variants: BackendProductVariantResponse[];
+  images: BackendProductImageResponse[];
+  created_at?: string;
+  updated_at?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ApiService {
   private readonly apiUrl = 'http://localhost:8000/api/v1'; // Django backend URL
+  private readonly apiBaseUrl = 'http://localhost:8000';
+  private readonly defaultCategoryVisual: CategoryVisual = {
+    image: 'assets/Wooden_garden_barrel_hero_26de98c6.png',
+    description: 'Odkryj produkty dostępne w tej kategorii.',
+    defaultProductCount: 0
+  };
+
+  private readonly categoryVisualFallbacks: Record<string, CategoryVisual> = {
+    'balie-ogrodowe': {
+      image: 'assets/Wooden_garden_barrel_hero_26de98c6.png',
+      description: 'Najpopularniejsze modele bali ogrodowych i premium spa.',
+      defaultProductCount: 6
+    },
+    'balie-drewniane': {
+      image: 'assets/Oak_barrel_water_tub_da291514.png',
+      description: 'Tradycyjne balie wykonane z dębu i modrzewia.',
+      defaultProductCount: 4
+    },
+    'jacuzzi-ogrodowe': {
+      image: 'assets/Oval_garden_bathtub_565f5ffe.png',
+      description: 'Nowoczesne jacuzzi ogrodowe z hydromasażem.',
+      defaultProductCount: 3
+    },
+    'akcesoria': {
+      image: 'assets/Decorative_barrel_planter_7afc2d20.png',
+      description: 'Schodki, podesty i dedykowane akcesoria.',
+      defaultProductCount: 5
+    },
+    'pokrywy-termiczne': {
+      image: 'assets/Oak_fence_timber_product_46de4b51.png',
+      description: 'Pokrywy utrzymujące temperaturę i czystość wody.',
+      defaultProductCount: 2
+    },
+    'drewniane-beczki': {
+      image: 'assets/Wooden_garden_barrel_hero_26de98c6.png',
+      description: 'Tradycyjne drewniane beczki do ogrodu',
+      defaultProductCount: 3
+    },
+    'deski-tarasowe': {
+      image: 'assets/Cedar_decking_planks_product_ffc1e2e4.png',
+      description: 'Wysokiej jakości deski do budowy tarasów',
+      defaultProductCount: 2
+    },
+    'elementy-konstrukcyjne': {
+      image: 'assets/Treated_construction_beams_product_afa95ad7.png',
+      description: 'Belki i elementy do konstrukcji ogrodowych',
+      defaultProductCount: 2
+    },
+    'akcesoria-wodne': {
+      image: 'assets/Rain_water_barrel_6764a662.png',
+      description: 'Zbiorniki i akcesoria związane z wodą w ogrodzie',
+      defaultProductCount: 2
+    }
+  };
+  private readonly categorySlugToId = new Map<string, string>();
+  private readonly categoryIdToSlug = new Map<string, string>();
 
   constructor(
     private mockDataService: MockDataService,
@@ -46,34 +158,303 @@ export class ApiService {
     });
   }
 
+  private slugify(value: string): string {
+    return value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+  }
+
+  private resolveMediaUrl(path?: string | null): string {
+    if (!path) {
+      return this.defaultCategoryVisual.image;
+    }
+    if (path.startsWith('http')) {
+      return path;
+    }
+    const normalized = path.startsWith('/') ? path : `/${path}`;
+    return `${this.apiBaseUrl}${normalized}`;
+  }
+
+  private resolveProductImage(
+    images: BackendProductImageResponse[] = [],
+    categorySlug?: string | null
+  ): string {
+    if (images.length > 0) {
+      const main = images.find(img => img.is_main) ?? images[0];
+      if (main?.image) {
+        return this.resolveMediaUrl(main.image);
+      }
+    }
+    const fallback = categorySlug ? this.categoryVisualFallbacks[categorySlug] : undefined;
+    return fallback?.image ?? this.defaultCategoryVisual.image;
+  }
+
+  private selectPrimaryVariant(
+    variants: BackendProductVariantResponse[] = []
+  ): BackendProductVariantResponse | undefined {
+    return variants.find(variant => variant.available && variant.stock > 0) ?? variants[0];
+  }
+
+  private extractMaterial(
+    variant?: BackendProductVariantResponse
+  ): string | null {
+    if (!variant?.attributes_details?.length) {
+      return null;
+    }
+
+    const materialEntry = variant.attributes_details.find(attr => {
+      const normalized = attr.attribute?.toLowerCase() ?? '';
+      return normalized.includes('mater') || normalized.includes('wood') || normalized.includes('drew');
+    });
+
+    return materialEntry?.value ?? null;
+  }
+
+  private cleanProductName(name: string): string {
+    if (!name) {
+      return '';
+    }
+    return name.replace(/\s+\d+$/, '').trim();
+  }
+
+  private estimateRating(stock: number): number {
+    const rating = 4.2 + Math.min(stock, 30) * 0.02;
+    return Math.min(5, Number(rating.toFixed(1)));
+  }
+
+  private resolveCategoryIdFromApi(product: BackendProductResponse): string {
+    if (product.category_id !== undefined && product.category_id !== null) {
+      return product.category_id.toString();
+    }
+    if (product.category) {
+      return this.categorySlugToId.get(product.category) ?? product.category;
+    }
+    return product.id.toString();
+  }
+
+  private resolveCategorySlug(categoryId: string): string {
+    return this.categoryIdToSlug.get(categoryId) ?? categoryId;
+  }
+
+  private mapProductFromApi(product: BackendProductResponse): Product {
+    const primaryVariant = this.selectPrimaryVariant(product.variants);
+    const image = this.resolveProductImage(product.images, product.category);
+    const variantCount = product.variants.length || (primaryVariant ? 1 : 0);
+    const variantPrices = product.variants
+      .map(variant => parseFloat(variant.price))
+      .filter(priceValue => !isNaN(priceValue));
+    const minPriceValue = variantPrices.length
+      ? Math.min(...variantPrices)
+      : primaryVariant?.price
+      ? parseFloat(primaryVariant.price)
+      : 0;
+    const maxPriceValue = variantPrices.length
+      ? Math.max(...variantPrices)
+      : minPriceValue;
+    const formattedMinPrice = minPriceValue.toFixed(2);
+    const formattedMaxPrice = maxPriceValue > minPriceValue ? maxPriceValue.toFixed(2) : null;
+    const variantSummary = this.buildVariantSummary(primaryVariant, variantCount);
+    const slug = product.slug ?? product.id?.toString() ?? this.slugify(product.name);
+
+    return {
+      id: slug,
+      slug,
+      name: this.cleanProductName(product.name),
+      description: product.description,
+      dimensions: variantSummary,
+      price: formattedMinPrice,
+      oldPrice: formattedMaxPrice,
+      rating: this.estimateRating(primaryVariant?.stock ?? 0),
+      categoryId: this.resolveCategoryIdFromApi(product),
+      image,
+      stock: primaryVariant?.stock ?? 0,
+      material: this.extractMaterial(primaryVariant) ?? null,
+      createdAt: product.created_at ? new Date(product.created_at) : new Date(),
+      attributes: undefined,
+      variantSummary,
+      variantCount,
+      minPrice: formattedMinPrice,
+      maxPrice: formattedMaxPrice ?? undefined
+    };
+  }
+
+  private buildVariantSummary(
+    variant: BackendProductVariantResponse | undefined,
+    variantCount: number
+  ): string {
+    const parts: string[] = [];
+    if (variantCount > 0) {
+      const label =
+        variantCount === 1
+          ? '1 konfiguracja'
+          : `${variantCount} ${variantCount < 5 ? 'konfiguracje' : 'konfiguracji'}`;
+      parts.push(label);
+    }
+
+    if (variant?.attributes_details?.length) {
+      const highlights = variant.attributes_details
+        .map(attr => attr.value)
+        .filter(Boolean)
+        .slice(0, 2);
+      if (highlights.length) {
+        parts.push(highlights.join(' • '));
+      }
+    }
+
+    return parts.join(' · ') || 'Konfiguracje dostępne';
+  }
+
+  private mapCategoryFromApi(category: BackendCategoryResponse): Category {
+    const slug = category.slug || this.slugify(category.name);
+    const fallback = this.categoryVisualFallbacks[slug] || this.defaultCategoryVisual;
+    const id = category.id?.toString() ?? slug;
+
+    this.categorySlugToId.set(slug, id);
+    this.categoryIdToSlug.set(id, slug);
+
+    return {
+      id,
+      name: category.name,
+      description: category.description ?? fallback.description,
+      image: category.image ?? fallback.image,
+      productCount: category.product_count ?? fallback.defaultProductCount,
+      slug,
+      parent: category.parent !== null && category.parent !== undefined
+        ? category.parent.toString()
+        : null
+    };
+  }
+
   // Categories
   getCategories(): Observable<Category[]> {
-    return this.mockDataService.getCategories();
+    return this.http.get<BackendCategoryResponse[]>(`${this.apiUrl}/shop/categories/`).pipe(
+      map(categories => {
+        this.categorySlugToId.clear();
+        this.categoryIdToSlug.clear();
+        return categories.map(category => this.mapCategoryFromApi(category));
+      }),
+      catchError(error => {
+        console.error('Nie udało się pobrać kategorii z backendu, używam danych mock.', error);
+        return this.mockDataService.getCategories();
+      })
+    );
   }
 
   getCategory(id: string): Observable<Category> {
-    return this.mockDataService.getCategory(id);
+    return this.getCategories().pipe(
+      map(categories => {
+        const found = categories.find(category => category.id === id || category.slug === id);
+        if (!found) {
+          throw new Error(`Category ${id} not found`);
+        }
+        return found;
+      }),
+      catchError(error => {
+        console.error(`Nie udało się pobrać kategorii ${id} z backendu, używam danych mock.`, error);
+        return this.mockDataService.getCategory(id);
+      })
+    );
   }
 
   // Products
   getProducts(): Observable<Product[]> {
-    return this.mockDataService.getProducts();
+    return this.http.get<BackendProductResponse[]>(`${this.apiUrl}/shop/products/`).pipe(
+      map(products => {
+        const uniqueProducts = new Map<string, Product>();
+        products.forEach(product => {
+          const mapped = this.mapProductFromApi(product);
+          const key = mapped.slug || mapped.id;
+          if (!uniqueProducts.has(key)) {
+            uniqueProducts.set(key, mapped);
+          }
+        });
+        return Array.from(uniqueProducts.values());
+      }),
+      catchError(error => {
+        console.error('Nie udało się pobrać produktów z backendu, używam danych mock.', error);
+        return this.mockDataService.getProducts();
+      })
+    );
   }
 
   getProduct(id: string): Observable<Product> {
-    return this.mockDataService.getProduct(id);
+    return this.http.get<BackendProductResponse>(`${this.apiUrl}/shop/products/${id}/`).pipe(
+      map(product => this.mapProductFromApi(product)),
+      catchError(error => {
+        console.error(`Nie udało się pobrać produktu ${id} z backendu, używam danych mock.`, error);
+        return this.mockDataService.getProduct(id);
+      })
+    );
   }
 
   getProductsByCategory(categoryId: string): Observable<Product[]> {
-    return this.mockDataService.getProductsByCategory(categoryId);
+    const slug = this.resolveCategorySlug(categoryId);
+    const slugParam = encodeURIComponent(slug);
+
+    return this.http
+      .get<BackendProductResponse[]>(`${this.apiUrl}/shop/products/?category__slug=${slugParam}`)
+      .pipe(
+        map(products => {
+          const uniqueProducts = new Map<string, Product>();
+          products.forEach(product => {
+            const mapped = this.mapProductFromApi(product);
+            const key = mapped.slug || mapped.id;
+            if (!uniqueProducts.has(key)) {
+              uniqueProducts.set(key, mapped);
+            }
+          });
+          return Array.from(uniqueProducts.values());
+        }),
+        catchError(error => {
+          console.error(
+            `Nie udało się pobrać produktów dla kategorii ${categoryId} (${slug}), używam danych mock.`,
+            error
+          );
+          return this.mockDataService.getProductsByCategory(categoryId);
+        })
+      );
   }
 
   getSimilarProducts(productId: string, limit: number = 4): Observable<Product[]> {
-    return this.mockDataService.getSimilarProducts(productId, limit);
+    return this.getProduct(productId).pipe(
+      switchMap(product =>
+        this.getProducts().pipe(
+          map(products =>
+            products
+              .filter(p => p.id !== product.id && p.categoryId === product.categoryId)
+              .slice(0, limit)
+          )
+        )
+      ),
+      catchError(error => {
+        console.error(`Nie udało się pobrać podobnych produktów dla ${productId}, używam danych mock.`, error);
+        return this.mockDataService.getSimilarProducts(productId, limit);
+      })
+    );
   }
 
   getFrequentlyBoughtTogether(productId: string, limit: number = 4): Observable<Product[]> {
-    return this.mockDataService.getFrequentlyBoughtTogether(productId, limit);
+    return this.getProduct(productId).pipe(
+      switchMap(product =>
+        this.getProducts().pipe(
+          map(products =>
+            products
+              .filter(p => p.id !== product.id && p.categoryId !== product.categoryId)
+              .slice(0, limit)
+          )
+        )
+      ),
+      catchError(error => {
+        console.error(
+          `Nie udało się pobrać rekomendacji do wspólnego zakupu dla ${productId}, używam danych mock.`,
+          error
+        );
+        return this.mockDataService.getFrequentlyBoughtTogether(productId, limit);
+      })
+    );
   }
 
   createProduct(product: InsertProduct): Observable<Product> {

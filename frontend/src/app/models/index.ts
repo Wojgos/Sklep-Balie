@@ -55,6 +55,10 @@ export interface Category {
   description: string | null;
   image: string;
   productCount: number;
+  slug?: string;
+  parent?: string | null;
+  childCategories?: Category[];
+  totalProductCount?: number;
 }
 
 export interface InsertCategory {
@@ -83,6 +87,7 @@ export interface ProductAttribute {
 // Product models
 export interface Product {
   id: string;
+  slug?: string;
   name: string;
   description: string | null;
   dimensions: string;
@@ -95,6 +100,10 @@ export interface Product {
   material: string | null;
   createdAt: Date;
   attributes?: ProductAttribute[]; // Opcjonalne atrybuty z wariantami
+  variantSummary?: string;
+  variantCount?: number;
+  minPrice?: string;
+  maxPrice?: string;
 }
 
 export interface InsertProduct {

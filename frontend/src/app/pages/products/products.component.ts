@@ -223,7 +223,7 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
               <div 
                 *ngFor="let product of filteredProducts"
                 class="bg-card border border-card-border rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer"
-                (click)="navigateToProduct(product.id)"
+                (click)="navigateToProduct(product.slug || product.id)"
               >
                 <div class="flex gap-4">
                   <div class="w-32 h-32 flex-shrink-0">

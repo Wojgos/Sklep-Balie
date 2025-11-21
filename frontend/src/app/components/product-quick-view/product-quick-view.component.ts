@@ -175,7 +175,7 @@ import { NotificationService } from '../../services/notification.service';
                 </button>
 
                 <a
-                  [routerLink]="['/product', product.id]"
+                  [routerLink]="['/product', product.slug || product.id]"
                   (click)="close.emit()"
                   class="block w-full text-center border border-border hover:bg-muted px-6 py-3 rounded-lg font-semibold transition-colors"
                 >

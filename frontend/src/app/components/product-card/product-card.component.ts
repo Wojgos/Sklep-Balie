@@ -11,7 +11,7 @@ import { ProductQuickViewComponent } from '../product-quick-view/product-quick-v
   standalone: true,
   imports: [CommonModule, RouterModule, ProductQuickViewComponent],
   template: `
-    <a [routerLink]="['/product', product.id]" class="block h-full">
+    <a [routerLink]="['/product', product.slug || product.id]" class="block h-full">
       <div 
         class="group overflow-hidden hover:shadow-lg active:shadow-xl transition-all cursor-pointer bg-card border border-card-border rounded-lg h-full flex flex-col"
         [attr.data-testid]="'card-product-' + product.id"
@@ -77,7 +77,7 @@ import { ProductQuickViewComponent } from '../product-quick-view/product-quick-v
           </h3>
           
           <p class="text-sm text-muted-foreground mb-3" data-testid="text-dimensions">
-            {{ product.dimensions }}
+            {{ product.variantSummary || product.dimensions }}
           </p>
 
           <div class="flex items-center justify-between gap-2 mt-auto">
