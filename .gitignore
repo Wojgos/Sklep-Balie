@@ -49,3 +49,9 @@ venv/
 .venv/
 **/venv/
 **/.venv/
+
+# --- PYTHON / DJANGO (BACKEND) ---
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
