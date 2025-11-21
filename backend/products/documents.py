@@ -2,33 +2,19 @@
 from django_elasticsearch_dsl.registries import registry
 from django_elasticsearch_dsl.documents import Document
 from django_elasticsearch_dsl.fields import TextField
-# Usuwamy importy analizatorów synonimów, których już nie używamy
-# from elasticsearch_dsl import analyzer, token_filter
-
 from .models import Product, AttributeValue
 
 
-# Usuwamy definicje analizatorów i synonimów
-
 @registry.register_document
 class ProductDocument(Document):
-    """
-    Indeks Elasticsearch dla Produktu (wersja przywrócona, bez i18n).
-    """
-
-    # Pole 'category' (pobiera 'name' z relacji)
+    # Pole 'category' - pobiera nazwę kategorii
     category = TextField(attr='category.name')
 
-    # Pole 'attributes_flat' (pobierane przez 'prepare_')
+    # Pole 'attributes_flat' - zbiera atrybuty (np. "drewno", "akryl")
     attributes_flat = TextField()
-
-    # --- USUWAMY RĘCZNE DEFINICJE 'name' i 'description' ---
-    # name = TextField(...) <-- USUNIĘTE
-    # description = TextField() <-- USUNIĘTE
 
     class Index:
         name = 'products'
-        # Wracamy do prostych ustawień (bez niestandardowego analizatora)
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
@@ -37,26 +23,25 @@ class ProductDocument(Document):
     class Django:
         model = Product
 
-        # --- PRZYWRACAMY 'fields' ---
-        # Mówimy, aby 'name' i 'description' były indeksowane
-        # automatycznie z modelu Product
+        # Automatycznie indeksuj te pola z modelu Product
         fields = [
             'name',
             'description',
         ]
 
-    # --- USUWAMY METODY 'prepare_name' i 'prepare_description' ---
-
     def prepare_attributes_flat(self, instance):
         """
-        Zbiera 'value' atrybutów (wersja bez tłumaczeń).
+        Zbiera unikalne wartości atrybutów ze wszystkich wariantów
+        danego produktu i łączy je w jeden tekst do przeszukiwania.
         """
         try:
             variant_ids = instance.variants.values_list('id', flat=True)
-            # Wracamy do pobierania prostego pola 'value'
+            # Pobieramy wartości atrybutów powiązane z tymi wariantami
             attributes = AttributeValue.objects.filter(
                 variants__id__in=variant_ids
             ).values_list('value', flat=True)
+
+            # Łączymy unikalne wartości w jeden string
             return " ".join(list(set(attributes)))
         except:
             return ""
