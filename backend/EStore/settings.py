@@ -29,7 +29,7 @@ DEBUG = True
 SITE_ID = 1
 ADMIN_EMAIL = '85916@student.pb.edu.pl'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'backend', '0.0.0.0']
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:4200',
@@ -211,13 +211,13 @@ MEDIA_URL = '/media/'
 
 ELASTICSEARCH_DSL = {
     'default': {
-        'hosts': 'http://localhost:9200'
+        'hosts': os.environ.get('ELASTICSEARCH_HOST', 'http://localhost:9200')
     },
 }
 
 # --- CELERY I REDIS ---
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
