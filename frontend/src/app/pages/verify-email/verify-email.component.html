@@ -1,0 +1,38 @@
+<div class="verify-page">
+  <div class="verify-container">
+    <div class="verify-card">
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="status-content">
+        <div class="spinner"></div>
+        <h2>Weryfikacja adresu e-mail...</h2>
+        <p>Proszę czekać, sprawdzamy Twój link aktywacyjny.</p>
+      </div>
+
+      <!-- Success State -->
+      <div *ngIf="!isLoading && isSuccess" class="status-content success">
+        <div class="icon success-icon">✓</div>
+        <h2>Sukces!</h2>
+        <p>Twój adres e-mail został potwierdzony.</p>
+        <p>Możesz teraz zalogować się do swojego konta.</p>
+        
+        <a [routerLink]="['/login']" class="btn-primary">
+          Przejdź do logowania
+        </a>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="!isLoading && !isSuccess" class="status-content error">
+        <div class="icon error-icon">✕</div>
+        <h2>Błąd weryfikacji</h2>
+        <p>{{ errorMessage }}</p>
+        
+        <div class="actions">
+          <a [routerLink]="['/login']" class="btn-secondary">
+            Wróć do logowania
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

@@ -49,8 +49,9 @@ venv/
 .venv/
 **/venv/
 **/.venv/
-backend/venv/
-backend/.venv/
+
+# --- PYTHON / DJANGO (BACKEND) ---
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -61,5 +62,5 @@ es_data/
 redis_data/
 
 # Celery
-celerybeat-schedule*
+celerybeat-schedule
 celerybeat.pid

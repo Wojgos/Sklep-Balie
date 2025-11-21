@@ -33,14 +33,14 @@ export class RegisterComponent implements OnInit {
 
   constructor(
     private authService: AuthService,
-    private router: Router,
+    private Router: Router,
     private notificationService: NotificationService
   ) {}
 
   ngOnInit(): void {
     // Redirect if already logged in
     if (this.authService.isAuthenticated) {
-      this.router.navigate(['/account']);
+      this.Router.navigate(['/account']);
     }
   }
 
@@ -76,16 +76,38 @@ export class RegisterComponent implements OnInit {
 
     this.authService.register(this.userData).subscribe({
       next: (response) => {
+        // If we got a user object back, use it for greeting
+        const name = response.user?.firstName || this.userData.firstName;
+        
         this.notificationService.show(
-          `Witaj ${response.user.firstName}! Twoje konto zostało utworzone.`,
+          `Witaj ${name}! Twoje konto zostało utworzone. Sprawdź email aby je aktywować.`,
           NotificationType.SUCCESS
         );
-        this.router.navigate(['/account']);
+        // Navigate to login instead of account since email verification is likely needed
+        this.Router.navigate(['/login']);
       },
       error: (error) => {
         this.isLoading = false;
+        console.error('Registration error:', error);
+        
+        // Try to extract meaningful error message
+        let errorMessage = 'Wystąpił błąd podczas rejestracji';
+        if (error.error) {
+            if (typeof error.error === 'string') {
+                errorMessage = error.error;
+            } else if (error.error.detail) {
+                errorMessage = error.error.detail;
+            } else {
+                // Handle field-specific errors (e.g. { email: ["Invalid"] })
+                const firstKey = Object.keys(error.error)[0];
+                if (firstKey && Array.isArray(error.error[firstKey])) {
+                    errorMessage = `${firstKey}: ${error.error[firstKey][0]}`;
+                }
+            }
+        }
+
         this.notificationService.show(
-          error.message || 'Wystąpił błąd podczas rejestracji',
+          errorMessage,
           NotificationType.ERROR
         );
       }
@@ -100,4 +122,3 @@ export class RegisterComponent implements OnInit {
     this.showConfirmPassword = !this.showConfirmPassword;
   }
 }
-

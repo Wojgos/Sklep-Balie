@@ -1,17 +1,27 @@
-
-# Używamy obrazu Node.js
-FROM node:18-alpine
+# Stage 1: Build the Angular application
+FROM node:20 as build
 
 WORKDIR /app
 
-# Instalujemy zależności
+# Install dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
-# Instalujemy Angular CLI globalnie w kontenerze
-RUN npm install -g @angular/cli
-
+# Copy source code
 COPY . .
 
-# Uruchamiamy serwer deweloperski dostępny z zewnątrz (0.0.0.0)
-CMD ["ng", "serve", "--host", "0.0.0.0"]
+# Build the application
+RUN npm run build
+
+# Stage 2: Serve the application with Nginx
+FROM nginx:alpine
+
+# Copy the build output to replace the default nginx contents.
+COPY --from=build /app/dist/barrel-garden /usr/share/nginx/html
+
+# Copy custom nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose port 80
+EXPOSE 80
+

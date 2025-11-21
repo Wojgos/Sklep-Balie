@@ -51,16 +51,25 @@ export class LoginComponent implements OnInit {
 
     this.authService.login(this.credentials).subscribe({
       next: (response) => {
+        const user = response.user;
+        // Fallback to username or 'Użytkownik' if firstName is missing
+        const name = user?.firstName || user?.username || 'Użytkowniku';
+        
         this.notificationService.show(
-          `Witaj ponownie, ${response.user.firstName}!`,
+          `Witaj ponownie, ${name}!`,
           NotificationType.SUCCESS
         );
         this.router.navigate([this.returnUrl]);
       },
       error: (error) => {
         this.isLoading = false;
+        let message = 'Wystąpił błąd podczas logowania';
+        if (error.message) {
+          message = error.message;
+        }
+        
         this.notificationService.show(
-          error.message || 'Wystąpił błąd podczas logowania',
+          message,
           NotificationType.ERROR
         );
       }
@@ -71,4 +80,3 @@ export class LoginComponent implements OnInit {
     this.showPassword = !this.showPassword;
   }
 }
-

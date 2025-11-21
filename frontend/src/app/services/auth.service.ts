@@ -1,53 +1,32 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
-import { map, catchError, tap, delay } from 'rxjs/operators';
+import { map, catchError, tap, switchMap } from 'rxjs/operators';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { User, LoginRequest, LoginResponse, RegisterRequest } from '../models';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
+  private readonly AUTH_URL = 'http://localhost:8000/api/v1/auth';
+  private readonly USERS_URL = 'http://localhost:8000/api/v1/users';
   private currentUserSubject: BehaviorSubject<User | null>;
   public currentUser$: Observable<User | null>;
-  private readonly TOKEN_KEY = 'auth_token';
+  private readonly ACCESS_TOKEN_KEY = 'access_token';
+  private readonly REFRESH_TOKEN_KEY = 'refresh_token';
   private readonly USER_KEY = 'current_user';
 
-  // Mock users database (in real app this would be backend)
-  private mockUsers: (User & { password: string })[] = [
-    {
-      id: '1',
-      username: 'admin',
-      email: 'admin@example.com',
-      password: 'admin123',
-      firstName: 'Admin',
-      lastName: 'User',
-      phone: '+48 123 456 789',
-      address: 'ul. Przykładowa 1',
-      city: 'Warszawa',
-      postalCode: '00-001',
-      role: 'admin',
-      createdAt: new Date('2024-01-01')
-    },
-    {
-      id: '2',
-      username: 'user',
-      email: 'user@example.com',
-      password: 'user123',
-      firstName: 'Jan',
-      lastName: 'Kowalski',
-      phone: '+48 987 654 321',
-      address: 'ul. Testowa 10',
-      city: 'Kraków',
-      postalCode: '30-001',
-      role: 'user',
-      createdAt: new Date('2024-02-01')
-    }
-  ];
-
-  constructor() {
+  constructor(private http: HttpClient) {
     const storedUser = this.getStoredUser();
     this.currentUserSubject = new BehaviorSubject<User | null>(storedUser);
     this.currentUser$ = this.currentUserSubject.asObservable();
+
+    // Attempt to load user profile on startup if token exists
+    if (this.getToken()) {
+      this.loadCurrentUser().subscribe({
+        error: () => this.logout() // Logout if token is invalid
+      });
+    }
   }
 
   public get currentUserValue(): User | null {
@@ -63,33 +42,94 @@ export class AuthService {
   }
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
-    // Simulate API call
-    return of(null).pipe(
-      delay(500), // Simulate network delay
-      map(() => {
-        const user = this.mockUsers.find(
-          u => u.username === credentials.username && u.password === credentials.password
-        );
+    // Map username to email if the backend requires email
+    const loginData = {
+      email: credentials.username, // Assuming username field contains email
+      password: credentials.password
+    };
 
-        if (!user) {
-          throw new Error('Nieprawidłowa nazwa użytkownika lub hasło');
+    return this.http.post<any>(`${this.AUTH_URL}/login/`, loginData).pipe(
+      tap(response => {
+        // Store tokens
+        const accessToken = response.access || response.token;
+        const refreshToken = response.refresh;
+        
+        if (accessToken) {
+          this.setTokens(accessToken, refreshToken);
         }
+      }),
+      switchMap(response => {
+        // If backend returns user object, use it. Otherwise fetch it.
+        if (response.user) {
+          this.setStoredUser(response.user);
+          this.currentUserSubject.next(response.user);
+          return of(response);
+        } else {
+          return this.loadCurrentUser().pipe(
+            map(user => ({
+              token: this.getToken() || '',
+              user: user
+            }))
+          );
+        }
+      }),
+      catchError(error => {
+        // If we get a 400 Bad Request, it might be "Unable to log in with provided credentials."
+        // or "E-mail is not verified."
+        if (error instanceof HttpErrorResponse && error.status === 400) {
+            if (error.error?.non_field_errors) {
+                 return throwError(() => new Error(error.error.non_field_errors[0]));
+            }
+             if (error.error?.email) {
+                 return throwError(() => new Error(`Email: ${error.error.email[0]}`));
+            }
+        }
+        return throwError(() => error);
+      })
+    );
+  }
 
-        // Remove password from response
-        const { password, ...userWithoutPassword } = user;
+  register(userData: RegisterRequest): Observable<any> {
+    // Map frontend model to backend expectations
+    const registerData = {
+      username: userData.username,
+      email: userData.email,
+      password1: userData.password, // Changed from 'password' to 'password1' as per error message
+      password2: userData.confirmPassword, // dj-rest-auth expects password2 for confirmation
+      first_name: userData.firstName,
+      last_name: userData.lastName
+      // Note: phone, address etc. are not currently supported by backend registration serializer
+    };
+
+    return this.http.post<any>(`${this.AUTH_URL}/registration/`, registerData).pipe(
+      tap(response => {
+        // Store tokens if returned immediately (usually not for email verification flow)
+        const accessToken = response.access || response.token;
+        const refreshToken = response.refresh;
         
-        // Generate mock token
-        const token = this.generateMockToken(user.id);
-        
-        const response: LoginResponse = {
-          user: userWithoutPassword,
-          token
-        };
-
-        // Store auth data
-        this.setAuthData(response);
-
-        return response;
+        if (accessToken) {
+          this.setTokens(accessToken, refreshToken);
+        }
+      }),
+      switchMap(response => {
+         // If backend returns user object, use it. 
+         if (response.user) {
+            this.setStoredUser(response.user);
+            this.currentUserSubject.next(response.user);
+            return of(response);
+         } else if (this.getToken()) {
+            // If we somehow got a token but no user, try to fetch user
+            return this.loadCurrentUser().pipe(
+              map(user => ({
+                token: this.getToken() || '',
+                user: user,
+                ...response // Keep original response data
+              }))
+            );
+         } else {
+            // If no token returned (email verification needed), just return the response
+            return of(response);
+         }
       }),
       catchError(error => {
         return throwError(() => error);
@@ -97,149 +137,57 @@ export class AuthService {
     );
   }
 
-  register(userData: RegisterRequest): Observable<LoginResponse> {
-    // Simulate API call
-    return of(null).pipe(
-      delay(500), // Simulate network delay
-      map(() => {
-        // Validate passwords match
-        if (userData.password !== userData.confirmPassword) {
-          throw new Error('Hasła nie są zgodne');
-        }
+  verifyEmail(key: string): Observable<any> {
+    return this.http.post<any>(`${this.AUTH_URL}/registration/verify-email/`, { key });
+  }
 
-        // Check if username already exists
-        if (this.mockUsers.some(u => u.username === userData.username)) {
-          throw new Error('Nazwa użytkownika jest już zajęta');
-        }
-
-        // Check if email already exists
-        if (this.mockUsers.some(u => u.email === userData.email)) {
-          throw new Error('Adres email jest już zarejestrowany');
-        }
-
-        // Create new user
-        const newUser: User & { password: string } = {
-          id: (this.mockUsers.length + 1).toString(),
-          username: userData.username,
-          email: userData.email,
-          password: userData.password,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          phone: userData.phone,
-          address: userData.address,
-          city: userData.city,
-          postalCode: userData.postalCode,
-          role: 'user',
-          createdAt: new Date()
-        };
-
-        // Add to mock database
-        this.mockUsers.push(newUser);
-
-        // Remove password from response
-        const { password, ...userWithoutPassword } = newUser;
-        
-        // Generate mock token
-        const token = this.generateMockToken(newUser.id);
-        
-        const response: LoginResponse = {
-          user: userWithoutPassword,
-          token
-        };
-
-        // Store auth data
-        this.setAuthData(response);
-
-        return response;
-      }),
-      catchError(error => {
-        return throwError(() => error);
+  loadCurrentUser(): Observable<User> {
+    // Using USERS_URL/profile/ to get loyalty points and full profile
+    return this.http.get<User>(`${this.USERS_URL}/profile/`).pipe(
+      tap(user => {
+        this.setStoredUser(user);
+        this.currentUserSubject.next(user);
       })
     );
   }
 
   logout(): void {
-    // Clear auth data
-    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.ACCESS_TOKEN_KEY);
+    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     this.currentUserSubject.next(null);
   }
 
   updateUserProfile(userData: Partial<User>): Observable<User> {
-    // Simulate API call
-    return of(null).pipe(
-      delay(500),
-      map(() => {
-        const currentUser = this.currentUserValue;
-        if (!currentUser) {
-          throw new Error('Użytkownik nie jest zalogowany');
-        }
-
-        // Update user in mock database
-        const userIndex = this.mockUsers.findIndex(u => u.id === currentUser.id);
-        if (userIndex !== -1) {
-          const updatedUser = { 
-            ...this.mockUsers[userIndex], 
-            ...userData 
-          };
-          this.mockUsers[userIndex] = updatedUser;
-          
-          // Remove password from response
-          const { password, ...userWithoutPassword } = updatedUser;
-          
-          // Update stored user
-          this.setStoredUser(userWithoutPassword);
-          this.currentUserSubject.next(userWithoutPassword);
-          
-          return userWithoutPassword;
-        }
-
-        throw new Error('Nie znaleziono użytkownika');
-      }),
-      catchError(error => {
-        return throwError(() => error);
+    // Using AUTH_URL/user/ for updates as profile view is read-only
+    return this.http.patch<User>(`${this.AUTH_URL}/user/`, userData).pipe(
+      tap(updatedUser => {
+        this.setStoredUser(updatedUser);
+        this.currentUserSubject.next(updatedUser);
       })
     );
   }
 
   changePassword(currentPassword: string, newPassword: string): Observable<void> {
-    // Simulate API call
-    return of(null).pipe(
-      delay(500),
-      map(() => {
-        const currentUser = this.currentUserValue;
-        if (!currentUser) {
-          throw new Error('Użytkownik nie jest zalogowany');
-        }
-
-        // Find user and verify current password
-        const userIndex = this.mockUsers.findIndex(u => u.id === currentUser.id);
-        if (userIndex !== -1) {
-          if (this.mockUsers[userIndex].password !== currentPassword) {
-            throw new Error('Nieprawidłowe obecne hasło');
-          }
-          
-          // Update password
-          this.mockUsers[userIndex].password = newPassword;
-          return;
-        }
-
-        throw new Error('Nie znaleziono użytkownika');
-      }),
-      catchError(error => {
-        return throwError(() => error);
-      })
-    );
+    return this.http.post<void>(`${this.AUTH_URL}/password/change/`, {
+      old_password: currentPassword,
+      new_password: newPassword
+    });
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
+    return localStorage.getItem(this.ACCESS_TOKEN_KEY);
   }
 
-  private setAuthData(response: LoginResponse): void {
-    localStorage.setItem(this.TOKEN_KEY, response.token);
-    this.setStoredUser(response.user);
-    this.currentUserSubject.next(response.user);
+  getRefreshToken(): string | null {
+    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+  }
+
+  private setTokens(accessToken: string, refreshToken?: string): void {
+    localStorage.setItem(this.ACCESS_TOKEN_KEY, accessToken);
+    if (refreshToken) {
+      localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+    }
   }
 
   private setStoredUser(user: User): void {
@@ -257,9 +205,4 @@ export class AuthService {
     }
     return null;
   }
-
-  private generateMockToken(userId: string): string {
-    return btoa(`${userId}:${Date.now()}`);
-  }
 }
-
