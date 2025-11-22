@@ -11,6 +11,8 @@ from django.conf import settings
 class Category(models.Model):
     name = models.CharField(max_length=255, verbose_name="Nazwa kategorii")
     slug = models.SlugField(max_length=255, unique=True, blank=True)
+    description = models.TextField(blank=True, null=True, verbose_name="Opis")
+    image = models.CharField(max_length=500, blank=True, null=True, verbose_name="URL zdjęcia")
 
     class Meta:
         verbose_name = "Kategoria"

@@ -323,8 +323,12 @@ export class ApiService {
     return {
       id,
       name: category.name,
-      description: category.description ?? fallback.description,
-      image: category.image ?? fallback.image,
+      description: category.description !== undefined && category.description !== null 
+        ? category.description 
+        : fallback.description,
+      image: category.image !== undefined && category.image !== null && category.image !== ''
+        ? category.image 
+        : fallback.image,
       productCount: category.product_count || fallback.defaultProductCount,
       slug,
       parent: category.parent !== null && category.parent !== undefined

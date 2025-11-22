@@ -22,8 +22,19 @@ from .serializers import (
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().annotate(product_count=Count('products'))
     serializer_class = CategorySerializer
-    lookup_field = 'slug'
     permission_classes = [IsAdminUserOrReadOnly]
+    
+    def get_object(self):
+        """
+        Obsługa zarówno ID jak i slug dla elastyczności.
+        """
+        lookup_value = self.kwargs.get(self.lookup_field)
+        if lookup_value.isdigit():
+            # Jeśli to liczba, szukaj po ID
+            return Category.objects.annotate(product_count=Count('products')).get(id=lookup_value)
+        else:
+            # Jeśli nie, szukaj po slug
+            return Category.objects.annotate(product_count=Count('products')).get(slug=lookup_value)
 
 
 class ProductViewSet(viewsets.ModelViewSet):
