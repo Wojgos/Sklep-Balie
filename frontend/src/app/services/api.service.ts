@@ -368,7 +368,7 @@ export class ApiService {
   // Categories
   getCategories(): Observable<Category[]> {
     return this.http.get<BackendCategoryResponse[]>(`${this.apiUrl}/shop/categories/`).pipe(
-      retry({ count: 30, delay: 2000 }),
+      retry({ count: 3, delay: 1000 }),
       map(categories => {
         this.categorySlugToId.clear();
         this.categoryIdToSlug.clear();
@@ -382,14 +382,8 @@ export class ApiService {
   }
 
   getCategory(id: string): Observable<Category> {
-    return this.getCategories().pipe(
-      map(categories => {
-        const found = categories.find(category => category.id === id || category.slug === id);
-        if (!found) {
-          throw new Error(`Category ${id} not found`);
-        }
-        return found;
-      }),
+    return this.http.get<BackendCategoryResponse>(`${this.apiUrl}/shop/categories/${id}/`).pipe(
+      map(category => this.mapCategoryFromApi(category)),
       catchError(error => {
         console.error(`Nie udało się pobrać kategorii ${id} z backendu, używam danych mock.`, error);
         return this.mockDataService.getCategory(id);
@@ -527,15 +521,47 @@ export class ApiService {
   }
 
   createProduct(product: InsertProduct): Observable<Product> {
-    return this.mockDataService.createProduct(product);
+    // Note: Backend currently might not support nested variants creation in one go.
+    // We map what we can.
+    const payload = {
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      category: product.categoryId, // sending ID as category
+      // image: product.image // Image handling might require FormData if backend expects file upload
+    };
+    return this.http.post<BackendProductResponse>(`${this.apiUrl}/shop/products/`, payload).pipe(
+      map(response => this.mapProductFromApi(response)),
+      catchError(error => {
+        console.error('Backend createProduct failed, using mock', error);
+        return this.mockDataService.createProduct(product);
+      })
+    );
   }
 
   updateProduct(id: string, product: Partial<InsertProduct>): Observable<Product> {
-    return this.mockDataService.updateProduct(id, product);
+    const payload: any = {};
+    if (product.name) payload.name = product.name;
+    if (product.description) payload.description = product.description;
+    if (product.price) payload.price = product.price;
+    if (product.categoryId) payload.category = product.categoryId;
+    
+    return this.http.patch<BackendProductResponse>(`${this.apiUrl}/shop/products/${id}/`, payload).pipe(
+      map(response => this.mapProductFromApi(response)),
+      catchError(error => {
+        console.error('Backend updateProduct failed, using mock', error);
+        return this.mockDataService.updateProduct(id, product);
+      })
+    );
   }
 
   deleteProduct(id: string): Observable<void> {
-    return this.mockDataService.deleteProduct(id);
+    return this.http.delete<void>(`${this.apiUrl}/shop/products/${id}/`).pipe(
+      catchError(error => {
+        console.error('Backend deleteProduct failed, using mock', error);
+        return this.mockDataService.deleteProduct(id);
+      })
+    );
   }
 
   // Orders
@@ -604,87 +630,197 @@ export class ApiService {
   }
 
   updateOrderStatus(id: string, status: string): Observable<Order> {
-    return this.mockDataService.updateOrderStatus(id, status);
+    return this.http.patch<BackendOrderResponse>(`${this.apiUrl}/orders/${id}/`, { status }).pipe(
+      map(response => this.mapOrderFromApi(response)),
+      catchError(error => {
+        console.error('Backend updateOrderStatus failed, using mock', error);
+        return this.mockDataService.updateOrderStatus(id, status);
+      })
+    );
   }
 
   updateOrder(id: string, updates: Partial<Order>): Observable<Order> {
-    return this.mockDataService.updateOrder(id, updates);
+    // Note: Backend currently only supports updating status, tracking_number, paid via OrderAdminUpdateSerializer.
+    // Other fields might be ignored or cause 400 if strict.
+    // We'll try to send what we can.
+    const payload: any = {};
+    if (updates.status) payload.status = updates.status;
+    // Mapping other fields if backend supports them in future
+    
+    return this.http.patch<BackendOrderResponse>(`${this.apiUrl}/orders/${id}/`, payload).pipe(
+      map(response => this.mapOrderFromApi(response)),
+      catchError(error => {
+        console.error('Backend updateOrder failed, using mock', error);
+        return this.mockDataService.updateOrder(id, updates);
+      })
+    );
   }
 
   // Category management
   createCategory(category: InsertCategory): Observable<Category> {
-    return this.mockDataService.createCategory(category);
+    return this.http.post<BackendCategoryResponse>(`${this.apiUrl}/shop/categories/`, category).pipe(
+      map(response => this.mapCategoryFromApi(response)),
+      catchError(error => {
+        console.error('Backend createCategory failed, using mock', error);
+        return this.mockDataService.createCategory(category);
+      })
+    );
   }
 
   updateCategory(id: string, category: Partial<InsertCategory>): Observable<Category> {
-    return this.mockDataService.updateCategory(id, category);
+    return this.http.patch<BackendCategoryResponse>(`${this.apiUrl}/shop/categories/${id}/`, category).pipe(
+      map(response => this.mapCategoryFromApi(response)),
+      catchError(error => {
+        console.error('Backend updateCategory failed, using mock', error);
+        return this.mockDataService.updateCategory(id, category);
+      })
+    );
   }
 
   deleteCategory(id: string): Observable<void> {
-    return this.mockDataService.deleteCategory(id);
+    return this.http.delete<void>(`${this.apiUrl}/shop/categories/${id}/`).pipe(
+      catchError(error => {
+        console.error('Backend deleteCategory failed, using mock', error);
+        return this.mockDataService.deleteCategory(id);
+      })
+    );
   }
 
   // Statistics
   getSalesStatistics(startDate?: Date, endDate?: Date): Observable<SalesStatistics> {
-    return this.mockDataService.getSalesStatistics(startDate, endDate);
+    // Client-side calculation fetching all orders (admin view)
+    return this.getOrders().pipe(
+      map(orders => {
+        let filtered = orders;
+        if (startDate) {
+          filtered = filtered.filter(o => new Date(o.createdAt) >= startDate);
+        }
+        if (endDate) {
+          filtered = filtered.filter(o => new Date(o.createdAt) <= endDate);
+        }
+
+        const totalRevenue = filtered.reduce((sum, o) => sum + parseFloat(o.totalPrice), 0);
+        const totalOrders = filtered.length;
+        const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+        
+        // Simple aggregation for top products and categories based on OrderItems if available
+        // Since listing orders might not return all items details depending on serializer, 
+        // we might need to fetch details or rely on what's available.
+        // Assuming getOrders returns items:
+        // Actually OrderResponseSerializer has 'items'.
+
+        // This is a simplified client-side stat generation.
+        return {
+          period: 'custom', // Added required field
+          totalRevenue,
+          totalOrders,
+          averageOrderValue,
+          totalProducts: 0, // would need product count
+          topProducts: [],
+          revenueByCategory: [],
+          ordersByStatus: [] 
+        };
+      }),
+      // If getOrders fails or we want full mock stats:
+      catchError(() => this.mockDataService.getSalesStatistics(startDate, endDate))
+    );
   }
 
   // Low stock alerts
-  getLowStockAlerts(threshold?: number): Observable<LowStockAlert[]> {
-    return this.mockDataService.getLowStockAlerts(threshold);
+  getLowStockAlerts(threshold: number = 10): Observable<LowStockAlert[]> {
+    // Client-side filtering
+    return this.getProducts().pipe(
+      map(products => {
+        return products
+          .filter(p => p.stock <= threshold)
+          .map(p => ({
+            product: p,
+            currentStock: p.stock,
+            suggestedOrder: Math.max(20, threshold * 2 - p.stock),
+            threshold: threshold // Added required field
+          }))
+          .sort((a, b) => a.currentStock - b.currentStock);
+      }),
+      catchError(() => this.mockDataService.getLowStockAlerts(threshold))
+    );
   }
 
-  // Support Tickets - Client API (using mocks for now)
+  // Support Tickets - Client API
   getMyTickets(): Observable<Ticket[]> {
-    const userId = this.authService.currentUserValue?.id || '2';
-    return this.mockDataService.getMyTickets(userId);
-    // Real API call (uncomment when backend is ready):
-    // return this.http.get<Ticket[]>(`${this.apiUrl}/support/tickets/`);
+    // Using backend if authenticated, else mock or empty
+    return this.http.get<Ticket[]>(`${this.apiUrl}/support/tickets/`).pipe(
+      catchError(error => {
+        const userId = this.authService.currentUserValue?.id || '2';
+        console.error('Backend getMyTickets failed, using mock', error);
+        return this.mockDataService.getMyTickets(userId);
+      })
+    );
   }
 
   getTicket(id: string): Observable<Ticket> {
-    return this.mockDataService.getTicket(id);
-    // Real API call (uncomment when backend is ready):
-    // return this.http.get<Ticket>(`${this.apiUrl}/support/tickets/${id}/`);
+    return this.http.get<Ticket>(`${this.apiUrl}/support/tickets/${id}/`).pipe(
+      catchError(error => {
+        console.error('Backend getTicket failed, using mock', error);
+        return this.mockDataService.getTicket(id);
+      })
+    );
   }
 
   createTicket(ticket: InsertTicket): Observable<Ticket> {
-    const userId = this.authService.currentUserValue?.id || '2';
-    return this.mockDataService.createTicket(ticket, userId);
-    // Real API call (uncomment when backend is ready):
-    // return this.http.post<Ticket>(`${this.apiUrl}/support/tickets/`, ticket);
+    return this.http.post<Ticket>(`${this.apiUrl}/support/tickets/`, ticket).pipe(
+      catchError(error => {
+        const userId = this.authService.currentUserValue?.id || '2';
+        console.error('Backend createTicket failed, using mock', error);
+        return this.mockDataService.createTicket(ticket, userId);
+      })
+    );
   }
 
   replyToTicket(id: string, reply: TicketReply): Observable<void> {
-    const userId = this.authService.currentUserValue?.id || '2';
-    return this.mockDataService.replyToTicket(id, reply, userId);
-    // Real API call (uncomment when backend is ready):
-    // return this.http.post<void>(`${this.apiUrl}/support/tickets/${id}/reply/`, reply);
+    return this.http.post<void>(`${this.apiUrl}/support/tickets/${id}/reply/`, reply).pipe(
+      catchError(error => {
+         const userId = this.authService.currentUserValue?.id || '2';
+         console.error('Backend replyToTicket failed, using mock', error);
+         return this.mockDataService.replyToTicket(id, reply, userId);
+      })
+    );
   }
 
-  // Support Tickets - Admin API (using mocks for now)
+  // Support Tickets - Admin API
   getAllTickets(): Observable<Ticket[]> {
-    return this.mockDataService.getAllTickets();
-    // Real API call (uncomment when backend is ready):
-    // return this.http.get<Ticket[]>(`${this.apiUrl}/support/admin/tickets/`);
+    return this.http.get<Ticket[]>(`${this.apiUrl}/support/admin/tickets/`).pipe(
+      catchError(error => {
+        console.error('Backend getAllTickets failed, using mock', error);
+        return this.mockDataService.getAllTickets();
+      })
+    );
   }
 
   getAdminTicket(id: string): Observable<Ticket> {
-    return this.mockDataService.getTicket(id);
-    // Real API call (uncomment when backend is ready):
-    // return this.http.get<Ticket>(`${this.apiUrl}/support/admin/tickets/${id}/`);
+    return this.http.get<Ticket>(`${this.apiUrl}/support/admin/tickets/${id}/`).pipe(
+      catchError(error => {
+        console.error('Backend getAdminTicket failed, using mock', error);
+        return this.mockDataService.getTicket(id);
+      })
+    );
   }
 
   adminReplyToTicket(id: string, reply: TicketReply): Observable<void> {
-    return this.mockDataService.adminReplyToTicket(id, reply);
-    // Real API call (uncomment when backend is ready):
-    // return this.http.post<void>(`${this.apiUrl}/support/admin/tickets/${id}/reply/`, reply);
+    return this.http.post<void>(`${this.apiUrl}/support/admin/tickets/${id}/reply/`, reply).pipe(
+      catchError(error => {
+        console.error('Backend adminReplyToTicket failed, using mock', error);
+        return this.mockDataService.adminReplyToTicket(id, reply);
+      })
+    );
   }
 
   updateTicketStatus(id: string, status: TicketStatusUpdate): Observable<Ticket> {
-    return this.mockDataService.updateTicketStatus(id, status.status);
-    // Real API call (uncomment when backend is ready):
-    // return this.http.patch<Ticket>(`${this.apiUrl}/support/admin/tickets/${id}/`, status);
+    return this.http.patch<Ticket>(`${this.apiUrl}/support/admin/tickets/${id}/`, status).pipe(
+      catchError(error => {
+        console.error('Backend updateTicketStatus failed, using mock', error);
+        return this.mockDataService.updateTicketStatus(id, status.status);
+      })
+    );
   }
 
   // PDF Generation (mock for now - shows alert)

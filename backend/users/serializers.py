@@ -63,7 +63,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'email',
             'first_name',
             'last_name',
-            'loyalty_points'
+            'loyalty_points',
+            'is_staff',
+            'is_superuser',
+            'date_joined',
+            'is_active'
         )
         # Endpoint będzie tylko do odczytu
         read_only_fields = fields

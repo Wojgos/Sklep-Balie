@@ -204,6 +204,7 @@ REST_AUTH = {
     'JWT_AUTH_HTTPONLY': False,  # Pozwól frontendowi odczytać tokeny
     'REGISTER_SERIALIZER': 'users.serializers.CustomRegisterSerializer',
     'LOGIN_SERIALIZER': 'users.serializers.CustomLoginSerializer',
+    'USER_DETAILS_SERIALIZER': 'users.serializers.UserProfileSerializer',
 }
 
 DJ_REST_AUTH_REGISTER_SERIALIZER = 'users.serializers.CustomRegisterSerializer'
