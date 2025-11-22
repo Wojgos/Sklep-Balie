@@ -76,6 +76,7 @@ interface BackendProductResponse {
   category: string | null;
   category_id?: number | null;
   category_name?: string | null;
+  available_attributes?: { [key: string]: string[] };
   variants: BackendProductVariantResponse[];
   images: BackendProductImageResponse[];
   created_at?: string;
@@ -292,6 +293,8 @@ export class ApiService {
       material: this.extractMaterial(primaryVariant) ?? null,
       createdAt: product.created_at ? new Date(product.created_at) : new Date(),
       attributes: undefined,
+      available_attributes: product.available_attributes,
+      variants: product.variants,
       variantSummary,
       variantCount,
       minPrice: formattedMinPrice,

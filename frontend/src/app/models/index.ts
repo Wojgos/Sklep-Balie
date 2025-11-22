@@ -106,6 +106,21 @@ export interface Product {
   variantId?: number;
   minPrice?: string;
   maxPrice?: string;
+  available_attributes?: { [key: string]: string[] };
+  variants?: ProductSkuVariant[];
+}
+
+export interface ProductSkuVariant {
+  id: number;
+  product: number;
+  sku: string;
+  name: string;
+  price: string;
+  stock: number;
+  low_stock_threshold: number;
+  available: boolean;
+  attributes_details: { attribute: string; value: string }[];
+  images: any[];
 }
 
 export interface InsertProduct {

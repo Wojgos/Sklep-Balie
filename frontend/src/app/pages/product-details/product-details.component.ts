@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { CartService } from '../../services/cart.service';
 import { NotificationService } from '../../services/notification.service';
-import { Product } from '../../models';
+import { Product, ProductSkuVariant } from '../../models';
 import { ProductCardComponent } from '../../components/product-card/product-card.component';
 
 @Component({
@@ -67,26 +67,21 @@ import { ProductCardComponent } from '../../components/product-card/product-card
               </div>
 
               <!-- Product Variants Configuration -->
-              <div *ngIf="product.attributes && product.attributes.length > 0" class="border-t pt-6">
+              <div *ngIf="product.available_attributes && getObjectKeys(product.available_attributes).length > 0" class="border-t pt-6">
                 <h3 class="font-semibold text-lg mb-4">Konfiguracja produktu</h3>
                 <div class="space-y-4">
-                  <div *ngFor="let attribute of product.attributes" class="space-y-2">
+                  <div *ngFor="let attrKey of getObjectKeys(product.available_attributes)" class="space-y-2">
                     <label class="block text-sm font-medium">
-                      {{ attribute.name }}
+                      {{ attrKey }}
                     </label>
                     <div class="grid grid-cols-3 gap-2">
                       <button
-                        *ngFor="let variant of attribute.variants"
-                        (click)="selectVariant(attribute.id, variant.id)"
-                        [class]="getVariantButtonClass(attribute.id, variant.id)"
+                        *ngFor="let value of product.available_attributes![attrKey]"
+                        (click)="selectAttribute(attrKey, value)"
+                        [class]="getAttributeButtonClass(attrKey, value)"
                         class="px-4 py-2 text-sm font-medium rounded-lg border transition-colors"
                       >
-                        <div class="text-left">
-                          <div>{{ variant.name }}</div>
-                          <div class="text-xs opacity-75" *ngIf="variant.priceModifier && variant.priceModifier !== 0">
-                            {{ variant.priceModifier > 0 ? '+' : '' }}{{ variant.priceModifier }} PLN
-                          </div>
-                        </div>
+                        {{ value }}
                       </button>
                     </div>
                   </div>
@@ -100,10 +95,7 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                       {{ parseFloat(product.oldPrice) | number:'1.2-2' }} PLN
                     </span>
                     <span class="text-3xl font-bold">
-                      {{ getFinalPrice(product) | number:'1.2-2' }} PLN
-                    </span>
-                    <span *ngIf="getTotalPriceModifier() !== 0" class="text-sm text-muted-foreground ml-2">
-                      (bazowa: {{ parseFloat(product.price) | number:'1.2-2' }} PLN)
+                      {{ getCurrentPrice() | number:'1.2-2' }} PLN
                     </span>
                   </div>
                 </div>
@@ -111,24 +103,28 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                 <div class="space-y-3 mb-6">
                   <div class="flex items-center gap-4">
                     <span class="text-sm text-muted-foreground">Stan magazynowy:</span>
-                    <span [class]="product.stock > 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                      {{ product.stock > 0 ? product.stock + ' szt.' : 'Brak w magazynie' }}
+                    <span [class]="getCurrentStock() > 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                      {{ getCurrentStock() > 0 ? getCurrentStock() + ' szt.' : 'Brak w magazynie' }}
                     </span>
                   </div>
                   
-                  <div class="flex items-center gap-4" *ngIf="product.stock > 0">
+                  <div class="flex items-center gap-4" *ngIf="getCurrentStock() > 0">
                     <span class="text-sm text-muted-foreground">Czas dostawy:</span>
                     <span class="text-foreground font-semibold flex items-center gap-2">
                       <svg class="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                       </svg>
-                      {{ getDeliveryTime(product.stock) }}
+                      {{ getDeliveryTime(getCurrentStock()) }}
                     </span>
+                  </div>
+                  
+                  <div *ngIf="!currentVariant && product.variants?.length" class="text-red-500 text-sm font-medium">
+                    Wybrana kombinacja jest niedostępna.
                   </div>
                 </div>
                 
                 <button 
-                  *ngIf="product.stock > 0"
+                  *ngIf="getCurrentStock() > 0 && (currentVariant || !product.variants?.length)"
                   (click)="addToCart(product)"
                   [class.scale-95]="isAdding"
                   class="w-full bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-semibold transition-all"
@@ -137,7 +133,7 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                 </button>
 
                 <button 
-                  *ngIf="product.stock === 0"
+                  *ngIf="getCurrentStock() === 0 || (!currentVariant && product.variants?.length)"
                   disabled
                   class="w-full bg-muted text-muted-foreground px-6 py-3 rounded-lg font-semibold cursor-not-allowed"
                 >
@@ -224,7 +220,11 @@ export class ProductDetailsComponent implements OnInit {
   product$: Observable<Product>;
   product: Product | null = null;
   isAdding = false;
-  selectedVariants: { [attributeId: string]: string } = {}; // attributeId -> variantId
+  
+  // New state for attributes and variants
+  selectedAttributes: { [key: string]: string } = {};
+  currentVariant: ProductSkuVariant | null = null;
+
   similarProducts: Product[] = [];
   boughtTogetherProducts: Product[] = [];
   isSimilarLoading = false;
@@ -244,16 +244,9 @@ export class ProductDetailsComponent implements OnInit {
     if (productId) {
       this.product$ = this.apiService.getProduct(productId);
       
-      // Initialize default variants (first option for each attribute)
       this.product$.subscribe(product => {
         this.product = product;
-        if (product.attributes) {
-          product.attributes.forEach(attr => {
-            if (attr.variants.length > 0) {
-              this.selectedVariants[attr.id] = attr.variants[0].id;
-            }
-          });
-        }
+        this.initializeAttributes(product);
 
         const productKey = product.slug || product.id;
         this.loadSimilarProducts(productKey);
@@ -262,16 +255,86 @@ export class ProductDetailsComponent implements OnInit {
     }
   }
 
+  initializeAttributes(product: Product): void {
+    if (product.available_attributes) {
+      Object.keys(product.available_attributes).forEach(key => {
+        const values = product.available_attributes![key];
+        if (values && values.length > 0) {
+          this.selectedAttributes[key] = values[0];
+        }
+      });
+      this.updateCurrentVariant(product);
+    }
+  }
+
+  selectAttribute(attribute: string, value: string): void {
+    this.selectedAttributes[attribute] = value;
+    if (this.product) {
+      this.updateCurrentVariant(this.product);
+    }
+  }
+
+  updateCurrentVariant(product: Product): void {
+    if (!product.variants || product.variants.length === 0) {
+      this.currentVariant = null;
+      return;
+    }
+
+    // Find variant that matches all selected attributes
+    this.currentVariant = product.variants.find(variant => {
+      return Object.keys(this.selectedAttributes).every(attrKey => {
+        const selectedValue = this.selectedAttributes[attrKey];
+        const variantAttr = variant.attributes_details.find(a => a.attribute === attrKey);
+        return variantAttr && variantAttr.value === selectedValue;
+      });
+    }) || null;
+  }
+
+  getCurrentPrice(): number {
+    if (this.currentVariant) {
+      return parseFloat(this.currentVariant.price);
+    }
+    return parseFloat(this.product?.price || '0');
+  }
+
+  getCurrentStock(): number {
+    if (this.currentVariant) {
+      return this.currentVariant.stock;
+    }
+    return this.product?.stock || 0;
+  }
+
+  getObjectKeys(obj: any): string[] {
+    return obj ? Object.keys(obj) : [];
+  }
+
+  getAttributeButtonClass(attribute: string, value: string): string {
+    const isSelected = this.selectedAttributes[attribute] === value;
+    return isSelected 
+      ? 'bg-primary text-primary-foreground border-primary' 
+      : 'bg-background hover:bg-muted border-border';
+  }
+
   addToCart(product: Product): void {
     if (this.isAdding) return;
     
     this.isAdding = true;
-    this.cartService.addItem(product);
+
+    // Construct product object for cart (using variant details if available)
+    const productToAdd: Product = this.currentVariant ? {
+      ...product,
+      id: this.currentVariant.id.toString(), // Use variant ID for cart uniqueness
+      numericId: this.currentVariant.id,
+      name: `${product.name} (${Object.values(this.selectedAttributes).join(', ')})`,
+      price: this.currentVariant.price,
+      stock: this.currentVariant.stock,
+      // Keep original slug to allow navigation back to main product page
+    } : product;
     
-    // Show success notification
-    this.notificationService.showSuccess(`${product.name} został dodany do koszyka! 🎉`);
+    this.cartService.addItem(productToAdd);
     
-    // Reset button state after animation
+    this.notificationService.showSuccess(`${productToAdd.name} został dodany do koszyka! 🎉`);
+    
     setTimeout(() => {
       this.isAdding = false;
     }, 200);
@@ -289,39 +352,6 @@ export class ProductDetailsComponent implements OnInit {
     } else {
       return '5-7 dni roboczych';
     }
-  }
-
-  selectVariant(attributeId: string, variantId: string): void {
-    this.selectedVariants[attributeId] = variantId;
-  }
-
-  getVariantButtonClass(attributeId: string, variantId: string): string {
-    const isSelected = this.selectedVariants[attributeId] === variantId;
-    return isSelected 
-      ? 'bg-primary text-primary-foreground border-primary' 
-      : 'bg-background hover:bg-muted border-border';
-  }
-
-  getTotalPriceModifier(): number {
-    let total = 0;
-    
-    if (this.product && this.product.attributes) {
-      this.product.attributes.forEach(attr => {
-        const selectedVariantId = this.selectedVariants[attr.id];
-        const variant = attr.variants.find(v => v.id === selectedVariantId);
-        if (variant && variant.priceModifier) {
-          total += variant.priceModifier;
-        }
-      });
-    }
-    
-    return total;
-  }
-
-  getFinalPrice(product: Product): number {
-    const basePrice = parseFloat(product.price);
-    const modifier = this.getTotalPriceModifier();
-    return basePrice + modifier;
   }
 
   private loadSimilarProducts(productId: string): void {
