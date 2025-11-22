@@ -41,6 +41,7 @@ urlpatterns = [
 
     path('api/v1/users/', include('users.urls')),
     path('api/v1/support/', include('support.urls')),
+    path('api/v1/chatbot/', include('chatbot.urls')),
 ]
 
 if settings.DEBUG:

@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     'django_elasticsearch_dsl',
     'promotions.apps.PromotionsConfig',
     'support.apps.SupportConfig',
+    'chatbot.apps.ChatbotConfig',
 ]
 
 MIDDLEWARE = [
