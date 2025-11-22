@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, catchError, map, switchMap } from 'rxjs';
+import { Observable, of, catchError, map, switchMap, retry } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { 
   Product, 
@@ -323,6 +323,7 @@ export class ApiService {
   // Categories
   getCategories(): Observable<Category[]> {
     return this.http.get<BackendCategoryResponse[]>(`${this.apiUrl}/shop/categories/`).pipe(
+      retry({ count: 30, delay: 2000 }),
       map(categories => {
         this.categorySlugToId.clear();
         this.categoryIdToSlug.clear();
@@ -354,6 +355,7 @@ export class ApiService {
   // Products
   getProducts(): Observable<Product[]> {
     return this.http.get<BackendProductResponse[]>(`${this.apiUrl}/shop/products/`).pipe(
+      retry({ count: 30, delay: 2000 }),
       map(products => {
         const uniqueProducts = new Map<string, Product>();
         products.forEach(product => {
