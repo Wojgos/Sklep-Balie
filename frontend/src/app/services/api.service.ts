@@ -216,21 +216,6 @@ export class ApiService {
     return variants.find(variant => variant.available && variant.stock > 0) ?? variants[0];
   }
 
-  private extractMaterial(
-    variant?: BackendProductVariantResponse
-  ): string | null {
-    if (!variant?.attributes_details?.length) {
-      return null;
-    }
-
-    const materialEntry = variant.attributes_details.find(attr => {
-      const normalized = attr.attribute?.toLowerCase() ?? '';
-      return normalized.includes('mater') || normalized.includes('wood') || normalized.includes('drew');
-    });
-
-    return materialEntry?.value ?? null;
-  }
-
   private cleanProductName(name: string): string {
     if (!name) {
       return '';
@@ -283,14 +268,12 @@ export class ApiService {
       slug,
       name: this.cleanProductName(product.name),
       description: product.description,
-      dimensions: variantSummary,
       price: formattedMinPrice,
       oldPrice: formattedMaxPrice,
       rating: this.estimateRating(primaryVariant?.stock ?? 0),
       categoryId: this.resolveCategoryIdFromApi(product),
       image,
       stock: primaryVariant?.stock ?? 0,
-      material: this.extractMaterial(primaryVariant) ?? null,
       createdAt: product.created_at ? new Date(product.created_at) : new Date(),
       attributes: undefined,
       available_attributes: product.available_attributes,
@@ -520,36 +503,44 @@ export class ApiService {
     );
   }
 
-  createProduct(product: InsertProduct): Observable<Product> {
-    // Note: Backend currently might not support nested variants creation in one go.
-    // We map what we can.
-    const payload = {
+  createProduct(product: any): Observable<Product> {
+    const payload: any = {
       name: product.name,
-      description: product.description,
+      description: product.description || '',
+      category_write: product.categoryId,
+      attributes_config: product.attributes || [],
       price: product.price,
-      category: product.categoryId, // sending ID as category
-      // image: product.image // Image handling might require FormData if backend expects file upload
+      stock: product.stock || 0,
+      image: product.image || ''
     };
+    
+    console.log('Creating product with payload:', payload);
+    
     return this.http.post<BackendProductResponse>(`${this.apiUrl}/shop/products/`, payload).pipe(
       map(response => this.mapProductFromApi(response)),
       catchError(error => {
-        console.error('Backend createProduct failed, using mock', error);
+        console.error('Backend createProduct failed:', error);
         return this.mockDataService.createProduct(product);
       })
     );
   }
 
-  updateProduct(id: string, product: Partial<InsertProduct>): Observable<Product> {
+  updateProduct(id: string, product: any): Observable<Product> {
     const payload: any = {};
     if (product.name) payload.name = product.name;
-    if (product.description) payload.description = product.description;
-    if (product.price) payload.price = product.price;
-    if (product.categoryId) payload.category = product.categoryId;
+    if (product.description !== undefined) payload.description = product.description;
+    if (product.categoryId) payload.category_write = product.categoryId;
+    if (product.attributes !== undefined) payload.attributes_config = product.attributes;
+    if (product.price !== undefined) payload.price = product.price;
+    if (product.stock !== undefined) payload.stock = product.stock;
+    if (product.image !== undefined) payload.image = product.image;
+    
+    console.log('Updating product with payload:', payload);
     
     return this.http.patch<BackendProductResponse>(`${this.apiUrl}/shop/products/${id}/`, payload).pipe(
       map(response => this.mapProductFromApi(response)),
       catchError(error => {
-        console.error('Backend updateProduct failed, using mock', error);
+        console.error('Backend updateProduct failed:', error);
         return this.mockDataService.updateProduct(id, product);
       })
     );

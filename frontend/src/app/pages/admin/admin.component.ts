@@ -651,43 +651,19 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               ></textarea>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium mb-2">Kategoria</label>
-                <select 
-                  [(ngModel)]="productForm.categoryId" 
-                  name="categoryId"
-                  required
-                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
-                >
-                  <option value="">Wybierz kategorię</option>
-                  <option *ngFor="let cat of categories$ | async" [value]="cat.id">
-                    {{ cat.name }}
-                  </option>
-                </select>
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium mb-2">Materiał</label>
-                <input 
-                  type="text" 
-                  [(ngModel)]="productForm.material" 
-                  name="material"
-                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
-                />
-              </div>
-            </div>
-
             <div>
-              <label class="block text-sm font-medium mb-2">Wymiary</label>
-              <input 
-                type="text" 
-                [(ngModel)]="productForm.dimensions" 
-                name="dimensions"
-                placeholder="np. 60x60x80 cm"
+              <label class="block text-sm font-medium mb-2">Kategoria</label>
+              <select 
+                [(ngModel)]="productForm.categoryId" 
+                name="categoryId"
                 required
                 class="w-full px-3 py-2 border border-border rounded-lg bg-background"
-              />
+              >
+                <option value="">Wybierz kategorię</option>
+                <option *ngFor="let cat of categories$ | async" [value]="cat.id">
+                  {{ cat.name }}
+                </option>
+              </select>
             </div>
 
             <div class="grid grid-cols-3 gap-4">
@@ -744,42 +720,27 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             <!-- Attributes Section -->
             <div class="border-t border-border pt-4 mt-4">
               <div class="flex justify-between items-center mb-3">
-                <h3 class="text-lg font-semibold">Atrybuty i warianty produktu</h3>
+                <h3 class="text-lg font-semibold">Konfiguracja produktu</h3>
                 <button 
                   type="button"
                   (click)="showAttributeSection = !showAttributeSection"
                   class="text-sm text-primary hover:underline"
                 >
-                  {{ showAttributeSection ? 'Ukryj' : '+ Dodaj atrybut' }}
+                  {{ showAttributeSection ? 'Ukryj' : '+ Dodaj konfigurację' }}
                 </button>
               </div>
 
               <!-- Add Attribute Form -->
               <div *ngIf="showAttributeSection" class="bg-muted/50 p-4 rounded-lg mb-4">
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                  <div>
-                    <label class="block text-sm font-medium mb-1">Nazwa atrybutu</label>
-                    <input 
-                      type="text" 
-                      [(ngModel)]="currentAttribute.name" 
-                      [ngModelOptions]="{standalone: true}"
-                      placeholder="np. Rozmiar, Kolor"
-                      class="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium mb-1">Typ</label>
-                    <select 
-                      [(ngModel)]="currentAttribute.type"
-                      [ngModelOptions]="{standalone: true}"
-                      class="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
-                    >
-                      <option value="">Wybierz typ</option>
-                      <option value="size">Rozmiar</option>
-                      <option value="color">Kolor</option>
-                      <option value="text">Tekst</option>
-                    </select>
-                  </div>
+                <div class="mb-3">
+                  <label class="block text-sm font-medium mb-1">Nazwa konfiguracji</label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="currentAttribute.name" 
+                    [ngModelOptions]="{standalone: true}"
+                    placeholder="np. Materiał wkładu, Hydromasaż, Typ pieca"
+                    class="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
+                  />
                 </div>
                 <div class="flex gap-2">
                   <button 
@@ -787,7 +748,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                     (click)="addAttribute()"
                     class="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90"
                   >
-                    {{ editingAttributeIndex >= 0 ? 'Aktualizuj' : 'Dodaj' }} atrybut
+                    {{ editingAttributeIndex >= 0 ? 'Aktualizuj' : 'Dodaj' }} konfigurację
                   </button>
                   <button 
                     type="button"
@@ -803,17 +764,16 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               <div *ngIf="productForm.attributes && productForm.attributes.length > 0" class="space-y-3">
                 <div *ngFor="let attr of productForm.attributes; let attrIdx = index" 
                      class="bg-muted/30 p-3 rounded-lg">
-                  <div class="flex justify-between items-start mb-2">
+                  <div class="flex justify-between items-start mb-3">
                     <div>
-                      <span class="font-medium">{{ attr.name }}</span>
-                      <span class="text-xs text-muted-foreground ml-2">({{ attr.type }})</span>
+                      <span class="font-semibold text-base">{{ attr.name }}</span>
                     </div>
                     <div class="flex gap-1">
                       <button 
                         type="button"
                         (click)="editAttribute(attrIdx)"
                         class="p-1 hover:bg-muted rounded text-xs"
-                        title="Edytuj"
+                        title="Edytuj nazwę"
                       >
                         <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -823,7 +783,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                         type="button"
                         (click)="deleteAttribute(attrIdx)"
                         class="p-1 hover:bg-destructive/10 text-destructive rounded text-xs"
-                        title="Usuń"
+                        title="Usuń konfigurację"
                       >
                         <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -833,13 +793,13 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                   </div>
 
                   <!-- Variants -->
-                  <div class="ml-3 space-y-2">
+                  <div class="space-y-2">
+                    <p class="text-xs text-muted-foreground mb-2">Warianty:</p>
                     <div *ngFor="let variant of attr.variants; let varIdx = index" 
-                         class="flex justify-between items-center bg-background p-2 rounded text-sm">
-                      <div>
+                         class="flex justify-between items-center bg-background p-2 rounded text-sm border border-border">
+                      <div class="flex items-center gap-2">
                         <span class="font-medium">{{ variant.name }}</span>
-                        <span class="text-muted-foreground ml-2">{{ variant.value }}</span>
-                        <span *ngIf="variant.priceModifier && variant.priceModifier !== 0" class="text-xs ml-2">
+                        <span *ngIf="variant.priceModifier && variant.priceModifier !== 0" class="text-xs text-primary">
                           ({{ variant.priceModifier > 0 ? '+' : '' }}{{ variant.priceModifier }} PLN)
                         </span>
                       </div>
@@ -868,45 +828,30 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                     </div>
 
                     <!-- Add Variant Form -->
-                    <div class="bg-background p-2 rounded text-sm">
-                      <div class="grid grid-cols-2 gap-2 mb-2">
+                    <div class="bg-muted/50 p-3 rounded">
+                      <p class="text-xs font-medium mb-2">Dodaj nowy wariant:</p>
+                      <div class="space-y-2">
                         <input 
                           type="text" 
                           [(ngModel)]="currentVariant.name"
                           [ngModelOptions]="{standalone: true}"
-                          placeholder="Nazwa wariantu"
-                          class="px-2 py-1 border border-border rounded text-sm bg-background"
+                          placeholder="np. Akryl (Biała Perła), Brak, Piec elektryczny 8kW"
+                          class="w-full px-3 py-2 border border-border rounded-lg text-sm bg-background"
                         />
-                        <input 
-                          type="text" 
-                          [(ngModel)]="currentVariant.value"
-                          [ngModelOptions]="{standalone: true}"
-                          placeholder="Wartość"
-                          class="px-2 py-1 border border-border rounded text-sm bg-background"
-                        />
-                      </div>
-                      <div class="grid grid-cols-2 gap-2 mb-2">
                         <input 
                           type="number" 
                           [(ngModel)]="currentVariant.priceModifier"
                           [ngModelOptions]="{standalone: true}"
-                          placeholder="Modyfikator ceny (PLN)"
+                          placeholder="Zmiana ceny (PLN) - opcjonalnie"
                           step="0.01"
-                          class="px-2 py-1 border border-border rounded text-sm bg-background"
-                        />
-                        <input 
-                          type="number" 
-                          [(ngModel)]="currentVariant.stockModifier"
-                          [ngModelOptions]="{standalone: true}"
-                          placeholder="Modyfikator stanu"
-                          class="px-2 py-1 border border-border rounded text-sm bg-background"
+                          class="w-full px-3 py-2 border border-border rounded-lg text-sm bg-background"
                         />
                       </div>
-                      <div class="flex gap-2">
+                      <div class="flex gap-2 mt-2">
                         <button 
                           type="button"
                           (click)="addVariant(attrIdx)"
-                          class="px-2 py-1 bg-primary text-primary-foreground rounded text-xs hover:bg-primary/90"
+                          class="px-3 py-1.5 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90"
                         >
                           {{ editingVariantIndex >= 0 ? 'Aktualizuj' : '+ Dodaj' }} wariant
                         </button>
@@ -914,7 +859,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                           *ngIf="editingVariantIndex >= 0"
                           type="button"
                           (click)="cancelVariantEdit()"
-                          class="px-2 py-1 border border-border rounded text-xs hover:bg-muted"
+                          class="px-3 py-1.5 border border-border rounded text-sm hover:bg-muted"
                         >
                           Anuluj
                         </button>
@@ -1619,13 +1564,11 @@ export class AdminComponent implements OnInit {
       this.productForm = {
         name: product.name,
         description: product.description || '',
-        dimensions: product.dimensions,
         price: product.price,
         oldPrice: product.oldPrice || '',
         categoryId: product.categoryId,
         image: product.image,
         stock: product.stock,
-        material: product.material || '',
         attributes: product.attributes ? JSON.parse(JSON.stringify(product.attributes)) : []
       };
     } else {
@@ -1647,13 +1590,11 @@ export class AdminComponent implements OnInit {
     const productData: any = {
       name: this.productForm.name!,
       description: this.productForm.description,
-      dimensions: this.productForm.dimensions!,
       price: this.productForm.price!.toString(),
       oldPrice: this.productForm.oldPrice,
       categoryId: this.productForm.categoryId!,
       image: this.productForm.image!,
       stock: Number(this.productForm.stock) || 0,
-      material: this.productForm.material,
       attributes: this.productForm.attributes || []
     };
 
@@ -1701,15 +1642,15 @@ export class AdminComponent implements OnInit {
 
   // Attribute management methods
   addAttribute(): void {
-    if (!this.currentAttribute.name || !this.currentAttribute.type) {
-      alert('Nazwa i typ atrybutu są wymagane');
+    if (!this.currentAttribute.name) {
+      alert('Nazwa konfiguracji jest wymagana');
       return;
     }
 
     const newAttribute: ProductAttribute = {
       id: `attr-${Date.now()}`,
       name: this.currentAttribute.name,
-      type: this.currentAttribute.type as 'color' | 'size' | 'text',
+      type: 'text',
       variants: []
     };
 
@@ -1734,8 +1675,7 @@ export class AdminComponent implements OnInit {
   editAttribute(index: number): void {
     const attr = this.productForm.attributes![index];
     this.currentAttribute = {
-      name: attr.name,
-      type: attr.type
+      name: attr.name
     };
     this.editingAttributeIndex = index;
     this.showAttributeSection = true;
@@ -1748,17 +1688,16 @@ export class AdminComponent implements OnInit {
   }
 
   addVariant(attributeIndex: number): void {
-    if (!this.currentVariant.name || !this.currentVariant.value) {
-      alert('Nazwa i wartość wariantu są wymagane');
+    if (!this.currentVariant.name) {
+      alert('Nazwa wariantu jest wymagana');
       return;
     }
 
     const newVariant: ProductVariant = {
       id: `variant-${Date.now()}`,
       name: this.currentVariant.name,
-      value: this.currentVariant.value,
-      priceModifier: this.currentVariant.priceModifier || 0,
-      stockModifier: this.currentVariant.stockModifier || 0
+      value: this.currentVariant.name, // używamy tej samej wartości co nazwa
+      priceModifier: this.currentVariant.priceModifier || 0
     };
 
     if (this.editingVariantIndex >= 0) {

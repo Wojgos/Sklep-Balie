@@ -74,7 +74,6 @@ export interface ProductVariant {
   name: string;
   value: string;
   priceModifier?: number; // Dodatkowa opłata lub zniżka
-  stockModifier?: number; // Modyfikator stanu magazynowego
 }
 
 export interface ProductAttribute {
@@ -91,7 +90,6 @@ export interface Product {
   slug?: string;
   name: string;
   description: string | null;
-  dimensions: string;
   price: string;
   oldPrice: string | null;
   rating: number;
@@ -102,7 +100,6 @@ export interface Product {
   image: string;
   images?: any[]; // Zdjęcia produktu z backendu
   stock: number;
-  material: string | null;
   createdAt: Date;
   created_at?: string; // Format z backendu
   updatedAt?: Date;
@@ -134,14 +131,12 @@ export interface ProductSkuVariant {
 export interface InsertProduct {
   name: string;
   description?: string;
-  dimensions: string;
   price: string;
   oldPrice?: string;
   rating?: number;
   categoryId: string;
   image: string;
   stock?: number;
-  material?: string;
 }
 
 // Order models

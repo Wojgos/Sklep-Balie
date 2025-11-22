@@ -76,8 +76,8 @@ import { ProductQuickViewComponent } from '../product-quick-view/product-quick-v
             {{ product.name }}
           </h3>
           
-          <p class="text-sm text-muted-foreground mb-3" data-testid="text-dimensions">
-            {{ product.variantSummary || product.dimensions }}
+          <p *ngIf="product.variantSummary" class="text-sm text-muted-foreground mb-3" data-testid="text-variants">
+            {{ product.variantSummary }}
           </p>
 
           <div class="flex items-center justify-between gap-2 mt-auto">

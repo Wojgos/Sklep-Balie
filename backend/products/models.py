@@ -67,6 +67,11 @@ class Product(models.Model):
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     description = models.TextField(blank=True, verbose_name="Opis")
     available = models.BooleanField(default=True, verbose_name="Dostępny")
+    attributes_config = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Konfiguracja atrybutów (Admin)"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

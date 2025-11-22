@@ -64,23 +64,142 @@ class ProductVariantSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
     category = serializers.SlugRelatedField(slug_field='slug', read_only=True)
-    category_id = serializers.IntegerField(source='category.id', read_only=True)
+    category_id = serializers.IntegerField(source='category.id', read_only=True, required=False)
     category_name = serializers.CharField(source='category.name', read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
     available_attributes = serializers.SerializerMethodField()
+    
+    # Pola do zapisu (write-only) używane przez panel admina
+    category_write = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
+        source='category',
+        write_only=True,
+        required=False
+    )
+    # Pola dla domyślnego wariantu (opcjonalne)
+    price = serializers.DecimalField(max_digits=10, decimal_places=2, write_only=True, required=False)
+    stock = serializers.IntegerField(write_only=True, required=False, default=0)
+    image = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = Product
         lookup_field = 'slug'
         fields = [
-            'id', 'category', 'category_id', 'category_name', 'name',
-            'slug', 'description', 'available', 'available_attributes', 'variants', 'images',
+            'id', 'category', 'category_id', 'category_name', 'category_write', 'name',
+            'slug', 'description', 'available', 'attributes_config', 'available_attributes', 'variants', 'images',
+            'price', 'stock', 'image',
             'created_at', 'updated_at'
         ]
 
-    def get_available_attributes(self, instance):
-        attributes_map = {}
+    def create(self, validated_data):
+        # Wyciągamy dane dla wariantu
+        price = validated_data.pop('price', None)
+        stock = validated_data.pop('stock', 0)
+        image_url = validated_data.pop('image', None)
+        
+        # Tworzymy produkt
+        product = Product.objects.create(**validated_data)
+        
+        # Jeśli podano cenę, tworzymy domyślny wariant
+        if price is not None:
+            import uuid
+            sku = f"SKU-{product.id}-{uuid.uuid4().hex[:8].upper()}"
+            
+            variant = ProductVariant.objects.create(
+                product=product,
+                name='Wariant domyślny',
+                sku=sku,
+                price=price,
+                stock=stock,
+                available=True
+            )
+            
+            # Dodajemy zdjęcie jeśli podano
+            if image_url:
+                ProductImage.objects.create(
+                    product=product,
+                    variant=variant,
+                    image=image_url,
+                    is_main=True,
+                    alt_text=product.name
+                )
+        
+        return product
+    
+    def update(self, instance, validated_data):
+        # Wyciągamy dane dla wariantu
+        price = validated_data.pop('price', None)
+        stock = validated_data.pop('stock', None)
+        image_url = validated_data.pop('image', None)
+        
+        # Aktualizujemy produkt
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Aktualizujemy lub tworzymy domyślny wariant
+        if price is not None or stock is not None or image_url is not None:
+            # Szukamy pierwszego wariantu lub tworzymy nowy
+            variant = instance.variants.first()
+            
+            if not variant:
+                import uuid
+                sku = f"SKU-{instance.id}-{uuid.uuid4().hex[:8].upper()}"
+                variant = ProductVariant.objects.create(
+                    product=instance,
+                    name='Wariant domyślny',
+                    sku=sku,
+                    price=price or 0,
+                    stock=stock or 0,
+                    available=True
+                )
+            else:
+                if price is not None:
+                    variant.price = price
+                if stock is not None:
+                    variant.stock = stock
+                variant.save()
+            
+            # Aktualizujemy lub dodajemy zdjęcie
+            if image_url is not None:
+                main_image = ProductImage.objects.filter(
+                    product=instance,
+                    is_main=True
+                ).first()
+                
+                if main_image:
+                    main_image.image = image_url
+                    main_image.save()
+                else:
+                    ProductImage.objects.create(
+                        product=instance,
+                        variant=variant,
+                        image=image_url,
+                        is_main=True,
+                        alt_text=instance.name
+                    )
+        
+        return instance
 
+    def get_available_attributes(self, instance):
+        # Jeśli produkt ma attributes_config (konfiguracje z panelu admina), użyj ich
+        if instance.attributes_config:
+            attributes_map = {}
+            for attr_config in instance.attributes_config:
+                attr_name = attr_config.get('name')
+                variants = attr_config.get('variants', [])
+                
+                if attr_name and variants:
+                    # Zbieramy nazwy wariantów (wartości)
+                    values = [v.get('name') for v in variants if v.get('name')]
+                    if values:
+                        attributes_map[attr_name] = sorted(values)
+            
+            if attributes_map:
+                return attributes_map
+        
+        # Fallback: pobierz z wariantów jeśli nie ma attributes_config
+        attributes_map = {}
         variants = instance.variants.filter(available=True).prefetch_related('attributes__attribute')
 
         for variant in variants:

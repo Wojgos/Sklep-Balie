@@ -63,21 +63,6 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
                 </select>
               </div>
 
-              <!-- Material Filter -->
-              <div class="lg:w-48">
-                <label class="block text-sm font-medium mb-2">Materiał</label>
-                <select
-                  [(ngModel)]="selectedMaterial"
-                  (ngModelChange)="applyFilters()"
-                  class="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
-                >
-                  <option value="">Wszystkie materiały</option>
-                  <option *ngFor="let material of materials" [value]="material">
-                    {{ material }}
-                  </option>
-                </select>
-              </div>
-
               <!-- Sort -->
               <div class="lg:w-56">
                 <label class="block text-sm font-medium mb-2">Sortuj</label>
@@ -140,16 +125,6 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
                   class="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm hover:bg-primary/20 transition-colors"
                 >
                   {{ getCategoryName(selectedCategory) }}
-                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                  </svg>
-                </button>
-                <button
-                  *ngIf="selectedMaterial"
-                  (click)="selectedMaterial = ''; applyFilters()"
-                  class="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm hover:bg-primary/20 transition-colors"
-                >
-                  {{ selectedMaterial }}
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                   </svg>
@@ -237,13 +212,12 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
                     <h3 class="font-semibold text-lg mb-1 truncate">{{ product.name }}</h3>
                     <p class="text-sm text-muted-foreground mb-2 line-clamp-2">{{ product.description }}</p>
                     <div class="flex items-center gap-4 text-sm text-muted-foreground mb-2">
-                      <span class="flex items-center gap-1">
+                      <span *ngIf="product.variantSummary" class="flex items-center gap-1">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
                         </svg>
-                        {{ product.dimensions }}
+                        {{ product.variantSummary }}
                       </span>
-                      <span *ngIf="product.material">{{ product.material }}</span>
                       <span class="flex items-center gap-1">
                         <svg class="h-4 w-4 text-yellow-500 fill-yellow-500" viewBox="0 0 24 24">
                           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -313,12 +287,10 @@ export class ProductsComponent implements OnInit {
   allProducts: Product[] = [];
   filteredProducts: Product[] = [];
   categories: Category[] = [];
-  materials: string[] = [];
 
   // Filter values
   searchTerm: string = '';
   selectedCategory: string = '';
-  selectedMaterial: string = '';
   minPrice: number | null = null;
   maxPrice: number | null = null;
   sortOption: SortOption = 'newest';
@@ -339,11 +311,6 @@ export class ProductsComponent implements OnInit {
       this.allProducts = products;
       this.categories = categories;
       
-      // Extract unique materials
-      this.materials = [...new Set(products
-        .map(p => p.material)
-        .filter(m => m !== null && m !== undefined))] as string[];
-      
       // Check for category filter in query params
       this.route.queryParams.subscribe(params => {
         if (params['category']) {
@@ -362,8 +329,7 @@ export class ProductsComponent implements OnInit {
       const term = this.searchTerm.toLowerCase();
       filtered = filtered.filter(p => 
         p.name.toLowerCase().includes(term) ||
-        (p.description?.toLowerCase().includes(term)) ||
-        (p.material?.toLowerCase().includes(term))
+        (p.description?.toLowerCase().includes(term))
       );
     }
 
@@ -371,11 +337,6 @@ export class ProductsComponent implements OnInit {
     if (this.selectedCategory) {
       const allowedCategories = this.getDescendantCategoryIds(this.selectedCategory);
       filtered = filtered.filter(p => allowedCategories.has(p.categoryId));
-    }
-
-    // Material filter
-    if (this.selectedMaterial) {
-      filtered = filtered.filter(p => p.material === this.selectedMaterial);
     }
 
     // Price range filter
@@ -418,7 +379,6 @@ export class ProductsComponent implements OnInit {
   clearFilters(): void {
     this.searchTerm = '';
     this.selectedCategory = '';
-    this.selectedMaterial = '';
     this.minPrice = null;
     this.maxPrice = null;
     this.sortOption = 'newest';
@@ -429,7 +389,6 @@ export class ProductsComponent implements OnInit {
     return !!(
       this.searchTerm ||
       this.selectedCategory ||
-      this.selectedMaterial ||
       this.minPrice !== null ||
       this.maxPrice !== null
     );
