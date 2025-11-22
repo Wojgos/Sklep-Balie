@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { map, catchError, tap, switchMap } from 'rxjs/operators';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { User, LoginRequest, LoginResponse, RegisterRequest } from '../models';
 
 @Injectable({
@@ -22,11 +22,7 @@ export class AuthService {
     this.currentUser$ = this.currentUserSubject.asObservable();
 
     // Attempt to load user profile on startup if token exists
-    if (this.getToken()) {
-      this.loadCurrentUser().subscribe({
-        error: () => this.logout() // Logout if token is invalid
-      });
-    }
+    this.restoreSessionFromStorage();
   }
 
   public get currentUserValue(): User | null {
@@ -51,8 +47,8 @@ export class AuthService {
     return this.http.post<any>(`${this.AUTH_URL}/login/`, loginData).pipe(
       tap(response => {
         // Store tokens
-        const accessToken = response.access || response.token;
-        const refreshToken = response.refresh;
+        const accessToken = this.extractAccessToken(response);
+        const refreshToken = this.extractRefreshToken(response);
         
         if (accessToken) {
           this.setTokens(accessToken, refreshToken);
@@ -104,8 +100,8 @@ export class AuthService {
     return this.http.post<any>(`${this.AUTH_URL}/registration/`, registerData).pipe(
       tap(response => {
         // Store tokens if returned immediately (usually not for email verification flow)
-        const accessToken = response.access || response.token;
-        const refreshToken = response.refresh;
+        const accessToken = this.extractAccessToken(response);
+        const refreshToken = this.extractRefreshToken(response);
         
         if (accessToken) {
           this.setTokens(accessToken, refreshToken);
@@ -143,7 +139,7 @@ export class AuthService {
 
   loadCurrentUser(): Observable<User> {
     // Using USERS_URL/profile/ to get loyalty points and full profile
-    return this.http.get<User>(`${this.USERS_URL}/profile/`).pipe(
+    return this.http.get<User>(`${this.USERS_URL}/profile/`, this.buildAuthHeaders()).pipe(
       tap(user => {
         this.setStoredUser(user);
         this.currentUserSubject.next(user);
@@ -160,7 +156,7 @@ export class AuthService {
 
   updateUserProfile(userData: Partial<User>): Observable<User> {
     // Using AUTH_URL/user/ for updates as profile view is read-only
-    return this.http.patch<User>(`${this.AUTH_URL}/user/`, userData).pipe(
+    return this.http.patch<User>(`${this.AUTH_URL}/user/`, userData, this.buildAuthHeaders()).pipe(
       tap(updatedUser => {
         this.setStoredUser(updatedUser);
         this.currentUserSubject.next(updatedUser);
@@ -172,7 +168,7 @@ export class AuthService {
     return this.http.post<void>(`${this.AUTH_URL}/password/change/`, {
       old_password: currentPassword,
       new_password: newPassword
-    });
+    }, this.buildAuthHeaders());
   }
 
   getToken(): string | null {
@@ -183,7 +179,11 @@ export class AuthService {
     return localStorage.getItem(this.REFRESH_TOKEN_KEY);
   }
 
-  private setTokens(accessToken: string, refreshToken?: string): void {
+  private setTokens(accessToken?: string | null, refreshToken?: string | null): void {
+    if (!accessToken) {
+      console.warn('AuthService: skipping empty access token from response.');
+      return;
+    }
     localStorage.setItem(this.ACCESS_TOKEN_KEY, accessToken);
     if (refreshToken) {
       localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
@@ -204,5 +204,86 @@ export class AuthService {
       }
     }
     return null;
+  }
+
+  private extractAccessToken(response: any): string | null {
+    return this.extractToken(response, ['access', 'access_token', 'token']);
+  }
+
+  private extractRefreshToken(response: any): string | null {
+    return this.extractToken(response, ['refresh', 'refresh_token']);
+  }
+
+  private extractToken(response: any, keys: string[]): string | null {
+    if (!response) {
+      return null;
+    }
+    for (const key of keys) {
+      const value = response[key];
+      if (typeof value === 'string' && value.trim().length > 0) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  private refreshTokens(): Observable<void> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      return throwError(() => new Error('Brak tokenu odświeżania.'));
+    }
+
+    return this.http.post<any>(`${this.AUTH_URL}/token/refresh/`, { refresh: refreshToken }).pipe(
+      tap(response => {
+        const newAccessToken = this.extractAccessToken(response);
+        const newRefreshToken = this.extractRefreshToken(response) || refreshToken;
+
+        if (!newAccessToken) {
+          throw new Error('Brak access tokenu w odpowiedzi refresh.');
+        }
+
+        this.setTokens(newAccessToken, newRefreshToken);
+      }),
+      map(() => void 0)
+    );
+  }
+
+  private restoreSessionFromStorage(): void {
+    if (!this.getToken()) {
+      return;
+    }
+
+    this.loadCurrentUser().subscribe({
+      error: (error) => this.handleSessionRestoreError(error)
+    });
+  }
+
+  private handleSessionRestoreError(error: any): void {
+    if (error instanceof HttpErrorResponse && error.status === 401) {
+      this.refreshTokens().subscribe({
+        next: () => {
+          this.loadCurrentUser().subscribe({
+            error: () => this.logout()
+          });
+        },
+        error: () => this.logout()
+      });
+      return;
+    }
+
+    console.warn('AuthService: nie udało się odświeżyć sesji, ale pozostawiamy lokalne dane.', error);
+  }
+
+  private buildAuthHeaders(): { headers?: HttpHeaders } {
+    const token = this.getToken();
+    if (!token) {
+      return {};
+    }
+
+    return {
+      headers: new HttpHeaders({
+        Authorization: `Bearer ${token}`
+      })
+    };
   }
 }

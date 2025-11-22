@@ -87,6 +87,7 @@ export interface ProductAttribute {
 // Product models
 export interface Product {
   id: string;
+  numericId?: number;
   slug?: string;
   name: string;
   description: string | null;
@@ -102,6 +103,7 @@ export interface Product {
   attributes?: ProductAttribute[]; // Opcjonalne atrybuty z wariantami
   variantSummary?: string;
   variantCount?: number;
+  variantId?: number;
   minPrice?: string;
   maxPrice?: string;
 }
@@ -158,6 +160,8 @@ export interface OrderItem {
 export interface InsertOrderItem {
   orderId: string;
   productId: string;
+  productNumericId?: number;
+  variantId?: number;
   productName: string;
   quantity: number;
   price: string;

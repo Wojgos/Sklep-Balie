@@ -284,6 +284,8 @@ export class CheckoutComponent implements OnInit {
         totalPrice: this.getFinalTotal().toFixed(2),
         items: cartItems.map(item => ({
           productId: item.product.id,
+          productNumericId: item.product.numericId,
+          variantId: item.product.variantId,
           productName: item.product.name,
           quantity: item.quantity,
           price: item.product.price

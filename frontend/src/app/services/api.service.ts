@@ -82,6 +82,31 @@ interface BackendProductResponse {
   updated_at?: string;
 }
 
+interface BackendOrderItemResponse {
+  id: number;
+  product: number;
+  product_name: string;
+  quantity: number;
+  price: string;
+}
+
+interface BackendOrderResponse {
+  id: number;
+  user?: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  postal_code: string;
+  total_price: string;
+  status: string;
+  notes?: string | null;
+  created_at: string;
+  items?: BackendOrderItemResponse[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -253,6 +278,7 @@ export class ApiService {
 
     return {
       id: slug,
+      numericId: product.id,
       slug,
       name: this.cleanProductName(product.name),
       description: product.description,
@@ -317,6 +343,22 @@ export class ApiService {
       parent: category.parent !== null && category.parent !== undefined
         ? category.parent.toString()
         : null
+    };
+  }
+
+  private mapOrderFromApi(order: BackendOrderResponse): Order {
+    return {
+      id: order.id.toString(),
+      customerName: `${order.first_name} ${order.last_name}`,
+      email: order.email,
+      phone: order.phone,
+      address: order.address,
+      city: order.city,
+      postalCode: order.postal_code,
+      totalPrice: order.total_price,
+      status: order.status,
+      notes: order.notes || null,
+      createdAt: new Date(order.created_at)
     };
   }
 
@@ -495,15 +537,61 @@ export class ApiService {
 
   // Orders
   getOrders(): Observable<Order[]> {
-    return this.mockDataService.getOrders();
+    return this.http.get<BackendOrderResponse[]>(`${this.apiUrl}/shop/orders/`).pipe(
+      map(orders => orders.map(order => this.mapOrderFromApi(order))),
+      catchError(error => {
+        console.error('Nie udało się pobrać zamówień z backendu, używam danych mock.', error);
+        return this.mockDataService.getOrders();
+      })
+    );
   }
 
   getOrder(id: string): Observable<Order & { items: OrderItem[] }> {
-    return this.mockDataService.getOrder(id);
+    return this.http.get<BackendOrderResponse>(`${this.apiUrl}/shop/orders/${id}/`).pipe(
+      map(order => {
+        const mappedOrder = this.mapOrderFromApi(order);
+        const items = (order.items || []).map(item => ({
+          id: item.id.toString(),
+          orderId: order.id.toString(),
+          productId: item.product.toString(),
+          productName: item.product_name,
+          quantity: item.quantity,
+          price: item.price
+        }));
+        return { ...mappedOrder, items };
+      }),
+      catchError(error => {
+        console.error(`Nie udało się pobrać zamówienia ${id} z backendu, używam danych mock.`, error);
+        return this.mockDataService.getOrder(id);
+      })
+    );
   }
 
   createOrder(order: InsertOrder & { items: Omit<InsertOrderItem, 'orderId'>[] }): Observable<Order> {
-    return this.mockDataService.createOrder(order);
+    const payload = {
+      first_name: order.customerName.split(' ')[0] || order.customerName,
+      last_name: order.customerName.split(' ').slice(1).join(' ') || '',
+      email: order.email,
+      phone: order.phone,
+      address: order.address,
+      city: order.city,
+      postal_code: order.postalCode,
+      total_price: order.totalPrice,
+      notes: order.notes,
+      items: order.items.map(item => ({
+        product: item.productNumericId,
+        quantity: item.quantity,
+        price: item.price
+      }))
+    };
+
+    return this.http.post<BackendOrderResponse>(`${this.apiUrl}/shop/orders/`, payload).pipe(
+      map(response => this.mapOrderFromApi(response)),
+      catchError(error => {
+        console.error('Nie udało się utworzyć zamówienia w backendzie, używam mock.', error);
+        return this.mockDataService.createOrder(order);
+      })
+    );
   }
 
   updateOrderStatus(id: string, status: string): Observable<Order> {
