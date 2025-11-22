@@ -1651,7 +1651,14 @@ export class AdminComponent implements OnInit {
       id: `attr-${Date.now()}`,
       name: this.currentAttribute.name,
       type: 'text',
-      variants: []
+      variants: [
+        {
+          id: `variant-${Date.now()}-standard`,
+          name: 'Standardowa',
+          value: 'Standardowa',
+          priceModifier: 0
+        }
+      ]
     };
 
     if (!this.productForm.attributes) {

@@ -69,9 +69,12 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                         *ngFor="let value of product.available_attributes![attrKey]"
                         (click)="selectAttribute(attrKey, value)"
                         [class]="getAttributeButtonClass(attrKey, value)"
-                        class="px-4 py-2 text-sm font-medium rounded-lg border transition-colors"
+                        class="px-4 py-2 text-sm font-medium rounded-lg border transition-colors flex flex-col items-center"
                       >
-                        {{ value }}
+                        <span>{{ value }}</span>
+                        <span *ngIf="getPriceModifier(attrKey, value) !== 0" class="text-xs mt-1">
+                          {{ getPriceModifier(attrKey, value) > 0 ? '+' : '' }}{{ getPriceModifier(attrKey, value) | number:'1.2-2' }} PLN
+                        </span>
                       </button>
                     </div>
                   </div>
@@ -322,9 +325,30 @@ export class ProductDetailsComponent implements OnInit {
   }
 
   getCurrentPrice(): number {
+    // Jeśli produkt ma attributes (konfiguracje z panelu admina), oblicz cenę z modyfikatorami
+    if (this.product?.attributes && this.product.attributes.length > 0) {
+      const basePrice = parseFloat(this.product?.price || '0');
+      let totalModifier = 0;
+
+      // Dla każdej konfiguracji sprawdź wybraną wartość i jej priceModifier
+      this.product.attributes.forEach((attr: any) => {
+        const selectedValue = this.selectedAttributes[attr.name];
+        if (selectedValue) {
+          const variant = attr.variants?.find((v: any) => v.name === selectedValue);
+          if (variant && variant.priceModifier) {
+            totalModifier += parseFloat(variant.priceModifier);
+          }
+        }
+      });
+
+      return basePrice + totalModifier;
+    }
+
+    // Fallback: użyj wariantu jeśli istnieje
     if (this.currentVariant) {
       return parseFloat(this.currentVariant.price);
     }
+    
     return parseFloat(this.product?.price || '0');
   }
 
@@ -344,6 +368,20 @@ export class ProductDetailsComponent implements OnInit {
     return isSelected 
       ? 'bg-primary text-primary-foreground border-primary' 
       : 'bg-background hover:bg-muted border-border';
+  }
+
+  getPriceModifier(attributeName: string, variantName: string): number {
+    if (!this.product?.attributes) return 0;
+    
+    const attribute = this.product.attributes.find((attr: any) => attr.name === attributeName);
+    if (!attribute) return 0;
+    
+    const variant = attribute.variants?.find((v: any) => v.name === variantName);
+    if (!variant?.priceModifier) return 0;
+    
+    return typeof variant.priceModifier === 'number' 
+      ? variant.priceModifier 
+      : parseFloat(variant.priceModifier);
   }
 
   addToCart(product: Product): void {
@@ -371,8 +409,8 @@ export class ProductDetailsComponent implements OnInit {
     }, 200);
   }
 
-  parseFloat(value: string): number {
-    return parseFloat(value);
+  parseFloat(value: string | number): number {
+    return typeof value === 'number' ? value : parseFloat(value);
   }
 
   getDeliveryTime(stock: number): string {

@@ -76,6 +76,7 @@ interface BackendProductResponse {
   category: string | null;
   category_id?: number | null;
   category_name?: string | null;
+  attributes_config?: any[];
   available_attributes?: { [key: string]: string[] };
   variants: BackendProductVariantResponse[];
   images: BackendProductImageResponse[];
@@ -275,7 +276,7 @@ export class ApiService {
       image,
       stock: primaryVariant?.stock ?? 0,
       createdAt: product.created_at ? new Date(product.created_at) : new Date(),
-      attributes: undefined,
+      attributes: (product as any).attributes_config || undefined,
       available_attributes: product.available_attributes,
       variants: product.variants,
       variantSummary,
