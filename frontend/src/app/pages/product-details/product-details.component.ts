@@ -31,10 +31,10 @@ import { ProductCardComponent } from '../../components/product-card/product-card
             <!-- Product Info -->
             <div class="space-y-6">
               <div>
-                <h1 class="font-heading font-bold text-3xl sm:text-4xl mb-4">
+                <h1 class="font-heading font-bold text-3xl sm:text-4xl">
                   {{ product.name }}
                 </h1>
-                <div class="flex items-center gap-1 mb-4">
+                <div class="flex items-center gap-1">
                   <ng-container *ngFor="let star of [1,2,3,4,5]; let i = index">
                     <svg 
                       class="h-5 w-5"
@@ -49,17 +49,7 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                 </div>
               </div>
 
-              <div class="space-y-4">
-                <div>
-                  <h3 class="font-semibold text-lg mb-2">Wymiary</h3>
-                  <p class="text-muted-foreground">{{ product.dimensions }}</p>
-                </div>
-
-                <div *ngIf="product.material">
-                  <h3 class="font-semibold text-lg mb-2">Materiał</h3>
-                  <p class="text-muted-foreground">{{ product.material }}</p>
-                </div>
-
+              <div class="space-y-2">
                 <div *ngIf="product.description">
                   <h3 class="font-semibold text-lg mb-2">Opis</h3>
                   <p class="text-muted-foreground">{{ product.description }}</p>
@@ -246,6 +236,47 @@ export class ProductDetailsComponent implements OnInit {
       
       this.product$.subscribe(product => {
         this.product = product;
+        console.log('=== DANE PRODUKTU Z BACKENDU ===');
+        console.log('Pełny obiekt produktu:', JSON.stringify(product, null, 2));
+        console.log('\n--- PODSTAWOWE INFORMACJE ---');
+        console.log('ID:', product.id);
+        console.log('Slug:', product.slug);
+        console.log('Nazwa:', product.name);
+        console.log('Opis:', product.description);
+        console.log('Dostępny:', product.available);
+        console.log('Data utworzenia:', product.createdAt);
+        console.log('Data aktualizacji:', product.updatedAt);
+        
+        console.log('\n--- KATEGORIA ---');
+        console.log('Kategoria (slug):', product.categoryId);
+        console.log('Kategoria ID:', product.category_id);
+        console.log('Nazwa kategorii:', product.category_name);
+        
+        console.log('\n--- DOSTĘPNE ATRYBUTY ---');
+        console.log('available_attributes:', JSON.stringify(product.available_attributes, null, 2));
+        
+        console.log('\n--- WARIANTY ---');
+        console.log('Liczba wariantów:', product.variants?.length || 0);
+        if (product.variants && product.variants.length > 0) {
+          product.variants.forEach((variant, index) => {
+            console.log(`\nWariant ${index + 1}:`, JSON.stringify({
+              id: variant.id,
+              sku: variant.sku,
+              name: variant.name,
+              price: variant.price,
+              stock: variant.stock,
+              available: variant.available,
+              attributes: variant.attributes_details,
+              images: variant.images
+            }, null, 2));
+          });
+        }
+        
+        console.log('\n--- ZDJĘCIA ---');
+        console.log('Zdjęcia produktu:', JSON.stringify(product.images, null, 2));
+        
+        console.log('\n=== KONIEC DANYCH PRODUKTU ===\n');
+        
         this.initializeAttributes(product);
 
         const productKey = product.slug || product.id;
@@ -359,6 +390,10 @@ export class ProductDetailsComponent implements OnInit {
     this.apiService.getSimilarProducts(productId).subscribe({
       next: (products) => {
         this.similarProducts = products;
+        console.log('=== PODOBNE PRODUKTY ===');
+        console.log('Liczba podobnych produktów:', products.length);
+        console.log('Dane podobnych produktów:', JSON.stringify(products, null, 2));
+        console.log('=== KONIEC PODOBNYCH PRODUKTÓW ===\n');
       },
       error: () => {
         this.similarProducts = [];
@@ -374,6 +409,10 @@ export class ProductDetailsComponent implements OnInit {
     this.apiService.getFrequentlyBoughtTogether(productId).subscribe({
       next: (products) => {
         this.boughtTogetherProducts = products;
+        console.log('=== PRODUKTY KUPOWANE RAZEM ===');
+        console.log('Liczba produktów kupowanych razem:', products.length);
+        console.log('Dane produktów kupowanych razem:', JSON.stringify(products, null, 2));
+        console.log('=== KONIEC PRODUKTÓW KUPOWANYCH RAZEM ===\n');
       },
       error: () => {
         this.boughtTogetherProducts = [];

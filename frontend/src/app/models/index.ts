@@ -96,10 +96,18 @@ export interface Product {
   oldPrice: string | null;
   rating: number;
   categoryId: string;
+  category?: string; // slug kategorii z backendu
+  category_id?: number; // ID kategorii z backendu
+  category_name?: string; // Nazwa kategorii z backendu
   image: string;
+  images?: any[]; // Zdjęcia produktu z backendu
   stock: number;
   material: string | null;
   createdAt: Date;
+  created_at?: string; // Format z backendu
+  updatedAt?: Date;
+  updated_at?: string; // Format z backendu
+  available?: boolean; // Dostępność z backendu
   attributes?: ProductAttribute[]; // Opcjonalne atrybuty z wariantami
   variantSummary?: string;
   variantCount?: number;
