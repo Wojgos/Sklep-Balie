@@ -6,7 +6,7 @@ import { ApiService } from '../../services/api.service';
 import { NotificationService } from '../../services/notification.service';
 import { Product, Category, NotificationType } from '../../models';
 import { ProductCardComponent } from '../../components/product-card/product-card.component';
-import { CategoryCardComponent } from '../../components/category-card/category-card.component';
+
 
 type CategoryCardData = Category & {
   childCategories: Category[];
@@ -18,8 +18,7 @@ type CategoryCardData = Category & {
   standalone: true,
   imports: [
     CommonModule, 
-    ProductCardComponent, 
-    CategoryCardComponent
+    ProductCardComponent
   ],
   template: `
     <div class="flex-1">
@@ -69,11 +68,28 @@ type CategoryCardData = Category & {
             </div>
 
             <ng-container *ngIf="categoryCards$ | async as categoryCards">
-              <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                <bg-category-card 
+              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+                <div 
                   *ngFor="let category of categoryCards" 
-                  [category]="category"
-                ></bg-category-card>
+                  class="group cursor-pointer flex flex-col items-center"
+                  (click)="navigateToCategory(category)"
+                >
+                  <div class="w-full aspect-square relative overflow-hidden rounded-2xl bg-muted mb-4 shadow-sm group-hover:shadow-md transition-all">
+                    <img 
+                      [src]="category.image" 
+                      [alt]="category.name"
+                      class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300"></div>
+                  </div>
+                  <h3 class="font-semibold text-lg text-center group-hover:text-primary transition-colors">
+                    {{ category.name }}
+                  </h3>
+                  <p class="text-sm text-muted-foreground text-center mt-1">
+                    {{ category.totalProductCount }} {{ category.totalProductCount === 1 ? 'produkt' : 'produktów' }}
+                  </p>
+                </div>
               </div>
             </ng-container>
           </div>
@@ -263,6 +279,12 @@ export class HomeComponent implements OnInit {
     this.router.navigate(['/products']);
   }
 
+  navigateToCategory(category: Category): void {
+    this.router.navigate(['/products'], { 
+      queryParams: { category: category.id } 
+    });
+  }
+
   private buildCategoryCards(categories: Category[]): CategoryCardData[] {
     const childrenMap = categories.reduce<Map<string, Category[]>>((acc, category) => {
       if (category.parent) {
@@ -287,7 +309,7 @@ export class HomeComponent implements OnInit {
     };
 
     return categories
-      .filter(category => !category.parent)
+      //.filter(category => !category.parent)
       .map(category => ({
         ...category,
         childCategories: getChildren(category.id),

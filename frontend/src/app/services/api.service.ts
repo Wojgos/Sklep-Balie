@@ -341,7 +341,7 @@ export class ApiService {
       name: category.name,
       description: category.description ?? fallback.description,
       image: category.image ?? fallback.image,
-      productCount: category.product_count ?? fallback.defaultProductCount,
+      productCount: category.product_count || fallback.defaultProductCount,
       slug,
       parent: category.parent !== null && category.parent !== undefined
         ? category.parent.toString()
