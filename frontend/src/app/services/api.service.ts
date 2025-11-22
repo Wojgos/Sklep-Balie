@@ -568,27 +568,33 @@ export class ApiService {
   }
 
   createOrder(order: InsertOrder & { items: Omit<InsertOrderItem, 'orderId'>[] }): Observable<Order> {
+    // Split customer name into first_name and last_name
+    const nameParts = order.customerName.trim().split(/\s+/); // Split by whitespace
+    const firstName = nameParts[0] || order.customerName;
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName; // Use firstName as fallback
+    
     const payload = {
-      first_name: order.customerName.split(' ')[0] || order.customerName,
-      last_name: order.customerName.split(' ').slice(1).join(' ') || '',
+      first_name: firstName,
+      last_name: lastName,
       email: order.email,
-      phone: order.phone,
       address: order.address,
       city: order.city,
       postal_code: order.postalCode,
-      total_price: order.totalPrice,
-      notes: order.notes,
       items: order.items.map(item => ({
-        product: item.productNumericId,
-        quantity: item.quantity,
-        price: item.price
+        variant_id: item.variantId || item.productNumericId, // Backend expects variant_id
+        quantity: item.quantity
       }))
     };
+
+    console.log('📦 Sending order to backend:', payload);
 
     return this.http.post<BackendOrderResponse>(`${this.apiUrl}/orders/`, payload).pipe(
       map(response => this.mapOrderFromApi(response)),
       catchError(error => {
-        console.error('Nie udało się utworzyć zamówienia w backendzie, używam mock.', error);
+        console.error('❌ Backend order creation failed:');
+        console.error('Status:', error.status);
+        console.error('Error details:', error.error);
+        console.error('Full error:', error);
         return this.mockDataService.createOrder(order);
       })
     );
