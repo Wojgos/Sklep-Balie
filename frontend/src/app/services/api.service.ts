@@ -537,7 +537,7 @@ export class ApiService {
 
   // Orders
   getOrders(): Observable<Order[]> {
-    return this.http.get<BackendOrderResponse[]>(`${this.apiUrl}/shop/orders/`).pipe(
+    return this.http.get<BackendOrderResponse[]>(`${this.apiUrl}/orders/`).pipe(
       map(orders => orders.map(order => this.mapOrderFromApi(order))),
       catchError(error => {
         console.error('Nie udało się pobrać zamówień z backendu, używam danych mock.', error);
@@ -547,7 +547,7 @@ export class ApiService {
   }
 
   getOrder(id: string): Observable<Order & { items: OrderItem[] }> {
-    return this.http.get<BackendOrderResponse>(`${this.apiUrl}/shop/orders/${id}/`).pipe(
+    return this.http.get<BackendOrderResponse>(`${this.apiUrl}/orders/${id}/`).pipe(
       map(order => {
         const mappedOrder = this.mapOrderFromApi(order);
         const items = (order.items || []).map(item => ({
@@ -585,7 +585,7 @@ export class ApiService {
       }))
     };
 
-    return this.http.post<BackendOrderResponse>(`${this.apiUrl}/shop/orders/`, payload).pipe(
+    return this.http.post<BackendOrderResponse>(`${this.apiUrl}/orders/`, payload).pipe(
       map(response => this.mapOrderFromApi(response)),
       catchError(error => {
         console.error('Nie udało się utworzyć zamówienia w backendzie, używam mock.', error);

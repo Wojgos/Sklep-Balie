@@ -57,9 +57,13 @@ export class AuthService {
       switchMap(response => {
         // If backend returns user object, use it. Otherwise fetch it.
         if (response.user) {
-          this.setStoredUser(response.user);
-          this.currentUserSubject.next(response.user);
-          return of(response);
+          const transformedUser = this.transformBackendUser(response.user);
+          this.setStoredUser(transformedUser);
+          this.currentUserSubject.next(transformedUser);
+          return of({
+            ...response,
+            user: transformedUser
+          });
         } else {
           return this.loadCurrentUser().pipe(
             map(user => ({
@@ -110,9 +114,13 @@ export class AuthService {
       switchMap(response => {
          // If backend returns user object, use it. 
          if (response.user) {
-            this.setStoredUser(response.user);
-            this.currentUserSubject.next(response.user);
-            return of(response);
+            const transformedUser = this.transformBackendUser(response.user);
+            this.setStoredUser(transformedUser);
+            this.currentUserSubject.next(transformedUser);
+            return of({
+              ...response,
+              user: transformedUser
+            });
          } else if (this.getToken()) {
             // If we somehow got a token but no user, try to fetch user
             return this.loadCurrentUser().pipe(
@@ -139,7 +147,8 @@ export class AuthService {
 
   loadCurrentUser(): Observable<User> {
     // Using USERS_URL/profile/ to get loyalty points and full profile
-    return this.http.get<User>(`${this.USERS_URL}/profile/`, this.buildAuthHeaders()).pipe(
+    return this.http.get<any>(`${this.USERS_URL}/profile/`, this.buildAuthHeaders()).pipe(
+      map(backendUser => this.transformBackendUser(backendUser)),
       tap(user => {
         this.setStoredUser(user);
         this.currentUserSubject.next(user);
@@ -155,8 +164,12 @@ export class AuthService {
   }
 
   updateUserProfile(userData: Partial<User>): Observable<User> {
+    // Transform frontend data to backend format
+    const backendData = this.transformFrontendUser(userData);
+    
     // Using AUTH_URL/user/ for updates as profile view is read-only
-    return this.http.patch<User>(`${this.AUTH_URL}/user/`, userData, this.buildAuthHeaders()).pipe(
+    return this.http.patch<any>(`${this.AUTH_URL}/user/`, backendData, this.buildAuthHeaders()).pipe(
+      map(backendUser => this.transformBackendUser(backendUser)),
       tap(updatedUser => {
         this.setStoredUser(updatedUser);
         this.currentUserSubject.next(updatedUser);
@@ -167,7 +180,8 @@ export class AuthService {
   changePassword(currentPassword: string, newPassword: string): Observable<void> {
     return this.http.post<void>(`${this.AUTH_URL}/password/change/`, {
       old_password: currentPassword,
-      new_password: newPassword
+      new_password1: newPassword,
+      new_password2: newPassword
     }, this.buildAuthHeaders());
   }
 
@@ -285,5 +299,55 @@ export class AuthService {
         Authorization: `Bearer ${token}`
       })
     };
+  }
+
+  /**
+   * Transform backend user data (snake_case) to frontend format (camelCase)
+   */
+  private transformBackendUser(backendUser: any): User {
+    return {
+      id: backendUser.id?.toString() || '',
+      username: backendUser.username || '',
+      email: backendUser.email || '',
+      firstName: backendUser.first_name || '',
+      lastName: backendUser.last_name || '',
+      phone: backendUser.phone,
+      address: backendUser.address,
+      city: backendUser.city,
+      postalCode: backendUser.postal_code,
+      role: backendUser.is_staff ? 'admin' : 'user',
+      createdAt: backendUser.date_joined ? new Date(backendUser.date_joined) : undefined
+    };
+  }
+
+  /**
+   * Transform frontend user data (camelCase) to backend format (snake_case)
+   */
+  private transformFrontendUser(frontendUser: Partial<User>): any {
+    const backendData: any = {};
+    
+    if (frontendUser.firstName !== undefined) {
+      backendData.first_name = frontendUser.firstName;
+    }
+    if (frontendUser.lastName !== undefined) {
+      backendData.last_name = frontendUser.lastName;
+    }
+    if (frontendUser.email !== undefined) {
+      backendData.email = frontendUser.email;
+    }
+    if (frontendUser.phone !== undefined) {
+      backendData.phone = frontendUser.phone;
+    }
+    if (frontendUser.address !== undefined) {
+      backendData.address = frontendUser.address;
+    }
+    if (frontendUser.city !== undefined) {
+      backendData.city = frontendUser.city;
+    }
+    if (frontendUser.postalCode !== undefined) {
+      backendData.postal_code = frontendUser.postalCode;
+    }
+    
+    return backendData;
   }
 }
