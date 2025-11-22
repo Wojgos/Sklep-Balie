@@ -63,17 +63,34 @@ class ProductVariantSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
-    # Zmieniamy z powrotem na StringRelatedField lub SlugRelatedField
     category = serializers.SlugRelatedField(slug_field='slug', read_only=True)
     category_id = serializers.IntegerField(source='category.id', read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
+    available_attributes = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         lookup_field = 'slug'
         fields = [
             'id', 'category', 'category_id', 'category_name', 'name',
-            'slug', 'description', 'available', 'variants', 'images',
+            'slug', 'description', 'available', 'available_attributes', 'variants', 'images',
             'created_at', 'updated_at'
         ]
+
+    def get_available_attributes(self, instance):
+        attributes_map = {}
+
+        variants = instance.variants.filter(available=True).prefetch_related('attributes__attribute')
+
+        for variant in variants:
+            for attr_value in variant.attributes.all():
+                attr_name = attr_value.attribute.name
+                value = attr_value.value
+
+                if attr_name not in attributes_map:
+                    attributes_map[attr_name] = set()
+
+                attributes_map[attr_name].add(value)
+
+        return {key: sorted(list(val)) for key, val in attributes_map.items()}

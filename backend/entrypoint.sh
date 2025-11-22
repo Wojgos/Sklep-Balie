@@ -10,9 +10,14 @@ echo "PostgreSQL works!"
 while ! nc -z elasticsearch 9200; do
   sleep 0.5
 done
-echo "Elasticsearch works!"
 
 sleep 10
+
+#until curl -s -f "$ELASTICSEARCH_URL/_cluster/health" > /dev/null; do
+#  sleep 2
+#done
+
+echo "Elasticsearch works!"
 
 
 # shellcheck disable=SC2199
