@@ -11,13 +11,6 @@ from django.conf import settings
 class Category(models.Model):
     name = models.CharField(max_length=255, verbose_name="Nazwa kategorii")
     slug = models.SlugField(max_length=255, unique=True, blank=True)
-    parent = models.ForeignKey(
-        'self',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='subcategories'
-    )
 
     class Meta:
         verbose_name = "Kategoria"

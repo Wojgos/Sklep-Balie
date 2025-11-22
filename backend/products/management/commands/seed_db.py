@@ -162,10 +162,10 @@ class Command(BaseCommand):
     def _create_categories(self):
         self.stdout.write('  Tworzenie kategorii...')
         balie = Category.objects.create(name='Balie Ogrodowe')
-        jacuzzi = Category.objects.create(name='Jacuzzi Ogrodowe', parent=balie)
-        drewniane = Category.objects.create(name='Balie Drewniane', parent=balie)
+        jacuzzi = Category.objects.create(name='Jacuzzi Ogrodowe')
+        drewniane = Category.objects.create(name='Balie Drewniane')
         akcesoria = Category.objects.create(name='Akcesoria')
-        pokrywy = Category.objects.create(name='Pokrywy Termiczne', parent=akcesoria)
+        pokrywy = Category.objects.create(name='Pokrywy Termiczne')
 
         return {
             'jacuzzi': jacuzzi,
