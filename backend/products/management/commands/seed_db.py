@@ -170,6 +170,7 @@ class Command(BaseCommand):
         return {
             'jacuzzi': jacuzzi,
             'drewniane': drewniane,
+            'akcesoria': akcesoria,
             'pokrywy': pokrywy
         }
 
@@ -197,8 +198,14 @@ class Command(BaseCommand):
     def _create_products(self, categories, amount):
         self.stdout.write(f'  Tworzenie {amount} produktów (matek)...')
         products_list = []
+        
+        # Kategorie główne dla produktów
         lista_kategorii = [categories['jacuzzi'], categories['drewniane']]
+        
+        # Kategorie akcesoriów
+        lista_akcesoriow = [categories['akcesoria'], categories['pokrywy']]
 
+        # Tworzymy główne produkty (Balie/Jacuzzi)
         for i in range(amount):
             nazwa = f'Balia Ogrodowa Model {self.faker.word().capitalize()} {i + 1}'
             product = Product.objects.create(
@@ -208,6 +215,23 @@ class Command(BaseCommand):
                 description=self.faker.paragraph(nb_sentences=10)
             )
             products_list.append(product)
+
+        # Tworzymy dodatkowe produkty (Akcesoria)
+        self.stdout.write('  Tworzenie dodatkowych 10 akcesoriów...')
+        for i in range(10):
+            is_cover = random.choice([True, False])
+            category = categories['pokrywy'] if is_cover else categories['akcesoria']
+            base_name = 'Pokrywa Termiczna' if is_cover else 'Akcesorium'
+            nazwa = f'{base_name} {self.faker.word().capitalize()} {i + 1}'
+            
+            product = Product.objects.create(
+                name=nazwa,
+                slug=self.faker.slug(nazwa),
+                category=category,
+                description=self.faker.paragraph(nb_sentences=5)
+            )
+            products_list.append(product)
+
         return products_list
 
     def _create_variants(self, products, attributes):

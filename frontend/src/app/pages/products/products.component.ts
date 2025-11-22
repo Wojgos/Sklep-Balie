@@ -369,7 +369,8 @@ export class ProductsComponent implements OnInit {
 
     // Category filter
     if (this.selectedCategory) {
-      filtered = filtered.filter(p => p.categoryId === this.selectedCategory);
+      const allowedCategories = this.getDescendantCategoryIds(this.selectedCategory);
+      filtered = filtered.filter(p => allowedCategories.has(p.categoryId));
     }
 
     // Material filter
@@ -437,6 +438,23 @@ export class ProductsComponent implements OnInit {
   getCategoryName(categoryId: string): string {
     const category = this.categories.find(c => c.id === categoryId);
     return category ? category.name : '';
+  }
+
+  private getDescendantCategoryIds(rootId: string): Set<string> {
+    const ids = new Set<string>([rootId]);
+    const queue = [rootId];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      const children = this.categories.filter(c => c.parent === currentId);
+      children.forEach(child => {
+        if (!ids.has(child.id)) {
+          ids.add(child.id);
+          queue.push(child.id);
+        }
+      });
+    }
+    return ids;
   }
 
   navigateToProduct(productId: string): void {
