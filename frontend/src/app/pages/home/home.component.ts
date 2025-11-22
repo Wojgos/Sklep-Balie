@@ -47,29 +47,6 @@ type CategoryCardData = Category & {
                 Zobacz Realizacje
               </button>
             </div>
-            <!-- Notification Test Buttons (for testing purposes) -->
-            <div class="flex flex-wrap gap-2 justify-center mt-4">
-              <button 
-                (click)="testSuccessNotification()"
-                class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded text-sm transition-colors">
-                Test Success
-              </button>
-              <button 
-                (click)="testErrorNotification()"
-                class="bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded text-sm transition-colors">
-                Test Error
-              </button>
-              <button 
-                (click)="testWarningNotification()"
-                class="bg-yellow-600 text-white hover:bg-yellow-700 px-4 py-2 rounded text-sm transition-colors">
-                Test Warning
-              </button>
-              <button 
-                (click)="testInfoNotification()"
-                class="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded text-sm transition-colors">
-                Test Info
-              </button>
-            </div>
             <p class="text-sm text-white/80 mt-6 tracking-wide">
               ⭐ Premium Jakość od 2015 · 10,000+ Zadowolonych Klientów
             </p>
