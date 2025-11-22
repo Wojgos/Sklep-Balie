@@ -39,7 +39,8 @@ class StoreChatbot:
             return "Nie widzę żadnych zamówień na Twoim koncie."
 
         status_pl = last_order.get_status_display()
-        return f"Twoje ostatnie zamówienie #{last_order.id} ma status: '{status_pl}'."
+        tracking = last_order.tracking_number or "brak numeru śledzenia"
+        return f"Twoje ostatnie zamówienie (#{last_order.id}) ma status: '{status_pl}'. Numer przesyłki: {tracking}."
 
     def _handle_product_search(self, msg):
         keywords = [word for word in msg.split() if len(word) > 3 and word not in ['ile', 'kosztuje', 'szukam']]
