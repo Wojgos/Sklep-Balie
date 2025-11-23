@@ -155,6 +155,7 @@ export interface Order {
   notes: string | null;
   createdAt: Date;
   updatedAt?: Date;
+  items?: OrderItem[]; // Optional items from backend
 }
 
 export interface InsertOrder {

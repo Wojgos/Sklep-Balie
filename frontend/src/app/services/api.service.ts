@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, catchError, map, switchMap, retry } from 'rxjs';
+import { Observable, of, catchError, map, switchMap, retry, forkJoin } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { 
   Product, 
@@ -347,7 +347,7 @@ export class ApiService {
   }
 
   private mapOrderFromApi(order: BackendOrderResponse): Order {
-    return {
+    const mappedOrder: Order = {
       id: order.id ? order.id.toString() : '',
       customerName: `${order.first_name} ${order.last_name}`,
       email: order.email,
@@ -363,6 +363,20 @@ export class ApiService {
       createdAt: new Date(order.created_at),
       updatedAt: order.updated_at ? new Date(order.updated_at) : undefined
     };
+
+    // Map items if they exist in the response (from list endpoint)
+    if (order.items && order.items.length > 0) {
+      mappedOrder.items = order.items.map(item => ({
+        id: item.id.toString(),
+        orderId: order.id.toString(),
+        productId: item.product.toString(),
+        productName: item.product_name,
+        quantity: item.quantity,
+        price: item.price
+      }));
+    }
+
+    return mappedOrder;
   }
 
   // Categories
@@ -720,44 +734,128 @@ export class ApiService {
 
   // Statistics
   getSalesStatistics(startDate?: Date, endDate?: Date): Observable<SalesStatistics> {
-    // Client-side calculation fetching all orders (admin view)
-    return this.getOrders().pipe(
-      map(orders => {
-        let filtered = orders;
-        if (startDate) {
-          filtered = filtered.filter(o => new Date(o.createdAt) >= startDate);
-        }
-        if (endDate) {
-          filtered = filtered.filter(o => new Date(o.createdAt) <= endDate);
-        }
+    // Format dates to YYYY-MM-DD format for backend
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
 
-        const totalRevenue = filtered.reduce((sum, o) => sum + parseFloat(o.totalPrice), 0);
-        const totalOrders = filtered.length;
+    // Set default dates if not provided (last 30 days)
+    const end = endDate || new Date();
+    const start = startDate || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const startDateStr = formatDate(start);
+    const endDateStr = formatDate(end);
+
+    // Call backend endpoint with query parameters
+    const url = `${this.apiUrl}/reports/sales/?start_date=${startDateStr}&end_date=${endDateStr}`;
+    
+    return forkJoin({
+      salesStats: this.http.get<{
+        period: { start_date: string; end_date: string };
+        summary: { total_revenue: number; total_orders: number };
+        by_day: Array<{ day: string; daily_revenue: number; orders_count: number }>;
+      }>(url),
+      orders: this.getOrders(),
+      products: this.getProducts(),
+      categories: this.getCategories()
+    }).pipe(
+      map(({ salesStats, orders, products, categories }) => {
+        const totalRevenue = salesStats.summary.total_revenue;
+        const totalOrders = salesStats.summary.total_orders;
         const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-        
-        // Simple aggregation for top products and categories based on OrderItems if available
-        // Since listing orders might not return all items details depending on serializer, 
-        // we might need to fetch details or rely on what's available.
-        // Assuming getOrders returns items:
-        // Actually OrderResponseSerializer has 'items'.
 
-        // This is a simplified client-side stat generation.
+        // Format period for display
+        const periodText = `${salesStats.period.start_date} - ${salesStats.period.end_date}`;
+
+        // Filter orders by date range for detailed stats
+        const filteredOrders = orders.filter(order => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate >= start && orderDate <= end && order.paid;
+        });
+
+        // Calculate top products (client-side for now)
+        const productStats = new Map<string, { product: Product; quantity: number; revenue: number }>();
+        filteredOrders.forEach(order => {
+          if (order.items) {
+            order.items.forEach((item: OrderItem) => {
+              const existing = productStats.get(item.productId);
+              const itemRevenue = parseFloat(item.price) * item.quantity;
+              if (existing) {
+                existing.quantity += item.quantity;
+                existing.revenue += itemRevenue;
+              } else {
+                const product = products.find(p => p.id === item.productId);
+                if (product) {
+                  productStats.set(item.productId, {
+                    product,
+                    quantity: item.quantity,
+                    revenue: itemRevenue
+                  });
+                }
+              }
+            });
+          }
+        });
+        const topProducts = Array.from(productStats.values())
+          .sort((a, b) => b.revenue - a.revenue)
+          .slice(0, 5);
+
+        // Calculate revenue by category (client-side for now)
+        const categoryStats = new Map<string, { category: Category; revenue: number }>();
+        filteredOrders.forEach(order => {
+          if (order.items) {
+            order.items.forEach((item: OrderItem) => {
+              const product = products.find(p => p.id === item.productId);
+              if (product) {
+                const existing = categoryStats.get(product.categoryId);
+                const itemRevenue = parseFloat(item.price) * item.quantity;
+                if (existing) {
+                  existing.revenue += itemRevenue;
+                } else {
+                  const category = categories.find(c => c.id === product.categoryId);
+                  if (category) {
+                    categoryStats.set(product.categoryId, {
+                      category,
+                      revenue: itemRevenue
+                    });
+                  }
+                }
+              }
+            });
+          }
+        });
+        const revenueByCategory = Array.from(categoryStats.values())
+          .sort((a, b) => b.revenue - a.revenue);
+
+        // Calculate orders by status (client-side for now)
+        const statusCounts = new Map<string, number>();
+        filteredOrders.forEach(order => {
+          statusCounts.set(order.status, (statusCounts.get(order.status) || 0) + 1);
+        });
+        const ordersByStatus = Array.from(statusCounts.entries()).map(([status, count]) => ({
+          status,
+          count
+        }));
+
         return {
-          period: 'custom', // Added required field
+          period: periodText,
           totalRevenue,
           totalOrders,
           averageOrderValue,
-          totalProducts: 0, // would need product count
-          topProducts: [],
-          revenueByCategory: [],
-          ordersByStatus: [] 
-        };
+          totalProducts: products.length,
+          topProducts,
+          revenueByCategory,
+          ordersByStatus
+        } as SalesStatistics;
       }),
       catchError((error) => {
-        console.error('Błąd pobierania statystyk:', error);
-        // Return empty statistics
+        console.error('Błąd pobierania statystyk sprzedażowych:', error);
+        // Return empty statistics on error
         return of({
-          period: 'custom',
+          period: 'brak danych',
           totalRevenue: 0,
           totalOrders: 0,
           averageOrderValue: 0,
