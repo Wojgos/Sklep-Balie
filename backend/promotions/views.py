@@ -1,17 +1,20 @@
 # promotions/views.py
-from rest_framework import viewsets, status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from EStore.permissions import IsAdminUser
-from .models import DiscountCoupon
-from .serializers import DiscountCouponSerializer
-import uuid
 import datetime
+import uuid
+
+from django.db import transaction
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
-from django.db import transaction
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from EStore.permissions import IsAdminUser
 from users.models import CustomUser as User
+from .models import DiscountCoupon, LoyaltyReward
+from .serializers import DiscountCouponSerializer, LoyaltyRewardSerializer
 
 
 class CouponAdminViewSet(viewsets.ModelViewSet):
@@ -24,13 +27,22 @@ class CouponAdminViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminUser]  # Tylko dla admina
 
 
-LOYALTY_OFFERS = {
-    1: {"points_required": 500, "value": 25, "is_percentage": False, "type": "kwotowy"},
-    2: {"points_required": 1000, "value": 60, "is_percentage": False, "type": "kwotowy"},
-    3: {"points_required": 1500, "value": 10, "is_percentage": True, "type": "procentowy"},
-    4: {"points_required": 2000, "value": 150, "is_percentage": False, "type": "kwotowy"},
-    # Możemy dodać tu w przyszłości np. darmową dostawę
-}
+# LOYALTY_OFFERS = {
+#     1: {"points_required": 500, "value": 25, "is_percentage": False, "type": "kwotowy"},
+#     2: {"points_required": 1000, "value": 60, "is_percentage": False, "type": "kwotowy"},
+#     3: {"points_required": 1500, "value": 10, "is_percentage": True, "type": "procentowy"},
+#     4: {"points_required": 2000, "value": 150, "is_percentage": False, "type": "kwotowy"},
+#     # Możemy dodać tu w przyszłości np. darmową dostawę
+# }
+
+class LoyaltyRewardAdminViewSet(viewsets.ModelViewSet):
+    """
+    Zarządzanie nagrodami w programie lojalnościowym (CRUD).
+    To tutaj Admin dodaje nowe opcje wymiany punktów.
+    """
+    queryset = LoyaltyReward.objects.all()
+    serializer_class = LoyaltyRewardSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
 
 
 class LoyaltyOffersView(APIView):
@@ -40,19 +52,12 @@ class LoyaltyOffersView(APIView):
 
     GET /api/v1/loyalty/offers/
     """
-    permission_classes = [IsAuthenticated]  # Tylko zalogowany użytkownik może widzieć oferty
+    permission_classes = [IsAuthenticated]
+    serializer_class = LoyaltyRewardSerializer
 
-    def get(self, request, *args, **kwargs):
-        # Formatujemy oferty do ładnego JSON-a
-        offer_list = [
-            {
-                "id": offer_id,
-                "points_required": details["points_required"],
-                "reward_description": f"Rabat {details['value']} {'%' if details['is_percentage'] else 'zł'}"
-            }
-            for offer_id, details in LOYALTY_OFFERS.items()
-        ]
-        return Response(offer_list, status=status.HTTP_200_OK)
+    def get_queryset(self):
+        # Pobieramy tylko aktywne nagrody z bazy danych, posortowane po koszcie punktowym
+        return LoyaltyReward.objects.filter(active=True).order_by('points_required')
 
 
 class RedeemLoyaltyPointsView(APIView):
@@ -64,49 +69,51 @@ class RedeemLoyaltyPointsView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
-    @transaction.atomic  # Używamy transakcji, aby operacja była bezpieczna
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         user = request.user
-        offer_id = request.data.get('offer_id')
+        reward_id = request.data.get('reward_id')
 
-        # 1. Walidacja oferty
-        offer = LOYALTY_OFFERS.get(offer_id)
-        if not offer:
-            return Response({"error": "Wybrana oferta nie istnieje."}, status=status.HTTP_400_BAD_REQUEST)
+        if not reward_id:
+            return Response({"error": "Musisz podać ID nagrody (reward_id)."}, status=status.HTTP_400_BAD_REQUEST)
 
-        points_required = offer['points_required']
+        # 1. Pobierz nagrodę z bazy danych
+        reward = get_object_or_404(LoyaltyReward, id=reward_id, active=True)
 
-        # 2. Walidacja punktów użytkownika
-        # Musimy pobrać użytkownika z blokadą (select_for_update),
-        # aby uniknąć podwójnej wymiany tych samych punktów
+        # 2. Zablokuj użytkownika do edycji (zapobiega race condition)
         user_locked = User.objects.select_for_update().get(id=user.id)
 
-        if user_locked.loyalty_points < points_required:
-            return Response({"error": "Masz za mało punktów, aby wymienić tę nagrodę."},
-                            status=status.HTTP_400_BAD_REQUEST)
+        # 3. Sprawdź punkty
+        if user_locked.loyalty_points < reward.points_required:
+            return Response(
+                {
+                    "error": f"Masz za mało punktów. Wymagane: {reward.points_required}, "
+                             f"Posiadane: {user_locked.loyalty_points}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        # 3. Odejmij punkty
-        user_locked.loyalty_points -= points_required
+        # 4. Odejmij punkty
+        user_locked.loyalty_points -= reward.points_required
         user_locked.save(update_fields=['loyalty_points'])
 
-        # 4. Stwórz nowy kupon rabatowy
-        # Generujemy unikalny kod
-        new_code = f"LOYALTY-{user.id}-{uuid.uuid4().hex[:8].upper()}"
-
-        # Kupon jest ważny np. przez 30 dni od teraz
-        valid_to_date = timezone.now() + datetime.timedelta(days=30)
+        # 5. Wygeneruj kupon na podstawie danych z nagrody
+        new_code = f"LOYALTY-{user.id}-{uuid.uuid4().hex[:6].upper()}"
+        valid_to_date = timezone.now() + datetime.timedelta(days=90)  # Kupon ważny 90 dni
 
         new_coupon = DiscountCoupon.objects.create(
             code=new_code,
             valid_from=timezone.now(),
             valid_to=valid_to_date,
-            value=offer['value'],
-            is_percentage=offer['is_percentage'],
-            usage_limit=1,  # Kupon lojalnościowy jest JEDNORAZOWY
+            value=reward.reward_value,
+            is_percentage=reward.is_percentage,
+            usage_limit=1,  # Jednorazowy
             active=True
         )
 
-        # 5. Zwróć nowy kupon użytkownikowi
-        # Używamy serializera, który już mamy
-        serializer = DiscountCouponSerializer(new_coupon)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        # 6. Zwróć kupon
+        return Response({
+            "message": "Punkty wymienione pomyślnie!",
+            "coupon_code": new_code,
+            "points_remaining": user_locked.loyalty_points,
+            "coupon_details": DiscountCouponSerializer(new_coupon).data
+        }, status=status.HTTP_201_CREATED)

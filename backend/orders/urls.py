@@ -7,7 +7,7 @@ from .views import OrderInvoiceView
 app_name = 'orders'
 
 router = DefaultRouter()
-router.register(r'orders', views.OrderViewSet, basename='order')  # <-- DODAJ TĘ LINIĘ
+router.register(r'orders', views.OrderViewSet, basename='order')
 
 urlpatterns = [
     path('', include(router.urls)),

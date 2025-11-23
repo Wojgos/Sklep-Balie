@@ -1,6 +1,14 @@
 # promotions/serializers.py
 from rest_framework import serializers
-from .models import DiscountCoupon
+from .models import DiscountCoupon, LoyaltyReward
+
+
+class LoyaltyRewardSerializer(serializers.ModelSerializer):
+    """Serializer dla nagród lojalnościowych."""
+
+    class Meta:
+        model = LoyaltyReward
+        fields = ['id', 'points_required', 'reward_value', 'is_percentage', 'description', 'active']
 
 
 class DiscountCouponSerializer(serializers.ModelSerializer):

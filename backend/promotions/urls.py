@@ -7,6 +7,7 @@ app_name = 'promotions'
 
 router = DefaultRouter()
 router.register(r'coupons', views.CouponAdminViewSet, basename='coupon')
+router.register(r'rewards', views.LoyaltyRewardAdminViewSet, basename='reward')
 
 urlpatterns = [
     path('', include(router.urls)),

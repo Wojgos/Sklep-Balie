@@ -6,6 +6,18 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 
 
+class LoyaltyReward(models.Model):
+    """Nagroda w programie lojalnościowym (np. Kupon 50zł)."""
+    points_required = models.PositiveIntegerField(verbose_name="Wymagane punkty")
+    reward_value = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Wartość nagrody")
+    is_percentage = models.BooleanField(default=False, verbose_name="Czy procentowa?")
+    description = models.CharField(max_length=255, verbose_name="Opis (dla klienta)")
+    active = models.BooleanField(default=True, verbose_name="Aktywna")
+
+    def __str__(self):
+        return f"{self.points_required} pkt -> {self.description}"
+
+
 class DiscountCoupon(models.Model):
     """
     Model kuponu rabatowego.
