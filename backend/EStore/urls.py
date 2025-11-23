@@ -22,6 +22,11 @@ from users.views import CustomRegisterView
 from dj_rest_auth.registration.views import (
     VerifyEmailView, ResendEmailVerificationView
 )
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -42,6 +47,10 @@ urlpatterns = [
     path('api/v1/users/', include('users.urls')),
     path('api/v1/support/', include('support.urls')),
     path('api/v1/chatbot/', include('chatbot.urls')),
+
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
 
 if settings.DEBUG:

@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'drf_spectacular',
 
     'corsheaders',
     'products.apps.ProductsConfig',
@@ -181,12 +182,12 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # --- REST FRAMEWORK I JWT ---
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        # Używamy JWT do uwierzytelniania sesji
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # Konfiguracja JWT (jak długo token jest ważny itp.)
@@ -237,4 +238,12 @@ CELERY_BEAT_SCHEDULE = {
         # 'schedule': crontab(minute='0', hour='*'), # Uruchom co pełną godzinę
         'schedule': crontab(minute='*/1'),  # (Do testów: uruchom co 5 minut)
     },
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Balie Ogrodowe API',
+    'DESCRIPTION': 'Dokumentacja API dla sklepu z baliami ogrodowymi.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
 }
