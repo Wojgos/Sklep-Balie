@@ -69,10 +69,9 @@ export class AccountComponent implements OnInit {
     this.isLoadingOrders = true;
     this.apiService.getOrders().subscribe({
       next: (orders) => {
-        // Filter orders for current user (in real app this would be done by backend)
-        this.orders = orders.filter(order => 
-          order.email === this.currentUser?.email
-        );
+        // Backend already filters orders for current user based on auth token
+        this.orders = orders;
+        console.log('📦 Loaded user orders:', orders.length);
         this.isLoadingOrders = false;
       },
       error: (error) => {
@@ -181,8 +180,8 @@ export class AccountComponent implements OnInit {
         return 'status-processing';
       case 'shipped':
         return 'status-shipped';
-      case 'delivered':
-        return 'status-delivered';
+      case 'completed':
+        return 'status-delivered'; // Keep CSS class name for styling
       case 'cancelled':
         return 'status-cancelled';
       default:
@@ -198,7 +197,7 @@ export class AccountComponent implements OnInit {
         return 'Przetwarzane';
       case 'shipped':
         return 'Wysłane';
-      case 'delivered':
+      case 'completed':
         return 'Dostarczone';
       case 'cancelled':
         return 'Anulowane';

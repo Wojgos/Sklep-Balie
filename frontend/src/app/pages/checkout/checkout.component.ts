@@ -292,6 +292,8 @@ export class CheckoutComponent implements OnInit {
         }))
       };
 
+      console.log('🛒 Order data being sent:', orderData);
+      
       this.apiService.createOrder(orderData).subscribe({
         next: () => {
           this.orderSuccess = true;
@@ -303,7 +305,22 @@ export class CheckoutComponent implements OnInit {
         error: (error) => {
           console.error('Order creation failed:', error);
           this.isSubmitting = false;
-          // TODO: Show error toast
+          
+          // Show user-friendly error message
+          let errorMessage = 'Wystąpił błąd podczas składania zamówienia. ';
+          
+          if (error.error?.error) {
+            errorMessage += error.error.error;
+            
+            // If it's a product not found error, suggest clearing cart
+            if (error.error.error.includes('nie istnieje') || error.error.error.includes('niedostępny')) {
+              errorMessage += '\n\nMożliwe, że w koszyku znajdują się nieaktualne produkty. Spróbuj wyczyścić koszyk i dodać produkty ponownie.';
+            }
+          } else {
+            errorMessage += 'Sprawdź dane i spróbuj ponownie.';
+          }
+          
+          alert(errorMessage);
         }
       });
     }

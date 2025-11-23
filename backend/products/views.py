@@ -1,8 +1,11 @@
 # products/views.py
-from rest_framework import viewsets, generics
+from rest_framework import viewsets, generics, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAdminUser
 from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Count
+from django.db.models import Count, F
 from elasticsearch_dsl.query import MultiMatch
 
 from EStore.permissions import IsAdminUserOrReadOnly
@@ -16,6 +19,7 @@ from .serializers import (
     ProductSerializer, CategorySerializer, ProductAttributeSerializer,
     ProductVariantSerializer, AttributeValueSerializer, ProductImageSerializer
 )
+from .tasks import check_low_stock_levels
 
 
 # Usuwamy 'TranslatableModelViewSet'
@@ -88,3 +92,84 @@ class ProductSearchView(generics.ListAPIView):
         )
         search = search.query(query)
         return search.to_queryset()
+
+
+class LowStockVariantsViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet zwracający warianty produktów z niskim stanem magazynowym.
+    Dostępny tylko dla administratorów.
+    """
+    serializer_class = ProductVariantSerializer
+    permission_classes = [IsAdminUser]
+    
+    def get_queryset(self):
+        """
+        Zwraca warianty, których stan magazynowy jest poniżej progu alarmowego.
+        Sortuje według stanu magazynowego (od najniższego).
+        """
+        queryset = ProductVariant.objects.filter(
+            stock__lt=F('low_stock_threshold'),
+            available=True
+        ).select_related('product', 'product__category').prefetch_related(
+            'attributes__attribute', 'images'
+        ).order_by('stock', 'product__name')
+        
+        # Opcjonalny parametr severity (krytyczny, ostrzeżenie, wszystkie)
+        severity = self.request.query_params.get('severity', None)
+        if severity == 'critical':
+            queryset = queryset.filter(stock=0)
+        elif severity == 'warning':
+            # Stock > 0 ale mniej niż połowa progu
+            queryset = queryset.filter(
+                stock__gt=0,
+                stock__lt=F('low_stock_threshold') / 2
+            )
+        
+        return queryset
+    
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminUser])
+    def trigger_alert(self, request):
+        """
+        Ręcznie wyzwala sprawdzenie niskich stanów i wysyła emaile z alertami.
+        """
+        try:
+            result = check_low_stock_levels.delay()
+            # Czekamy na wynik (maksymalnie 30 sekund)
+            message = result.get(timeout=30)
+            return Response({
+                'success': True,
+                'message': message
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Błąd podczas wyzwalania alertu: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
+    def statistics(self, request):
+        """
+        Zwraca statystyki dotyczące niskich stanów magazynowych.
+        """
+        total_variants = ProductVariant.objects.filter(available=True).count()
+        low_stock_variants = ProductVariant.objects.filter(
+            stock__lt=F('low_stock_threshold'),
+            available=True
+        ).count()
+        critical_variants = ProductVariant.objects.filter(
+            stock=0,
+            available=True
+        ).count()
+        warning_variants = ProductVariant.objects.filter(
+            stock__gt=0,
+            stock__lt=F('low_stock_threshold') / 2,
+            available=True
+        ).count()
+        
+        return Response({
+            'total_variants': total_variants,
+            'low_stock_count': low_stock_variants,
+            'critical_count': critical_variants,
+            'warning_count': warning_variants,
+            'ok_count': total_variants - low_stock_variants
+        })

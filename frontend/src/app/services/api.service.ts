@@ -12,6 +12,10 @@ import {
   InsertCategory,
   SalesStatistics,
   LowStockAlert,
+  LowStockVariantAlert,
+  LowStockStatistics,
+  GroupedLowStockAlert,
+  ProductSkuVariant,
   Ticket,
   InsertTicket,
   TicketReply,
@@ -95,6 +99,7 @@ interface BackendOrderItemResponse {
 interface BackendOrderResponse {
   id: number;
   user?: number;
+  customer_username?: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -104,8 +109,11 @@ interface BackendOrderResponse {
   postal_code: string;
   total_price: string;
   status: string;
+  paid: boolean;
+  tracking_number?: string | null;
   notes?: string | null;
   created_at: string;
+  updated_at?: string;
   items?: BackendOrderItemResponse[];
 }
 
@@ -275,6 +283,7 @@ export class ApiService {
       categoryId: this.resolveCategoryIdFromApi(product),
       image,
       stock: primaryVariant?.stock ?? 0,
+      variantId: primaryVariant?.id, // ID wariantu potrzebne do zamówienia
       createdAt: product.created_at ? new Date(product.created_at) : new Date(),
       attributes: (product as any).attributes_config || undefined,
       available_attributes: product.available_attributes,
@@ -339,7 +348,7 @@ export class ApiService {
 
   private mapOrderFromApi(order: BackendOrderResponse): Order {
     return {
-      id: order.id.toString(),
+      id: order.id ? order.id.toString() : '',
       customerName: `${order.first_name} ${order.last_name}`,
       email: order.email,
       phone: order.phone || '',
@@ -348,8 +357,11 @@ export class ApiService {
       postalCode: order.postal_code,
       totalPrice: order.total_price,
       status: order.status,
+      paid: order.paid ?? false,
+      trackingNumber: order.tracking_number || null,
       notes: order.notes || null,
-      createdAt: new Date(order.created_at)
+      createdAt: new Date(order.created_at),
+      updatedAt: order.updated_at ? new Date(order.updated_at) : undefined
     };
   }
 
@@ -603,9 +615,11 @@ export class ApiService {
       first_name: firstName,
       last_name: lastName,
       email: order.email,
+      phone: order.phone || '',
       address: order.address,
       city: order.city,
       postal_code: order.postalCode,
+      notes: order.notes || '',
       items: order.items.map(item => ({
         variant_id: item.variantId || item.productNumericId, // Backend expects variant_id
         quantity: item.quantity
@@ -620,6 +634,12 @@ export class ApiService {
         console.error('❌ Błąd tworzenia zamówienia:');
         console.error('Status:', error.status);
         console.error('Szczegóły błędu:', error.error);
+        
+        // Provide helpful error message
+        if (error.error?.error) {
+          console.error('💡 Komunikat:', error.error.error);
+        }
+        
         throw error;
       })
     );
@@ -639,6 +659,8 @@ export class ApiService {
     const payload: any = {};
     if (updates.status !== undefined) payload.status = updates.status;
     if (updates.notes !== undefined) payload.notes = updates.notes;
+    if (updates.paid !== undefined) payload.paid = updates.paid;
+    if (updates.trackingNumber !== undefined) payload.tracking_number = updates.trackingNumber;
     
     // Map frontend Order fields to backend fields
     if (updates.customerName) {
@@ -652,8 +674,13 @@ export class ApiService {
     if (updates.city !== undefined) payload.city = updates.city;
     if (updates.postalCode !== undefined) payload.postal_code = updates.postalCode;
     
+    console.log('📝 Aktualizacja zamówienia ID:', id, 'Payload:', payload);
+    
     return this.http.patch<BackendOrderResponse>(`${this.apiUrl}/orders/${id}/`, payload).pipe(
-      map(response => this.mapOrderFromApi(response)),
+      map(response => {
+        console.log('✅ Odpowiedź z backendu:', response);
+        return this.mapOrderFromApi(response);
+      }),
       catchError(error => {
         console.error('Błąd aktualizacji zamówienia:', error);
         throw error;
@@ -743,7 +770,7 @@ export class ApiService {
     );
   }
 
-  // Low stock alerts
+  // Low stock alerts (legacy - simple product-based)
   getLowStockAlerts(threshold: number = 10): Observable<LowStockAlert[]> {
     // Client-side filtering based on products from backend
     return this.getProducts().pipe(
@@ -761,6 +788,130 @@ export class ApiService {
       catchError((error) => {
         console.error('Błąd pobierania alertów o niskim stanie:', error);
         return of([]);
+      })
+    );
+  }
+
+  // Enhanced Low Stock Alerts - Variant-based from backend
+  getLowStockVariants(severity?: 'critical' | 'warning' | 'all'): Observable<LowStockVariantAlert[]> {
+    const params = severity && severity !== 'all' ? `?severity=${severity}` : '';
+    return this.http.get<ProductSkuVariant[]>(`${this.apiUrl}/shop/low-stock-variants/${params}`).pipe(
+      map(variants => {
+        return variants.map(variant => {
+          const difference = variant.low_stock_threshold - variant.stock;
+          const suggestedOrder = Math.max(20, difference + 10);
+          
+          // Determine severity
+          let severityLevel: 'critical' | 'warning' | 'info';
+          if (variant.stock === 0) {
+            severityLevel = 'critical';
+          } else if (variant.stock < variant.low_stock_threshold / 2) {
+            severityLevel = 'warning';
+          } else {
+            severityLevel = 'info';
+          }
+
+          return {
+            variant: variant,
+            productName: variant.name || 'Nieznany produkt',
+            productSlug: '',
+            categoryName: '',
+            currentStock: variant.stock,
+            threshold: variant.low_stock_threshold,
+            difference: difference,
+            suggestedOrder: suggestedOrder,
+            severity: severityLevel
+          } as LowStockVariantAlert;
+        });
+      }),
+      catchError((error) => {
+        console.error('Błąd pobierania alertów wariantów:', error);
+        return of([]);
+      })
+    );
+  }
+
+  // Get low stock statistics
+  getLowStockStatistics(): Observable<LowStockStatistics> {
+    return this.http.get<LowStockStatistics>(`${this.apiUrl}/shop/low-stock-variants/statistics/`).pipe(
+      catchError((error) => {
+        console.error('Błąd pobierania statystyk niskich stanów:', error);
+        return of({
+          total_variants: 0,
+          low_stock_count: 0,
+          critical_count: 0,
+          warning_count: 0,
+          ok_count: 0
+        });
+      })
+    );
+  }
+
+  // Trigger manual low stock alert email
+  triggerLowStockAlert(): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(
+      `${this.apiUrl}/shop/low-stock-variants/trigger_alert/`,
+      {}
+    ).pipe(
+      catchError((error) => {
+        console.error('Błąd wyzwalania alertu:', error);
+        return of({
+          success: false,
+          message: 'Błąd podczas wyzwalania alertu'
+        });
+      })
+    );
+  }
+
+  // Group low stock variants by product
+  getGroupedLowStockAlerts(severity?: 'critical' | 'warning' | 'all'): Observable<GroupedLowStockAlert[]> {
+    return this.getLowStockVariants(severity).pipe(
+      map(alerts => {
+        const grouped = new Map<number, GroupedLowStockAlert>();
+        
+        alerts.forEach(alert => {
+          const productId = alert.variant.product;
+          
+          if (!grouped.has(productId)) {
+            grouped.set(productId, {
+              productId: productId,
+              productName: alert.productName,
+              productSlug: alert.productSlug,
+              categoryName: alert.categoryName,
+              variants: [],
+              totalVariantsAffected: 0,
+              hasCritical: false
+            });
+          }
+          
+          const group = grouped.get(productId)!;
+          group.variants.push(alert);
+          group.totalVariantsAffected++;
+          
+          if (alert.severity === 'critical') {
+            group.hasCritical = true;
+          }
+        });
+        
+        return Array.from(grouped.values()).sort((a, b) => {
+          // Critical first, then by number of affected variants
+          if (a.hasCritical && !b.hasCritical) return -1;
+          if (!a.hasCritical && b.hasCritical) return 1;
+          return b.totalVariantsAffected - a.totalVariantsAffected;
+        });
+      })
+    );
+  }
+
+  // Update variant stock and threshold
+  updateVariant(variantId: number, updates: Partial<ProductSkuVariant>): Observable<ProductSkuVariant> {
+    return this.http.patch<ProductSkuVariant>(
+      `${this.apiUrl}/shop/variants/${variantId}/`,
+      updates
+    ).pipe(
+      catchError((error) => {
+        console.error('Błąd aktualizacji wariantu:', error);
+        throw error;
       })
     );
   }

@@ -150,8 +150,11 @@ export interface Order {
   postalCode: string;
   totalPrice: string;
   status: string;
+  paid?: boolean;
+  trackingNumber?: string | null;
   notes: string | null;
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface InsertOrder {
@@ -271,6 +274,37 @@ export interface LowStockAlert {
   currentStock: number;
   threshold: number;
   suggestedOrder: number;
+}
+
+// Enhanced Low Stock Variant Alert models
+export interface LowStockVariantAlert {
+  variant: ProductSkuVariant;
+  productName: string;
+  productSlug: string;
+  categoryName: string;
+  currentStock: number;
+  threshold: number;
+  difference: number; // ile brakuje do progu
+  suggestedOrder: number;
+  severity: 'critical' | 'warning' | 'info';
+}
+
+export interface LowStockStatistics {
+  total_variants: number;
+  low_stock_count: number;
+  critical_count: number;
+  warning_count: number;
+  ok_count: number;
+}
+
+export interface GroupedLowStockAlert {
+  productId: number;
+  productName: string;
+  productSlug: string;
+  categoryName: string;
+  variants: LowStockVariantAlert[];
+  totalVariantsAffected: number;
+  hasCritical: boolean;
 }
 
 // Support Ticket models

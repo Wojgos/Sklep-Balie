@@ -13,6 +13,8 @@ router.register(r'attributes', views.ProductAttributeViewSet, basename='attribut
 router.register(r'variants', views.ProductVariantViewSet, basename='variant')
 router.register(r'attribute-values', views.AttributeValueViewSet, basename='attribute-value')
 router.register(r'product-images', views.ProductImageViewSet, basename='product-image')
+# Low stock alerts endpoint:
+router.register(r'low-stock-variants', views.LowStockVariantsViewSet, basename='low-stock-variant')
 
 urlpatterns = [
     path('', include(router.urls)),

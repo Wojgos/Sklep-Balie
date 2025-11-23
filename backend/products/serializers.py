@@ -52,11 +52,15 @@ class ProductVariantSerializer(serializers.ModelSerializer):
         many=True, read_only=True, source='attributes'
     )
     images = ProductImageSerializer(many=True, read_only=True)
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    product_slug = serializers.CharField(source='product.slug', read_only=True)
+    category_name = serializers.CharField(source='product.category.name', read_only=True)
 
     class Meta:
         model = ProductVariant
         fields = [
-            'id', 'product', 'sku', 'name', 'price', 'stock',
+            'id', 'product', 'product_name', 'product_slug', 'category_name',
+            'sku', 'name', 'price', 'stock',
             'low_stock_threshold', 'available',
             'attributes_details', 'images'
         ]
