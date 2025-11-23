@@ -528,12 +528,13 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
             <div *ngIf="statistics$ | async as stats">
               <!-- Summary Cards -->
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="bg-card border border-card-border rounded-lg p-6">
                   <div class="flex items-center justify-between">
                     <div>
                       <p class="text-sm text-muted-foreground">Całkowity przychód</p>
                       <p class="text-2xl font-bold mt-1">{{ stats.totalRevenue | number:'1.2-2' }} PLN</p>
+                      <p class="text-xs text-muted-foreground mt-1">Tylko opłacone zamówienia</p>
                     </div>
                     <div class="p-3 bg-green-100 rounded-full">
                       <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -548,6 +549,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                     <div>
                       <p class="text-sm text-muted-foreground">Liczba zamówień</p>
                       <p class="text-2xl font-bold mt-1">{{ stats.totalOrders }}</p>
+                      <p class="text-xs text-muted-foreground mt-1">Opłacone w okresie</p>
                     </div>
                     <div class="p-3 bg-blue-100 rounded-full">
                       <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -560,8 +562,9 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 <div class="bg-card border border-card-border rounded-lg p-6">
                   <div class="flex items-center justify-between">
                     <div>
-                      <p class="text-sm text-muted-foreground">Średnia wartość zamówienia</p>
+                      <p class="text-sm text-muted-foreground">Średnia wartość</p>
                       <p class="text-2xl font-bold mt-1">{{ stats.averageOrderValue | number:'1.2-2' }} PLN</p>
+                      <p class="text-xs text-muted-foreground mt-1">Na zamówienie</p>
                     </div>
                     <div class="p-3 bg-purple-100 rounded-full">
                       <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -570,24 +573,10 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                     </div>
                   </div>
                 </div>
-
-                <div class="bg-card border border-card-border rounded-lg p-6">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <p class="text-sm text-muted-foreground">Liczba produktów</p>
-                      <p class="text-2xl font-bold mt-1">{{ stats.totalProducts }}</p>
-                    </div>
-                    <div class="p-3 bg-orange-100 rounded-full">
-                      <svg class="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               <!-- Top Products -->
-              <div class="bg-card border border-card-border rounded-lg p-6">
+              <div *ngIf="stats.topProducts && stats.topProducts.length > 0" class="bg-card border border-card-border rounded-lg p-6">
                 <h3 class="text-lg font-semibold mb-4">Najlepiej sprzedające się produkty</h3>
                 <div class="space-y-3">
                   <div *ngFor="let item of stats.topProducts; let i = index" 
@@ -607,7 +596,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               </div>
 
               <!-- Revenue by Category -->
-              <div class="bg-card border border-card-border rounded-lg p-6">
+              <div *ngIf="stats.revenueByCategory && stats.revenueByCategory.length > 0" class="bg-card border border-card-border rounded-lg p-6">
                 <h3 class="text-lg font-semibold mb-4">Przychód według kategorii</h3>
                 <div class="space-y-3">
                   <div *ngFor="let item of stats.revenueByCategory" 
@@ -623,7 +612,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               </div>
 
               <!-- Orders by Status -->
-              <div class="bg-card border border-card-border rounded-lg p-6">
+              <div *ngIf="stats.ordersByStatus && stats.ordersByStatus.length > 0" class="bg-card border border-card-border rounded-lg p-6">
                 <h3 class="text-lg font-semibold mb-4">Zamówienia według statusu</h3>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <div *ngFor="let item of stats.ordersByStatus" 
