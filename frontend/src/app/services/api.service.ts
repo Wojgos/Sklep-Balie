@@ -98,7 +98,7 @@ interface BackendOrderResponse {
   first_name: string;
   last_name: string;
   email: string;
-  phone: string;
+  phone?: string | null;
   address: string;
   city: string;
   postal_code: string;
@@ -342,7 +342,7 @@ export class ApiService {
       id: order.id.toString(),
       customerName: `${order.first_name} ${order.last_name}`,
       email: order.email,
-      phone: order.phone,
+      phone: order.phone || '',
       address: order.address,
       city: order.city,
       postalCode: order.postal_code,
@@ -565,8 +565,9 @@ export class ApiService {
     return this.http.get<BackendOrderResponse[]>(`${this.apiUrl}/orders/`).pipe(
       map(orders => orders.map(order => this.mapOrderFromApi(order))),
       catchError(error => {
-        console.error('Nie udało się pobrać zamówień z backendu, używam danych mock.', error);
-        return this.mockDataService.getOrders();
+        console.error('Błąd pobierania zamówień:', error);
+        // Return empty array instead of mock data
+        return of([]);
       })
     );
   }
@@ -586,8 +587,8 @@ export class ApiService {
         return { ...mappedOrder, items };
       }),
       catchError(error => {
-        console.error(`Nie udało się pobrać zamówienia ${id} z backendu, używam danych mock.`, error);
-        return this.mockDataService.getOrder(id);
+        console.error(`Błąd pobierania zamówienia ${id}:`, error);
+        throw error;
       })
     );
   }
@@ -616,11 +617,10 @@ export class ApiService {
     return this.http.post<BackendOrderResponse>(`${this.apiUrl}/orders/`, payload).pipe(
       map(response => this.mapOrderFromApi(response)),
       catchError(error => {
-        console.error('❌ Backend order creation failed:');
+        console.error('❌ Błąd tworzenia zamówienia:');
         console.error('Status:', error.status);
-        console.error('Error details:', error.error);
-        console.error('Full error:', error);
-        return this.mockDataService.createOrder(order);
+        console.error('Szczegóły błędu:', error.error);
+        throw error;
       })
     );
   }
@@ -629,25 +629,34 @@ export class ApiService {
     return this.http.patch<BackendOrderResponse>(`${this.apiUrl}/orders/${id}/`, { status }).pipe(
       map(response => this.mapOrderFromApi(response)),
       catchError(error => {
-        console.error('Backend updateOrderStatus failed, using mock', error);
-        return this.mockDataService.updateOrderStatus(id, status);
+        console.error('Błąd aktualizacji statusu zamówienia:', error);
+        throw error;
       })
     );
   }
 
   updateOrder(id: string, updates: Partial<Order>): Observable<Order> {
-    // Note: Backend currently only supports updating status, tracking_number, paid via OrderAdminUpdateSerializer.
-    // Other fields might be ignored or cause 400 if strict.
-    // We'll try to send what we can.
     const payload: any = {};
-    if (updates.status) payload.status = updates.status;
-    // Mapping other fields if backend supports them in future
+    if (updates.status !== undefined) payload.status = updates.status;
+    if (updates.notes !== undefined) payload.notes = updates.notes;
+    
+    // Map frontend Order fields to backend fields
+    if (updates.customerName) {
+      const [first_name, ...lastNameParts] = updates.customerName.split(' ');
+      payload.first_name = first_name;
+      payload.last_name = lastNameParts.join(' ');
+    }
+    if (updates.email !== undefined) payload.email = updates.email;
+    if (updates.phone !== undefined) payload.phone = updates.phone;
+    if (updates.address !== undefined) payload.address = updates.address;
+    if (updates.city !== undefined) payload.city = updates.city;
+    if (updates.postalCode !== undefined) payload.postal_code = updates.postalCode;
     
     return this.http.patch<BackendOrderResponse>(`${this.apiUrl}/orders/${id}/`, payload).pipe(
       map(response => this.mapOrderFromApi(response)),
       catchError(error => {
-        console.error('Backend updateOrder failed, using mock', error);
-        return this.mockDataService.updateOrder(id, updates);
+        console.error('Błąd aktualizacji zamówienia:', error);
+        throw error;
       })
     );
   }
@@ -676,8 +685,8 @@ export class ApiService {
   deleteCategory(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/shop/categories/${id}/`).pipe(
       catchError(error => {
-        console.error('Backend deleteCategory failed, using mock', error);
-        return this.mockDataService.deleteCategory(id);
+        console.error('Błąd usuwania kategorii:', error);
+        throw error;
       })
     );
   }
@@ -717,14 +726,26 @@ export class ApiService {
           ordersByStatus: [] 
         };
       }),
-      // If getOrders fails or we want full mock stats:
-      catchError(() => this.mockDataService.getSalesStatistics(startDate, endDate))
+      catchError((error) => {
+        console.error('Błąd pobierania statystyk:', error);
+        // Return empty statistics
+        return of({
+          period: 'custom',
+          totalRevenue: 0,
+          totalOrders: 0,
+          averageOrderValue: 0,
+          totalProducts: 0,
+          topProducts: [],
+          revenueByCategory: [],
+          ordersByStatus: []
+        });
+      })
     );
   }
 
   // Low stock alerts
   getLowStockAlerts(threshold: number = 10): Observable<LowStockAlert[]> {
-    // Client-side filtering
+    // Client-side filtering based on products from backend
     return this.getProducts().pipe(
       map(products => {
         return products
@@ -733,11 +754,14 @@ export class ApiService {
             product: p,
             currentStock: p.stock,
             suggestedOrder: Math.max(20, threshold * 2 - p.stock),
-            threshold: threshold // Added required field
+            threshold: threshold
           }))
           .sort((a, b) => a.currentStock - b.currentStock);
       }),
-      catchError(() => this.mockDataService.getLowStockAlerts(threshold))
+      catchError((error) => {
+        console.error('Błąd pobierania alertów o niskim stanie:', error);
+        return of([]);
+      })
     );
   }
 
@@ -821,35 +845,26 @@ export class ApiService {
 
   // PDF Generation (mock for now - shows alert)
   generateInvoicePdf(orderId: string): Observable<Blob> {
-    // Mock: Create a simple text blob as placeholder
-    const pdfContent = `Faktura #${orderId}\n\nTo jest mockowa faktura.\nBackend nie jest jeszcze uruchomiony.`;
-    const blob = new Blob([pdfContent], { type: 'application/pdf' });
-    return of(blob);
-    
-    // Real API call (uncomment when backend is ready):
-    // return this.http.get(`${this.apiUrl}/orders/${orderId}/invoice/`, {
-    //   responseType: 'blob'
-    // });
+    return this.http.get<Blob>(`${this.apiUrl}/orders/${orderId}/invoice/`, {
+      responseType: 'blob' as 'json'
+    });
   }
 
   downloadInvoice(orderId: string, filename?: string): void {
-    // For now, show alert that this is a mock
-    alert(`Mock: Pobieranie faktury dla zamówienia #${orderId}\n\nBackend nie jest jeszcze uruchomiony, więc to jest placeholder.\n\nGdy backend będzie gotowy, tutaj pobierze się prawdziwa faktura PDF.`);
-    
-    // Uncomment when backend is ready:
-    // this.generateInvoicePdf(orderId).subscribe({
-    //   next: (blob) => {
-    //     const url = window.URL.createObjectURL(blob);
-    //     const link = document.createElement('a');
-    //     link.href = url;
-    //     link.download = filename || `faktura_${orderId}.pdf`;
-    //     link.click();
-    //     window.URL.revokeObjectURL(url);
-    //   },
-    //   error: (error) => {
-    //     console.error('Error downloading invoice:', error);
-    //   }
-    // });
+    this.http.get(`${this.apiUrl}/orders/${orderId}/invoice/`, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename || `faktura_${orderId}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (error) => {
+        console.error('Błąd pobierania faktury:', error);
+        alert('Nie udało się pobrać faktury. Sprawdź czy zamówienie istnieje.');
+      }
+    });
   }
 
   // Loyalty Program - Admin API

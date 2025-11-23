@@ -20,9 +20,11 @@ class Order(models.Model):
     first_name = models.CharField(max_length=100, verbose_name="Imię")
     last_name = models.CharField(max_length=100, verbose_name="Nazwisko")
     email = models.EmailField(verbose_name="E-mail")
+    phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefon")
     address = models.CharField(max_length=250, verbose_name="Adres")
     postal_code = models.CharField(max_length=20, verbose_name="Kod pocztowy")
     city = models.CharField(max_length=100, verbose_name="Miasto")
+    notes = models.TextField(blank=True, null=True, verbose_name="Uwagi")
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Utworzono")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Zaktualizowano")

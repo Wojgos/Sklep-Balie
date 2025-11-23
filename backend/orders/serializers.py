@@ -31,8 +31,8 @@ class OrderCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'first_name', 'last_name', 'email', 'address',
-            'postal_code', 'city',
+            'first_name', 'last_name', 'email', 'phone', 'address',
+            'postal_code', 'city', 'notes',
             'items',
             'coupon_code'
         ]
@@ -41,10 +41,11 @@ class OrderCreateSerializer(serializers.ModelSerializer):
 class OrderItemResponseSerializer(serializers.ModelSerializer):
     """Serializer DANYCH WYJŚCIOWYCH dla pozycji w zamówieniu."""
     variant = ProductVariantSerializer(read_only=True)
+    product = serializers.IntegerField(source='variant.product.id', read_only=True)
 
     class Meta:
         model = OrderItem
-        fields = ('product_name', 'price', 'quantity', 'variant')
+        fields = ('id', 'product', 'product_name', 'price', 'quantity', 'variant')
 
 
 class OrderResponseSerializer(serializers.ModelSerializer):
@@ -60,8 +61,8 @@ class OrderResponseSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'customer_username',
-            'first_name', 'last_name', 'email', 'address',
-            'postal_code', 'city', 'items', 'created_at',
+            'first_name', 'last_name', 'email', 'phone', 'address',
+            'postal_code', 'city', 'notes', 'items', 'created_at',
             'total_price',
             'paid',
             'status',
@@ -78,4 +79,5 @@ class OrderAdminUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ('status', 'tracking_number', 'paid')
+        fields = ('status', 'tracking_number', 'paid', 'first_name', 'last_name', 
+                  'email', 'phone', 'address', 'postal_code', 'city', 'notes')

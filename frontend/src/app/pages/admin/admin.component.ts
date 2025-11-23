@@ -1832,15 +1832,19 @@ export class AdminComponent implements OnInit {
   }
 
   viewOrderDetails(orderId: string): void {
+    console.log('Pobieranie szczegółów zamówienia ID:', orderId);
     this.apiService.getOrder(orderId).subscribe({
       next: (orderData) => {
+        console.log('Dane zamówienia:', orderData);
         this.selectedOrder = orderData;
         this.orderItems = orderData.items;
         this.showOrderModal = true;
       },
       error: (err) => {
         console.error('Błąd pobierania szczegółów zamówienia:', err);
-        alert('Błąd podczas pobierania szczegółów zamówienia');
+        console.error('Status:', err.status);
+        console.error('Szczegóły:', err.error);
+        alert(`Błąd podczas pobierania szczegółów zamówienia.\nStatus: ${err.status}\nSprawdź konsolę przeglądarki (F12) po więcej szczegółów.`);
       }
     });
   }
@@ -1876,10 +1880,6 @@ export class AdminComponent implements OnInit {
     
     if (!this.selectedOrder) return;
 
-    // Note for user: Backend only allows status updates currently.
-    // We can warn here.
-    console.warn('Backend limitation: updating customer details might not be persisted if not supported by API.');
-
     const updates: Partial<Order> = {
       customerName: this.orderEditForm.customerName,
       email: this.orderEditForm.email,
@@ -1892,12 +1892,10 @@ export class AdminComponent implements OnInit {
 
     this.apiService.updateOrder(this.selectedOrder.id, updates).subscribe({
       next: (updatedOrder) => {
-        // Merge local form data into selectedOrder to update UI immediately even if backend didn't return them
-        // This mimics a successful update for demo purposes if backend ignores fields
-        this.selectedOrder = { ...this.selectedOrder!, ...updatedOrder, ...updates };
+        this.selectedOrder = { ...this.selectedOrder!, ...updatedOrder };
         this.orders$ = this.apiService.getOrders();
         this.closeOrderEditModal();
-        alert('Zamówienie zaktualizowane pomyślnie! (Uwaga: Niektóre pola mogły nie zostać zapisane na serwerze z powodu ograniczeń API)');
+        alert('Zamówienie zaktualizowane pomyślnie!');
       },
       error: (err) => {
         console.error('Błąd aktualizacji zamówienia:', err);
