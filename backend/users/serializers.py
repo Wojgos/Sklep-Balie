@@ -52,11 +52,20 @@ class UserProfileSerializer(serializers.ModelSerializer):
     """
     Serializer do wyświetlania danych profilu zalogowanego użytkownika,
     w tym punktów lojalnościowych.
+    Zwraca zarówno snake_case (dla kompatybilności) jak i camelCase (dla nowych funkcji).
     """
+    # CamelCase aliases for frontend compatibility (support module)
+    firstName = serializers.CharField(source='first_name', read_only=True)
+    lastName = serializers.CharField(source='last_name', read_only=True)
+    loyaltyPoints = serializers.IntegerField(source='loyalty_points', read_only=True)
+    isStaff = serializers.BooleanField(source='is_staff', read_only=True)
+    isSuperuser = serializers.BooleanField(source='is_superuser', read_only=True)
+    dateJoined = serializers.DateTimeField(source='date_joined', read_only=True)
+    isActive = serializers.BooleanField(source='is_active', read_only=True)
 
     class Meta:
         model = CustomUser
-        # Pola, które zobaczy użytkownik
+        # Pola, które zobaczy użytkownik (zachowujemy oba formaty dla kompatybilności)
         fields = (
             'id',
             'username',
@@ -67,7 +76,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'is_staff',
             'is_superuser',
             'date_joined',
-            'is_active'
+            'is_active',
+            # CamelCase aliases
+            'firstName',
+            'lastName',
+            'loyaltyPoints',
+            'isStaff',
+            'isSuperuser',
+            'dateJoined',
+            'isActive'
         )
         # Endpoint będzie tylko do odczytu
         read_only_fields = fields

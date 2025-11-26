@@ -325,6 +325,7 @@ export interface Ticket {
   updated_at: Date;
   messages?: TicketMessage[];
   participants?: User[];
+  message_count?: number;  // Available in list view
 }
 
 export interface InsertTicket {

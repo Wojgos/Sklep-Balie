@@ -634,10 +634,18 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                   *ngFor="let status of supportStatusFilters"
                   (click)="selectedSupportStatus = status.value"
                   [class]="selectedSupportStatus === status.value 
-                    ? 'bg-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold transition-colors'
-                    : 'bg-muted text-foreground px-4 py-2 rounded-lg font-semibold hover:bg-muted/80 transition-colors'"
+                    ? 'bg-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2'
+                    : 'bg-muted text-foreground px-4 py-2 rounded-lg font-semibold hover:bg-muted/80 transition-colors flex items-center gap-2'"
                 >
-                  {{ status.label }}
+                  <span>{{ status.label }}</span>
+                  <span 
+                    class="px-2 py-0.5 rounded-full text-xs font-bold"
+                    [class]="selectedSupportStatus === status.value 
+                      ? 'bg-primary-foreground/20' 
+                      : 'bg-foreground/10'"
+                  >
+                    {{ getTicketCountByStatus(status.value) }}
+                  </span>
                 </button>
               </div>
             </div>
@@ -647,8 +655,19 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
 
+            <!-- Empty State -->
+            <div *ngIf="!loadingTickets && getFilteredTickets().length === 0" class="text-center py-16 bg-card border border-card-border rounded-lg">
+              <svg class="w-24 h-24 mx-auto text-muted-foreground/50 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+              </svg>
+              <h3 class="text-xl font-semibold text-foreground mb-2">Brak zgłoszeń</h3>
+              <p class="text-muted-foreground">
+                {{ selectedSupportStatus === 'all' ? 'Nie ma jeszcze żadnych zgłoszeń od klientów' : 'Nie ma zgłoszeń z tym statusem' }}
+              </p>
+            </div>
+
             <!-- Tickets List -->
-            <div *ngIf="!loadingTickets" class="bg-card border border-card-border rounded-lg overflow-hidden">
+            <div *ngIf="!loadingTickets && getFilteredTickets().length > 0" class="bg-card border border-card-border rounded-lg overflow-hidden">
               <div class="overflow-x-auto">
                 <table class="w-full">
                   <thead class="bg-muted">
@@ -680,7 +699,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                           {{ getSupportStatusLabel(ticket.status) }}
                         </span>
                       </td>
-                      <td class="px-4 py-3">{{ ticket.messages?.length || 0 }}</td>
+                      <td class="px-4 py-3">{{ ticket.message_count || ticket.messages?.length || 0 }}</td>
                       <td class="px-4 py-3 text-sm">{{ ticket.updated_at | date:'dd.MM.yyyy HH:mm' }}</td>
                       <td class="px-4 py-3 text-right">
                         <button
@@ -1506,20 +1525,20 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             <div
               *ngFor="let message of selectedTicket.messages"
               class="flex"
-              [ngClass]="{'justify-end': !isAdminMessage(message.author_id)}"
+              [ngClass]="{'justify-end': isAdminMessage(message.author_id)}"
             >
               <div 
                 class="max-w-[80%] rounded-lg p-4"
                 [ngClass]="{
-                  'bg-muted': isAdminMessage(message.author_id),
-                  'bg-primary/10 border border-primary/20': !isAdminMessage(message.author_id)
+                  'bg-primary text-primary-foreground': isAdminMessage(message.author_id),
+                  'bg-muted': !isAdminMessage(message.author_id)
                 }"
               >
-                <p class="text-sm font-medium mb-1">
+                <p class="text-sm font-medium mb-1" [ngClass]="{'opacity-90': isAdminMessage(message.author_id)}">
                   {{ getTicketAuthorName(message.author_id) }}
                 </p>
                 <p class="whitespace-pre-line">{{ message.body }}</p>
-                <p class="text-xs text-muted-foreground mt-2">
+                <p class="text-xs mt-2" [ngClass]="isAdminMessage(message.author_id) ? 'opacity-80' : 'text-muted-foreground'">
                   {{ message.created_at | date:'dd.MM.yyyy HH:mm' }}
                 </p>
               </div>
@@ -2503,6 +2522,13 @@ export class AdminComponent implements OnInit {
     return this.allTickets.filter(t => t.status === this.selectedSupportStatus);
   }
 
+  getTicketCountByStatus(status: string): number {
+    if (status === 'all') {
+      return this.allTickets.length;
+    }
+    return this.allTickets.filter(t => t.status === status).length;
+  }
+
   viewSupportTicket(ticket: Ticket): void {
     this.loadingTickets = true;
     this.apiService.getAdminTicket(ticket.id).subscribe({
@@ -2584,13 +2610,18 @@ export class AdminComponent implements OnInit {
   isAdminMessage(authorId: number): boolean {
     // Check if the message is from admin (not from the ticket creator)
     if (!this.selectedTicket) return false;
-    return this.selectedTicket.user.id !== authorId.toString();
+    // Compare with ticket creator's user id
+    return String(this.selectedTicket.user.id) !== String(authorId);
   }
 
   getTicketAuthorName(authorId: number): string {
     if (!this.selectedTicket) return 'Nieznany';
     
-    const participant = this.selectedTicket.participants?.find(p => p.id === authorId.toString());
+    // Find participant by matching author_id
+    const participant = this.selectedTicket.participants?.find(p => 
+      String(p.id) === String(authorId)
+    );
+    
     if (participant) {
       return `${participant.firstName} ${participant.lastName}`;
     }

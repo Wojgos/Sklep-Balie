@@ -21,11 +21,17 @@ class TicketListSerializer(serializers.ModelSerializer):
     """
     Serializer dla listy zgłoszeń (widok uproszczony).
     """
+    user = UserProfileSerializer(read_only=True)
+    message_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Ticket
-        fields = ('id', 'subject', 'status', 'created_at', 'updated_at')
+        fields = ('id', 'subject', 'status', 'created_at', 'updated_at', 'user', 'message_count')
         read_only_fields = fields
+
+    def get_message_count(self, obj):
+        """Zwraca liczbę wiadomości w zgłoszeniu."""
+        return obj.messages.count()
 
 
 class TicketDetailSerializer(serializers.ModelSerializer):

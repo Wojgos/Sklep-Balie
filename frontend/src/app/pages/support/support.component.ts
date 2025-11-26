@@ -147,7 +147,7 @@ import { Ticket, InsertTicket, TicketReply } from '../../models';
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
                     </svg>
-                    {{ ticket.messages?.length || 0 }} wiadomości
+                    {{ ticket.message_count || ticket.messages?.length || 0 }} wiadomości
                   </span>
                   <span class="flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -376,15 +376,20 @@ export class SupportComponent implements OnInit {
   }
 
   isCurrentUser(authorId: number): boolean {
-    // Assume the current user's messages are from them
-    // You may need to implement proper user ID checking
-    return this.selectedTicket?.user.id === authorId.toString();
+    // Compare author_id (number) with user.id (can be string or number)
+    if (!this.selectedTicket) return false;
+    const userId = this.selectedTicket.user.id;
+    return String(userId) === String(authorId);
   }
 
   getAuthorName(authorId: number): string {
     if (!this.selectedTicket) return 'Nieznany';
     
-    const participant = this.selectedTicket.participants?.find(p => p.id === authorId.toString());
+    // Find participant by matching author_id
+    const participant = this.selectedTicket.participants?.find(p => 
+      String(p.id) === String(authorId)
+    );
+    
     if (participant) {
       return `${participant.firstName} ${participant.lastName}`;
     }
