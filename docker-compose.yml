@@ -4,10 +4,8 @@ services:
   db:
     image: postgres:15
     container_name: estore_postgres
-    environment:
-      - POSTGRES_DB=estore_db
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=rafalinzynierka123
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -43,14 +41,8 @@ services:
       - ./backend:/app # Hot-reload (zmiany w kodzie widoczne od razu)
     ports:
       - "8000:8000"
-    environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_NAME=estore_db
-      - DB_USER=postgres
-      - DB_PASS=rafalinzynierka123
-      - REDIS_URL=redis://redis:6379/0
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    env_file:
+      - .env
     depends_on:
       - db
       - redis
@@ -64,14 +56,8 @@ services:
     command: celery -A EStore worker --loglevel=info
     volumes:
       - ./backend:/app
-    environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_NAME=estore_db
-      - DB_USER=postgres
-      - DB_PASS=rafalinzynierka123
-      - REDIS_URL=redis://redis:6379/0
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    env_file:
+      - .env
     restart: always
     depends_on:
       - backend
@@ -85,14 +71,8 @@ services:
     command: sh -c "rm -f celerybeat.pid && celery -A EStore beat --loglevel=info"
     volumes:
       - ./backend:/app
-    environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_NAME=estore_db
-      - DB_USER=postgres
-      - DB_PASS=rafalinzynierka123
-      - REDIS_URL=redis://redis:6379/0
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    env_file:
+      - .env
     restart: always
     depends_on:
       - backend
