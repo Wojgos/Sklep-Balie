@@ -3,14 +3,13 @@
 @import 'tailwindcss/utilities';
 
 /* LIGHT MODE */
-:root {
+.root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
 
-  /* Automatic computation of border around primary / danger buttons */
-  --opaque-button-border-intensity: -8; /* In terms of percentages */
+  --opaque-button-border-intensity: -8; /* procenty */
 
-  /* Backgrounds applied on top of other backgrounds when hovered/active */
+  /* tlo podczas hoveru innego tla */
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
@@ -75,7 +74,6 @@
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
-  /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
 
   /* Fallback for older browsers */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
@@ -184,12 +182,12 @@
 }
 
 @layer utilities {
-  /* Hide ugly search cancel button in Chrome until we can style it properly */
+  /* usuniecie tego uposledzonego paska z chrome */
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }
 
-  /* Placeholder styling for contentEditable div */
+  /*contentEditable div - lekkie stylowanie placeholdera */
   [contenteditable][data-placeholder]:empty::before {
     content: attr(data-placeholder);
     color: hsl(var(--muted-foreground));
@@ -207,8 +205,8 @@
     backdrop-filter: blur(4px);
   }
 }
-
-/* Dark mode input text color */
+// poprawic to musze, w dark mode inputy są niewidoczne bo sa biale na bialym tle zzz
+/* wymuszenie bialego przy inputach w darkmode */
 .dark {
   input[type="text"],
   input[type="email"],
@@ -221,19 +219,19 @@
     color: #ffffff !important;
   }
   
-  /* Keep select options white in dark mode */
+  /* wymuszenie bialego w select przy darkmode */
   select option {
     color: #ffffff !important;
     background-color: hsl(var(--background)) !important;
   }
 }
 
-/* Angular Material compatibility */
+/* czcionka pod angular material */
 .mat-typography {
   font-family: var(--font-sans);
 }
 
-/* Custom utility classes */
+/* klasy customowe */
 .bg-background {
   background-color: hsl(var(--background));
 }

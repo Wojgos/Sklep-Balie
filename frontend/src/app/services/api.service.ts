@@ -749,24 +749,66 @@ export class ApiService {
   }
 
   // Category management
-  createCategory(category: InsertCategory): Observable<Category> {
-    return this.http.post<BackendCategoryResponse>(`${this.apiUrl}/shop/categories/`, category).pipe(
-      map(response => this.mapCategoryFromApi(response)),
-      catchError(error => {
-        console.error('Backend createCategory failed, using mock', error);
-        return this.mockDataService.createCategory(category);
-      })
-    );
+  createCategory(category: any): Observable<Category> {
+    // Check if we have a file to upload
+    if (category.imageFile && category.imageFile instanceof File) {
+      const formData = new FormData();
+      formData.append('name', category.name);
+      if (category.description) formData.append('description', category.description);
+      formData.append('image', category.imageFile);
+      
+      console.log('Creating category with FormData (file upload)');
+      
+      return this.http.post<BackendCategoryResponse>(`${this.apiUrl}/shop/categories/`, formData).pipe(
+        map(response => this.mapCategoryFromApi(response)),
+        catchError(error => {
+          console.error('Backend createCategory failed, using mock', error);
+          return this.mockDataService.createCategory(category);
+        })
+      );
+    } else {
+      // Fallback to JSON payload if no file
+      console.log('Creating category with JSON payload');
+      
+      return this.http.post<BackendCategoryResponse>(`${this.apiUrl}/shop/categories/`, category).pipe(
+        map(response => this.mapCategoryFromApi(response)),
+        catchError(error => {
+          console.error('Backend createCategory failed, using mock', error);
+          return this.mockDataService.createCategory(category);
+        })
+      );
+    }
   }
 
-  updateCategory(id: string, category: Partial<InsertCategory>): Observable<Category> {
-    return this.http.patch<BackendCategoryResponse>(`${this.apiUrl}/shop/categories/${id}/`, category).pipe(
-      map(response => this.mapCategoryFromApi(response)),
-      catchError(error => {
-        console.error('Backend updateCategory failed, using mock', error);
-        return this.mockDataService.updateCategory(id, category);
-      })
-    );
+  updateCategory(id: string, category: any): Observable<Category> {
+    // Check if we have a file to upload
+    if (category.imageFile && category.imageFile instanceof File) {
+      const formData = new FormData();
+      if (category.name) formData.append('name', category.name);
+      if (category.description !== undefined) formData.append('description', category.description);
+      formData.append('image', category.imageFile);
+      
+      console.log('Updating category with FormData (file upload)');
+      
+      return this.http.patch<BackendCategoryResponse>(`${this.apiUrl}/shop/categories/${id}/`, formData).pipe(
+        map(response => this.mapCategoryFromApi(response)),
+        catchError(error => {
+          console.error('Backend updateCategory failed, using mock', error);
+          return this.mockDataService.updateCategory(id, category);
+        })
+      );
+    } else {
+      // Fallback to JSON payload if no file
+      console.log('Updating category with JSON payload');
+      
+      return this.http.patch<BackendCategoryResponse>(`${this.apiUrl}/shop/categories/${id}/`, category).pipe(
+        map(response => this.mapCategoryFromApi(response)),
+        catchError(error => {
+          console.error('Backend updateCategory failed, using mock', error);
+          return this.mockDataService.updateCategory(id, category);
+        })
+      );
+    }
   }
 
   deleteCategory(id: string): Observable<void> {

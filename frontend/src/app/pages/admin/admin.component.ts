@@ -1160,15 +1160,31 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-2">URL zdjęcia</label>
+              <label class="block text-sm font-medium mb-2">
+                Zdjęcie kategorii
+                @if (editingCategory) {
+                  <span class="text-xs text-gray-500 ml-2">(opcjonalne - pozostaw puste aby zachować obecne)</span>
+                }
+              </label>
               <input 
-                type="text" 
-                [(ngModel)]="categoryForm.image" 
-                name="image"
-                placeholder="assets/..."
-                required
+                type="file" 
+                (change)="onCategoryImageSelected($event)"
+                name="imageFile"
+                accept="image/*"
                 class="w-full px-3 py-2 border border-border rounded-lg bg-background"
               />
+              @if (categoryForm.imagePreview) {
+                <div class="mt-2">
+                  <p class="text-xs text-gray-500 mb-1">
+                    @if (categoryForm.imageFile) {
+                      Nowe zdjęcie:
+                    } @else {
+                      Obecne zdjęcie:
+                    }
+                  </p>
+                  <img [src]="categoryForm.imagePreview" alt="Podgląd" class="h-32 w-32 object-cover rounded">
+                </div>
+              }
             </div>
 
             <div class="flex justify-end gap-3 pt-4">
@@ -1727,7 +1743,7 @@ export class AdminComponent implements OnInit {
 
   // Forms
   productForm: Partial<InsertProduct & { attributes?: ProductAttribute[]; imageFile?: File; imagePreview?: string }> = {};
-  categoryForm: Partial<InsertCategory> = {};
+  categoryForm: Partial<InsertCategory & { imageFile?: File; imagePreview?: string }> = {};
 
   // Attribute management
   currentAttribute: Partial<ProductAttribute> = {};
@@ -1888,6 +1904,21 @@ export class AdminComponent implements OnInit {
       const reader = new FileReader();
       reader.onload = (e: any) => {
         this.productForm.imagePreview = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  onCategoryImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      this.categoryForm.imageFile = file;
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.categoryForm.imagePreview = e.target.result;
       };
       reader.readAsDataURL(file);
     }
@@ -2056,7 +2087,8 @@ export class AdminComponent implements OnInit {
       this.categoryForm = {
         name: category.name,
         description: category.description || '',
-        image: category.image
+        image: category.image,
+        imagePreview: category.image // Show current image as preview
       };
     } else {
       this.categoryForm = {};
@@ -2068,15 +2100,20 @@ export class AdminComponent implements OnInit {
     this.showCategoryModal = false;
     this.editingCategory = null;
     this.categoryForm = {};
+    // Clear file input
+    const fileInput = document.querySelector('input[type="file"][name="imageFile"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
   }
 
   saveCategory(event: Event): void {
     event.preventDefault();
     
-    const categoryData: InsertCategory = {
+    const categoryData: any = {
       name: this.categoryForm.name!,
       description: this.categoryForm.description,
-      image: this.categoryForm.image!
+      imageFile: this.categoryForm.imageFile
     };
 
     if (this.editingCategory) {

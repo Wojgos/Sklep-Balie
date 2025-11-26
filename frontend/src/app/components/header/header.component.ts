@@ -69,7 +69,6 @@ import { User, NotificationType } from '../../models';
             <button
               class="p-2 hover:bg-muted rounded-md transition-colors"
               (click)="toggleTheme()"
-              [attr.aria-label]="isDarkMode ? 'Przełącz na jasny motyw' : 'Przełącz na ciemny motyw'"
               data-testid="button-theme"
             >
               <!-- Sun/Moon icon -->
