@@ -535,46 +535,92 @@ export class ApiService {
   }
 
   createProduct(product: any): Observable<Product> {
-    const payload: any = {
-      name: product.name,
-      description: product.description || '',
-      category_write: product.categoryId,
-      attributes_config: product.attributes || [],
-      price: product.price,
-      stock: product.stock || 0,
-      image: product.image || ''
-    };
-    
-    console.log('Creating product with payload:', payload);
-    
-    return this.http.post<BackendProductResponse>(`${this.apiUrl}/shop/products/`, payload).pipe(
-      map(response => this.mapProductFromApi(response)),
-      catchError(error => {
-        console.error('Backend createProduct failed:', error);
-        return this.mockDataService.createProduct(product);
-      })
-    );
+    // Check if we have a file to upload
+    if (product.imageFile && product.imageFile instanceof File) {
+      const formData = new FormData();
+      formData.append('name', product.name);
+      formData.append('description', product.description || '');
+      formData.append('category_write', product.categoryId);
+      formData.append('attributes_config', JSON.stringify(product.attributes || []));
+      formData.append('price', product.price);
+      formData.append('stock', product.stock || 0);
+      formData.append('image', product.imageFile);
+      
+      console.log('Creating product with FormData (file upload)');
+      
+      return this.http.post<BackendProductResponse>(`${this.apiUrl}/shop/products/`, formData).pipe(
+        map(response => this.mapProductFromApi(response)),
+        catchError(error => {
+          console.error('Backend createProduct failed:', error);
+          return this.mockDataService.createProduct(product);
+        })
+      );
+    } else {
+      // Fallback to JSON payload if no file
+      const payload: any = {
+        name: product.name,
+        description: product.description || '',
+        category_write: product.categoryId,
+        attributes_config: product.attributes || [],
+        price: product.price,
+        stock: product.stock || 0,
+        image: product.image || ''
+      };
+      
+      console.log('Creating product with JSON payload:', payload);
+      
+      return this.http.post<BackendProductResponse>(`${this.apiUrl}/shop/products/`, payload).pipe(
+        map(response => this.mapProductFromApi(response)),
+        catchError(error => {
+          console.error('Backend createProduct failed:', error);
+          return this.mockDataService.createProduct(product);
+        })
+      );
+    }
   }
 
   updateProduct(id: string, product: any): Observable<Product> {
-    const payload: any = {};
-    if (product.name) payload.name = product.name;
-    if (product.description !== undefined) payload.description = product.description;
-    if (product.categoryId) payload.category_write = product.categoryId;
-    if (product.attributes !== undefined) payload.attributes_config = product.attributes;
-    if (product.price !== undefined) payload.price = product.price;
-    if (product.stock !== undefined) payload.stock = product.stock;
-    if (product.image !== undefined) payload.image = product.image;
-    
-    console.log('Updating product with payload:', payload);
-    
-    return this.http.patch<BackendProductResponse>(`${this.apiUrl}/shop/products/${id}/`, payload).pipe(
-      map(response => this.mapProductFromApi(response)),
-      catchError(error => {
-        console.error('Backend updateProduct failed:', error);
-        return this.mockDataService.updateProduct(id, product);
-      })
-    );
+    // Check if we have a file to upload
+    if (product.imageFile && product.imageFile instanceof File) {
+      const formData = new FormData();
+      if (product.name) formData.append('name', product.name);
+      if (product.description !== undefined) formData.append('description', product.description);
+      if (product.categoryId) formData.append('category_write', product.categoryId);
+      if (product.attributes !== undefined) formData.append('attributes_config', JSON.stringify(product.attributes));
+      if (product.price !== undefined) formData.append('price', product.price);
+      if (product.stock !== undefined) formData.append('stock', product.stock.toString());
+      formData.append('image', product.imageFile);
+      
+      console.log('Updating product with FormData (file upload)');
+      
+      return this.http.patch<BackendProductResponse>(`${this.apiUrl}/shop/products/${id}/`, formData).pipe(
+        map(response => this.mapProductFromApi(response)),
+        catchError(error => {
+          console.error('Backend updateProduct failed:', error);
+          return this.mockDataService.updateProduct(id, product);
+        })
+      );
+    } else {
+      // Fallback to JSON payload if no file
+      const payload: any = {};
+      if (product.name) payload.name = product.name;
+      if (product.description !== undefined) payload.description = product.description;
+      if (product.categoryId) payload.category_write = product.categoryId;
+      if (product.attributes !== undefined) payload.attributes_config = product.attributes;
+      if (product.price !== undefined) payload.price = product.price;
+      if (product.stock !== undefined) payload.stock = product.stock;
+      if (product.image !== undefined) payload.image = product.image;
+      
+      console.log('Updating product with JSON payload:', payload);
+      
+      return this.http.patch<BackendProductResponse>(`${this.apiUrl}/shop/products/${id}/`, payload).pipe(
+        map(response => this.mapProductFromApi(response)),
+        catchError(error => {
+          console.error('Backend updateProduct failed:', error);
+          return this.mockDataService.updateProduct(id, product);
+        })
+      );
+    }
   }
 
   deleteProduct(id: string): Observable<void> {

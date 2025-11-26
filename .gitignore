@@ -43,6 +43,7 @@ Thumbs.db
 
 # github
 .github/
+.github/copilot-instructions.md
 
 # Python virtual environments
 venv/

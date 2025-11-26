@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ChatbotService } from '../../services/chatbot.service';
 import { ChatMessage, ChatResponse, ChatAction } from '../../models';
@@ -26,22 +27,32 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
     <!-- Chat Window -->
     <div 
       *ngIf="isOpen"
-      class="fixed bottom-6 right-6 z-50 w-96 h-[500px] bg-background border border-border rounded-lg shadow-2xl flex flex-col overflow-hidden"
+      class="fixed bottom-6 right-6 z-50 w-96 h-[600px] bg-background border border-border rounded-lg shadow-2xl flex flex-col overflow-hidden"
     >
       <!-- Header -->
-      <div class="bg-primary text-primary-foreground p-4 flex items-center justify-between">
+      <div class="bg-primary text-primary-foreground p-3 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="w-8 h-8 bg-primary-foreground/20 rounded-full flex items-center justify-center">
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
             </svg>
           </div>
           <div>
-            <h3 class="font-semibold text-sm">Asystent Bali</h3>
-            <p class="text-xs text-primary-foreground/80">Online</p>
+            <h3 class="font-semibold text-sm">Wirtualny Asystent</h3>
+            <p class="text-xs text-primary-foreground/80">Odpowiadam natychmiast</p>
           </div>
         </div>
         <div class="flex items-center gap-2">
+          <button 
+            (click)="toggleSupport()"
+            class="p-1 hover:bg-primary-foreground/20 rounded"
+            [class.bg-primary-foreground]="showSupport"
+            title="Menu wsparcia"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </button>
           <button 
             (click)="clearChat()"
             class="p-1 hover:bg-primary-foreground/20 rounded"
@@ -63,6 +74,60 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
         </div>
       </div>
 
+      <!-- Support Menu -->
+      <div 
+        *ngIf="showSupport"
+        class="bg-background border-b border-border p-4 shadow-sm"
+      >
+        <h4 class="text-sm font-semibold text-foreground mb-3">Menu wsparcia</h4>
+        <div class="space-y-2">
+          <button
+            (click)="navigateAndClose('/support')"
+            class="w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors flex items-center gap-3 group"
+          >
+            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+              <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-foreground">Zgłoszenia</p>
+              <p class="text-xs text-muted-foreground">Utwórz nowe zgłoszenie lub sprawdź status</p>
+            </div>
+          </button>
+          
+          <button
+            (click)="navigateAndClose('/contact')"
+            class="w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors flex items-center gap-3 group"
+          >
+            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+              <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-foreground">Kontakt</p>
+              <p class="text-xs text-muted-foreground">Dane kontaktowe i formularz</p>
+            </div>
+          </button>
+
+          <button
+            (click)="navigateAndClose('/faq')"
+            class="w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors flex items-center gap-3 group"
+          >
+            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+              <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-foreground">FAQ</p>
+              <p class="text-xs text-muted-foreground">Najczęściej zadawane pytania</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
       <!-- Messages Container -->
       <div 
         #messagesContainer
@@ -76,19 +141,19 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
           <!-- Bot Message -->
           <div 
             *ngIf="!message.isUser"
-            class="flex items-start gap-2 max-w-[80%]"
+            class="flex items-start gap-2 max-w-[85%]"
           >
-            <div class="w-6 h-6 bg-primary rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-              <svg class="w-3 h-3 text-primary-foreground" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            <div class="w-7 h-7 bg-primary rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+              <svg class="w-4 h-4 text-primary-foreground" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
               </svg>
             </div>
             <div>
               <div 
                 *ngIf="!message.isTyping"
-                class="bg-background border border-border rounded-lg p-3 shadow-sm"
+                class="bg-muted/50 border border-border rounded-lg p-3 shadow-sm"
               >
-                <p class="text-sm whitespace-pre-line">{{ message.content }}</p>
+                <p class="text-sm whitespace-pre-line text-foreground">{{ message.content }}</p>
               </div>
               <!-- Typing Indicator -->
               <div 
@@ -111,7 +176,7 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
           <!-- User Message -->
           <div 
             *ngIf="message.isUser"
-            class="flex items-start gap-2 max-w-[80%]"
+            class="flex items-start gap-2 max-w-[85%]"
           >
             <div>
               <div class="bg-primary text-primary-foreground rounded-lg p-3 shadow-sm">
@@ -119,8 +184,8 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
               </div>
               <p class="text-xs text-muted-foreground mt-1 text-right">{{ message.timestamp | date:'HH:mm' }}</p>
             </div>
-            <div class="w-6 h-6 bg-muted rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-              <svg class="w-3 h-3 text-muted-foreground" fill="currentColor" viewBox="0 0 24 24">
+            <div class="w-7 h-7 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+              <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
               </svg>
             </div>
@@ -131,13 +196,14 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
       <!-- Quick Actions (shown when there are suggestions) -->
       <div 
         *ngIf="quickActions.length > 0"
-        class="p-3 border-t border-border bg-background"
+        class="px-4 py-2 border-t border-border bg-background"
       >
+        <p class="text-xs text-muted-foreground mb-2">Sugestie:</p>
         <div class="flex flex-wrap gap-2">
           <button
             *ngFor="let action of quickActions"
             (click)="handleQuickAction(action)"
-            class="text-xs bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground px-3 py-1 rounded-full transition-colors"
+            class="text-xs bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 px-3 py-1.5 rounded-full transition-colors"
           >
             {{ action }}
           </button>
@@ -145,21 +211,22 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
       </div>
 
       <!-- Input Area -->
-      <div class="p-4 border-t border-border bg-background">
-        <div class="flex gap-2">
+      <div class="p-4 border-t border-border bg-muted/30">
+        <div class="flex gap-2 items-end">
           <input
             #messageInput
             [(ngModel)]="currentMessage"
             (keydown.enter)="sendMessage()"
             (keydown)="handleKeyDown($event)"
-            placeholder="Napisz wiadomość..."
-            class="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            placeholder="Wpisz swoją wiadomość..."
+            class="flex-1 px-4 py-3 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-background"
             [disabled]="isLoading"
           />
           <button
             (click)="sendMessage()"
             [disabled]="!currentMessage.trim() || isLoading"
-            class="bg-primary hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground text-primary-foreground px-4 py-2 rounded-lg transition-colors"
+            class="bg-primary hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground text-primary-foreground px-5 py-3 rounded-lg transition-colors flex-shrink-0"
+            title="Wyślij wiadomość"
           >
             <svg 
               *ngIf="!isLoading"
@@ -195,11 +262,15 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
   currentMessage = '';
   isLoading = false;
   quickActions: string[] = [];
+  showSupport = false;
 
   private subscriptions: Subscription[] = [];
   private shouldScrollToBottom = false;
 
-  constructor(private chatbotService: ChatbotService) {}
+  constructor(
+    private chatbotService: ChatbotService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     // Subscribe to chat state
@@ -278,6 +349,15 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
   clearChat(): void {
     this.chatbotService.clearChat();
     this.quickActions = [];
+  }
+
+  toggleSupport(): void {
+    this.showSupport = !this.showSupport;
+  }
+
+  navigateAndClose(path: string): void {
+    this.router.navigate([path]);
+    this.chatbotService.closeChat();
   }
 
   trackByMessageId(index: number, message: ChatMessage): string {

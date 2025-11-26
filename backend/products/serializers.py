@@ -84,7 +84,7 @@ class ProductSerializer(serializers.ModelSerializer):
     # Pola dla domyślnego wariantu (opcjonalne)
     price = serializers.DecimalField(max_digits=10, decimal_places=2, write_only=True, required=False)
     stock = serializers.IntegerField(write_only=True, required=False, default=0)
-    image = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    image = serializers.ImageField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = Product
@@ -100,7 +100,7 @@ class ProductSerializer(serializers.ModelSerializer):
         # Wyciągamy dane dla wariantu
         price = validated_data.pop('price', None)
         stock = validated_data.pop('stock', 0)
-        image_url = validated_data.pop('image', None)
+        image_file = validated_data.pop('image', None)
         
         # Tworzymy produkt
         product = Product.objects.create(**validated_data)
@@ -119,12 +119,12 @@ class ProductSerializer(serializers.ModelSerializer):
                 available=True
             )
             
-            # Dodajemy zdjęcie jeśli podano
-            if image_url:
+            # Dodajemy zdjęcie jeśli podano (teraz jako plik)
+            if image_file:
                 ProductImage.objects.create(
                     product=product,
                     variant=variant,
-                    image=image_url,
+                    image=image_file,
                     is_main=True,
                     alt_text=product.name
                 )
@@ -135,7 +135,7 @@ class ProductSerializer(serializers.ModelSerializer):
         # Wyciągamy dane dla wariantu
         price = validated_data.pop('price', None)
         stock = validated_data.pop('stock', None)
-        image_url = validated_data.pop('image', None)
+        image_file = validated_data.pop('image', None)
         
         # Aktualizujemy produkt
         for attr, value in validated_data.items():
@@ -143,7 +143,7 @@ class ProductSerializer(serializers.ModelSerializer):
         instance.save()
         
         # Aktualizujemy lub tworzymy domyślny wariant
-        if price is not None or stock is not None or image_url is not None:
+        if price is not None or stock is not None or image_file is not None:
             # Szukamy pierwszego wariantu lub tworzymy nowy
             variant = instance.variants.first()
             
@@ -165,21 +165,21 @@ class ProductSerializer(serializers.ModelSerializer):
                     variant.stock = stock
                 variant.save()
             
-            # Aktualizujemy lub dodajemy zdjęcie
-            if image_url is not None:
+            # Aktualizujemy lub dodajemy zdjęcie (teraz jako plik)
+            if image_file is not None:
                 main_image = ProductImage.objects.filter(
                     product=instance,
                     is_main=True
                 ).first()
                 
                 if main_image:
-                    main_image.image = image_url
+                    main_image.image = image_file
                     main_image.save()
                 else:
                     ProductImage.objects.create(
                         product=instance,
                         variant=variant,
-                        image=image_url,
+                        image=image_file,
                         is_main=True,
                         alt_text=instance.name
                     )

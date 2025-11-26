@@ -924,15 +924,31 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-2">URL zdjęcia</label>
+              <label class="block text-sm font-medium mb-2">
+                Zdjęcie produktu
+                @if (editingProduct) {
+                  <span class="text-xs text-gray-500 ml-2">(opcjonalne - pozostaw puste aby zachować obecne)</span>
+                }
+              </label>
               <input 
-                type="text" 
-                [(ngModel)]="productForm.image" 
-                name="image"
-                placeholder="assets/..."
-                required
+                type="file" 
+                (change)="onProductImageSelected($event)"
+                name="imageFile"
+                accept="image/*"
                 class="w-full px-3 py-2 border border-border rounded-lg bg-background"
               />
+              @if (productForm.imagePreview) {
+                <div class="mt-2">
+                  <p class="text-xs text-gray-500 mb-1">
+                    @if (productForm.imageFile) {
+                      Nowe zdjęcie:
+                    } @else {
+                      Obecne zdjęcie:
+                    }
+                  </p>
+                  <img [src]="productForm.imagePreview" alt="Podgląd" class="h-32 w-32 object-cover rounded">
+                </div>
+              }
             </div>
 
             <!-- Attributes Section -->
@@ -1710,7 +1726,7 @@ export class AdminComponent implements OnInit {
   orderEditForm: Partial<Order> = {};
 
   // Forms
-  productForm: Partial<InsertProduct & { attributes?: ProductAttribute[] }> = {};
+  productForm: Partial<InsertProduct & { attributes?: ProductAttribute[]; imageFile?: File; imagePreview?: string }> = {};
   categoryForm: Partial<InsertCategory> = {};
 
   // Attribute management
@@ -1840,6 +1856,7 @@ export class AdminComponent implements OnInit {
         oldPrice: product.oldPrice || '',
         categoryId: product.categoryId,
         image: product.image,
+        imagePreview: product.image, // Show current image as preview
         stock: product.stock,
         attributes: product.attributes ? JSON.parse(JSON.stringify(product.attributes)) : []
       };
@@ -1854,6 +1871,26 @@ export class AdminComponent implements OnInit {
     this.showProductModal = false;
     this.editingProduct = null;
     this.productForm = {};
+    // Clear file input
+    const fileInput = document.querySelector('input[type="file"][name="imageFile"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  }
+
+  onProductImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      this.productForm.imageFile = file;
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.productForm.imagePreview = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
   }
 
   saveProduct(event: Event): void {
@@ -1865,9 +1902,9 @@ export class AdminComponent implements OnInit {
       price: this.productForm.price!.toString(),
       oldPrice: this.productForm.oldPrice,
       categoryId: this.productForm.categoryId!,
-      image: this.productForm.image!,
       stock: Number(this.productForm.stock) || 0,
-      attributes: this.productForm.attributes || []
+      attributes: this.productForm.attributes || [],
+      imageFile: this.productForm.imageFile
     };
 
     if (this.editingProduct) {

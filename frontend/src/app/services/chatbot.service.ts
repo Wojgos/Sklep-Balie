@@ -1,14 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, of } from 'rxjs';
-import { catchError, delay } from 'rxjs/operators';
+import { catchError, delay, map } from 'rxjs/operators';
 import { ChatMessage, ChatResponse, ChatRequest } from '../models';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChatbotService {
-  private readonly apiUrl = 'http://localhost:3000/api/chatbot'; // Adjust URL as needed
+  private readonly apiUrl = 'http://localhost:8000/api/v1/chatbot/ask/'; // Django backend (trailing slash required)
   private messagesSubject = new BehaviorSubject<ChatMessage[]>([]);
   private isOpenSubject = new BehaviorSubject<boolean>(false);
   private sessionId: string;
@@ -29,7 +29,7 @@ export class ChatbotService {
     const welcomeMessage: ChatMessage = {
       id: this.generateMessageId(),
       role: 'assistant',
-      content: 'Cześć! Jestem Twoim asystentem. Mogę pomóc Ci znaleźć produkty, odpowiedzieć na pytania o nasze balie ogrodowe lub pomóc w nawigacji po stronie. W czym mogę Ci pomóc?',
+      content: 'Cześć! Jestem wirtualnym asystentem. Możesz zapytać mnie o status zamówienia, ofertę produktów lub dane kontaktowe. W czym mogę Ci pomóc?',
       isUser: false,
       timestamp: new Date()
     };
@@ -50,6 +50,54 @@ export class ChatbotService {
 
   closeChat(): void {
     this.isOpenSubject.next(false);
+  }
+
+  private getAuthHeaders(): HttpHeaders {
+    const token = localStorage.getItem('access_token');
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+    
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+    
+    return headers;
+  }
+
+  private generateSuggestions(response: string): string[] {
+    const lowerResponse = response.toLowerCase();
+    const suggestions: string[] = [];
+
+    // Generuj sugestie bazując na odpowiedzi
+    if (lowerResponse.includes('zamówien') || lowerResponse.includes('status')) {
+      suggestions.push('Jakie masz numery śledzenia?');
+      suggestions.push('Jak zmienić adres dostawy?');
+    }
+    
+    if (lowerResponse.includes('produkt') || lowerResponse.includes('oferc') || lowerResponse.includes('bali')) {
+      suggestions.push('Pokaż popularne produkty');
+      suggestions.push('Jakie są ceny?');
+    }
+    
+    if (lowerResponse.includes('kontakt') || lowerResponse.includes('telefon') || lowerResponse.includes('email')) {
+      suggestions.push('Jakie są godziny otwarcia?');
+      suggestions.push('Formularz kontaktowy');
+    }
+
+    if (lowerResponse.includes('zwrot') || lowerResponse.includes('reklamacj') || lowerResponse.includes('wsparcie')) {
+      suggestions.push('Jak złożyć reklamację?');
+      suggestions.push('Polityka zwrotów');
+    }
+
+    // Domyślne sugestie jeśli nic nie pasuje
+    if (suggestions.length === 0) {
+      suggestions.push('Status zamówienia');
+      suggestions.push('Oferta produktów');
+      suggestions.push('Kontakt');
+    }
+
+    return suggestions.slice(0, 4); // Max 4 sugestie
   }
 
   sendMessage(content: string, currentPage?: string): Observable<ChatResponse> {
@@ -76,24 +124,25 @@ export class ChatbotService {
     };
     this.messagesSubject.next([...this.messagesSubject.value, typingMessage]);
 
-    // Prepare request
-    const request: ChatRequest = {
-      message: content,
-      context: {
-        currentPage: currentPage || 'home',
-        sessionId: this.sessionId
-      }
+    // Prepare simple request for Django backend
+    const request = {
+      message: content
     };
 
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
+    // Get auth headers with JWT token if available
+    const headers = this.getAuthHeaders();
 
-    // Send to API (with fallback for development)
-    return this.http.post<ChatResponse>(this.apiUrl, request, { headers })
+    // Send to Django API
+    return this.http.post<{response: string}>(this.apiUrl, request, { headers })
       .pipe(
-        catchError(() => this.getFallbackResponse(content)),
-        delay(1000) // Simulate network delay
+        map((response: {response: string}) => ({
+          message: response.response,
+          suggestions: this.generateSuggestions(response.response)
+        } as ChatResponse)),
+        catchError(error => {
+          console.error('Chatbot API error:', error);
+          return this.getFallbackResponse(content);
+        })
       );
   }
 
@@ -114,49 +163,11 @@ export class ChatbotService {
   }
 
   private getFallbackResponse(userMessage: string): Observable<ChatResponse> {
-    const message = userMessage.toLowerCase();
-    let response: ChatResponse;
-
-    if (message.includes('balia') || message.includes('kadź') || message.includes('produkt')) {
-      response = {
-        message: 'Mamy szeroki wybór drewnianych bali ogrodowych! Możesz przeglądać nasze kategorie lub sprawdzić wyróżnione produkty. Czy szukasz konkretnego typu bali?',
-        suggestions: ['Pokaż kategorie', 'Wyróżnione produkty', 'Balie do kąpieli', 'Kadzie ogrodowe'],
-        actions: [
-          { type: 'navigate', label: 'Zobacz kategorie', data: { section: 'kategorie' } },
-          { type: 'navigate', label: 'Produkty', data: { section: 'produkty' } }
-        ]
-      };
-    } else if (message.includes('cena') || message.includes('koszt') || message.includes('ile')) {
-      response = {
-        message: 'Nasze ceny są bardzo konkurencyjne! Ceny bali zaczynają się od 299 zł. Dokładne ceny znajdziesz przy każdym produkcie. Czy chcesz zobaczyć konkretną kategorię?',
-        suggestions: ['Najtańsze produkty', 'Promocje', 'Porównaj ceny'],
-        actions: [
-          { type: 'filter', label: 'Sortuj po cenie', data: { sort: 'price' } }
-        ]
-      };
-    } else if (message.includes('dostawa') || message.includes('wysyłka')) {
-      response = {
-        message: 'Oferujemy szybką dostawę w ciągu 3-5 dni roboczych na terenie całej Polski. Dostawa jest bezpłatna przy zamówieniach powyżej 500 zł.',
-        suggestions: ['Koszty dostawy', 'Czas realizacji', 'Obszar dostawy']
-      };
-    } else if (message.includes('kontakt') || message.includes('telefon') || message.includes('email')) {
-      response = {
-        message: 'Możesz skontaktować się z nami telefonicznie lub przez email. Nasz zespół chętnie pomoże Ci w wyborze odpowiedniej bali!',
-        actions: [
-          { type: 'contact', label: 'Pokaż kontakt', data: { section: 'contact' } }
-        ]
-      };
-    } else if (message.includes('pomoc') || message.includes('help') || message.includes('co możesz')) {
-      response = {
-        message: 'Mogę pomóc Ci w:\n• Znalezieniu odpowiednich produktów\n• Nawigacji po stronie\n• Odpowiedzi na pytania o balie\n• Informacjach o dostawie i cenach\n• Kontakcie z naszym zespołem',
-        suggestions: ['Pokaż produkty', 'Informacje o firmie', 'Kontakt', 'Często zadawane pytania']
-      };
-    } else {
-      response = {
-        message: 'Dziękuję za wiadomość! Czy mogę pomóc Ci znaleźć konkretny produkt lub masz pytania o nasze balie ogrodowe?',
-        suggestions: ['Pokaż produkty', 'Informacje o dostawie', 'Kontakt', 'Pomoc']
-      };
-    }
+    // Prosty fallback gdy backend jest niedostępny
+    const response: ChatResponse = {
+      message: 'Przepraszam, mam obecnie problem z połączeniem. Spróbuj ponownie za chwilę lub skontaktuj się z nami przez formularz wsparcia.',
+      suggestions: ['Spróbuj ponownie', 'Formularz wsparcia', 'Kontakt']
+    };
 
     return of(response);
   }

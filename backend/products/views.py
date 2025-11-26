@@ -50,6 +50,14 @@ class ProductViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'created_at', 'variants__price']
     ordering = ['-created_at']
     permission_classes = [IsAdminUserOrReadOnly]
+    
+    def get_queryset(self):
+        """
+        Override get_queryset to allow admin users to see all products
+        """
+        if self.request.user and self.request.user.is_staff:
+            return Product.objects.all().distinct()
+        return Product.objects.all().filter(available=True).distinct()
 
 
 class ProductAttributeViewSet(viewsets.ModelViewSet):
