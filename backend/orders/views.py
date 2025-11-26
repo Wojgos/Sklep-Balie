@@ -316,3 +316,151 @@ class OrderInvoiceView(APIView):
                 {"error": "Wystąpił błąd podczas generowania pliku PDF."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class StatisticsReportPDFView(APIView):
+    """
+    API endpoint do pobierania raportu statystyk sprzedażowych w formacie PDF.
+    Wymaga uprawnień administratora (is_staff=True).
+
+    GET /api/v1/reports/sales/pdf/?start_date=RRRR-MM-DD&end_date=RRRR-MM-DD
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        from .pdf_generator import generate_statistics_pdf
+        from products.models import Product, Category
+        
+        # 1. Pobierz i waliduj parametry daty z URL
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+
+        if not start_date_str or not end_date_str:
+            return Response(
+                {"error": "Parametry 'start_date' i 'end_date' są wymagane (RRRR-MM-DD)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        start_date = parse_date(start_date_str)
+        end_date = parse_date(end_date_str)
+
+        if not start_date or not end_date:
+            return Response(
+                {"error": "Niepoprawny format daty. Wymagany RRRR-MM-DD."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 2. Filtruj zamówienia (tylko opłacone i w zakresie dat)
+        from datetime import timedelta
+        queryset = Order.objects.filter(
+            paid=True,
+            created_at__gte=start_date,
+            created_at__lt=end_date + timedelta(days=1)
+        )
+
+        # 3. Oblicz agregaty
+        total_stats = queryset.aggregate(
+            total_revenue=Sum('total_price'),
+            total_orders=Count('id')
+        )
+
+        total_revenue = float(total_stats['total_revenue'] or 0)
+        total_orders = total_stats['total_orders'] or 0
+        average_order_value = total_revenue / total_orders if total_orders > 0 else 0
+
+        # 4. Oblicz top produkty
+        from collections import defaultdict
+        product_stats = defaultdict(lambda: {'quantity': 0, 'revenue': 0})
+        
+        for order in queryset.prefetch_related('items__variant__product'):
+            for item in order.items.all():
+                if item.variant and item.variant.product:
+                    product_id = item.variant.product.id
+                    product_stats[product_id]['quantity'] += item.quantity
+                    product_stats[product_id]['revenue'] += float(item.price) * item.quantity
+                    if 'product' not in product_stats[product_id]:
+                        product_stats[product_id]['product'] = item.variant.product
+
+        top_products = sorted(
+            [{'product': data['product'], 'quantity': data['quantity'], 'revenue': data['revenue']}
+             for data in product_stats.values() if 'product' in data],
+            key=lambda x: x['revenue'],
+            reverse=True
+        )[:5]
+
+        # 5. Oblicz przychód według kategorii
+        category_stats = defaultdict(lambda: {'revenue': 0})
+        
+        for order in queryset.prefetch_related('items__variant__product__category'):
+            for item in order.items.all():
+                if item.variant and item.variant.product and item.variant.product.category:
+                    category = item.variant.product.category
+                    category_stats[category.id]['revenue'] += float(item.price) * item.quantity
+                    if 'category' not in category_stats[category.id]:
+                        category_stats[category.id]['category'] = category
+
+        revenue_by_category = sorted(
+            [{'category': data['category'], 'revenue': data['revenue']}
+             for data in category_stats.values() if 'category' in data],
+            key=lambda x: x['revenue'],
+            reverse=True
+        )
+
+        # 6. Zamówienia według statusu
+        STATUS_CHOICES = {
+            'pending': 'Oczekujące',
+            'processing': 'Przetwarzane',
+            'shipped': 'Wysłane',
+            'delivered': 'Dostarczone',
+            'cancelled': 'Anulowane'
+        }
+        
+        orders_by_status = queryset.values('status').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        orders_by_status_list = [
+            {
+                'status': item['status'],
+                'status_display': STATUS_CHOICES.get(item['status'], item['status']),
+                'count': item['count']
+            }
+            for item in orders_by_status
+        ]
+
+        # 7. Przygotuj dane dla PDF
+        statistics_data = {
+            'period': {
+                'start_date': start_date_str,
+                'end_date': end_date_str,
+            },
+            'summary': {
+                'total_revenue': total_revenue,
+                'total_orders': total_orders,
+                'average_order_value': average_order_value,
+            },
+            'top_products': top_products,
+            'revenue_by_category': revenue_by_category,
+            'orders_by_status': orders_by_status_list,
+        }
+
+        # 8. Wygeneruj PDF
+        try:
+            pdf_data = generate_statistics_pdf(statistics_data)
+
+            # 9. Zwróć odpowiedź HTTP z plikiem PDF
+            response = HttpResponse(pdf_data, content_type='application/pdf')
+            filename = f'raport_statystyk_{start_date_str}_{end_date_str}.pdf'
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+            return response
+
+        except Exception as e:
+            # Obsługa błędów generowania PDF
+            print(f"Błąd generowania PDF statystyk: {e}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {"error": "Wystąpił błąd podczas generowania raportu PDF."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

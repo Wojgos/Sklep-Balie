@@ -956,6 +956,55 @@ export class ApiService {
     );
   }
 
+  downloadStatisticsPDF(startDate?: Date, endDate?: Date): void {
+    // Format dates to YYYY-MM-DD format for backend
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    // Set default dates if not provided (last 30 days)
+    const end = endDate || new Date();
+    const start = startDate || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const startDateStr = formatDate(start);
+    const endDateStr = formatDate(end);
+
+    // Build URL for PDF endpoint
+    const url = `${this.apiUrl}/reports/sales/pdf/?start_date=${startDateStr}&end_date=${endDateStr}`;
+
+    // Use blob response type to download PDF
+    this.http.get(url, { 
+      responseType: 'blob',
+      observe: 'response'
+    }).subscribe({
+      next: (response) => {
+        // Create blob from response
+        const blob = new Blob([response.body as Blob], { type: 'application/pdf' });
+        
+        // Create download link
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `raport_statystyk_${startDateStr}_${endDateStr}.pdf`;
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+      },
+      error: (error) => {
+        console.error('Błąd pobierania raportu PDF:', error);
+        alert('Wystąpił błąd podczas pobierania raportu PDF.');
+      }
+    });
+  }
+
   // Low stock alerts (legacy - simple product-based)
   getLowStockAlerts(threshold: number = 10): Observable<LowStockAlert[]> {
     // Client-side filtering based on products from backend

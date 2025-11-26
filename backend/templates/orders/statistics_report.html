@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Raport Statystyk Sprzedażowych</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            font-size: 11px;
+            color: #333;
+            line-height: 1.6;
+            padding: 1.5cm;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2cm;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 1cm;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e40af;
+            margin-bottom: 0.3cm;
+        }
+
+        .company-info {
+            font-size: 10px;
+            color: #666;
+            margin-top: 0.3cm;
+        }
+
+        .period-info {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            color: white;
+            padding: 0.5cm;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 1cm;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .summary-cards {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1cm;
+            gap: 0.5cm;
+        }
+
+        .summary-card {
+            flex: 1;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-left: 4px solid #2563eb;
+            padding: 0.5cm;
+            border-radius: 6px;
+        }
+
+        .summary-card h3 {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.2cm;
+            font-weight: 500;
+        }
+
+        .summary-card .value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e40af;
+        }
+
+        .summary-card .subtitle {
+            font-size: 9px;
+            color: #888;
+            margin-top: 0.1cm;
+        }
+
+        .section {
+            margin-bottom: 1cm;
+            page-break-inside: avoid;
+        }
+
+        .section h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e40af;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.3cm;
+            margin-bottom: 0.5cm;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.3cm;
+        }
+
+        .table thead {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            color: white;
+        }
+
+        .table th {
+            padding: 0.4cm;
+            text-align: left;
+            font-weight: 600;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table td {
+            padding: 0.4cm;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 11px;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .table tbody tr:nth-child(even) {
+            background-color: #f3f4f6;
+        }
+
+        .rank {
+            font-weight: 700;
+            color: #2563eb;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .product-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .product-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .quantity {
+            color: #666;
+            font-size: 10px;
+        }
+
+        .revenue {
+            font-weight: 600;
+            color: #059669;
+            text-align: right;
+        }
+
+        .category-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.4cm;
+            background: #f9fafb;
+            border-left: 3px solid #2563eb;
+            margin-bottom: 0.2cm;
+            border-radius: 4px;
+        }
+
+        .category-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .category-revenue {
+            font-weight: 700;
+            color: #059669;
+            font-size: 13px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(3cm, 1fr));
+            gap: 0.4cm;
+            margin-top: 0.3cm;
+        }
+
+        .status-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 0.4cm;
+            text-align: center;
+        }
+
+        .status-count {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2563eb;
+            margin-bottom: 0.2cm;
+        }
+
+        .status-label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .footer {
+            margin-top: 2cm;
+            padding-top: 0.5cm;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 9px;
+            color: #888;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 1cm;
+            color: #999;
+            font-style: italic;
+        }
+
+        @page {
+            margin: 1.5cm;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>📊 Raport Statystyk Sprzedażowych</h1>
+        <div class="company-info">
+            <strong>{{ company.name }}</strong><br>
+            {{ company.address }}, {{ company.zip_city }}<br>
+            NIP: {{ company.nip }} | Email: {{ company.email }}
+        </div>
+    </div>
+
+    <!-- Period Info -->
+    <div class="period-info">
+        📅 Okres: <strong>{{ statistics.period.start_date }}</strong> do <strong>{{ statistics.period.end_date }}</strong>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <h3>Całkowity Przychód</h3>
+            <div class="value">{{ statistics.summary.total_revenue|floatformat:2 }} PLN</div>
+            <div class="subtitle">Tylko opłacone zamówienia</div>
+        </div>
+        <div class="summary-card">
+            <h3>Liczba Zamówień</h3>
+            <div class="value">{{ statistics.summary.total_orders }}</div>
+            <div class="subtitle">Opłacone w okresie</div>
+        </div>
+        <div class="summary-card">
+            <h3>Średnia Wartość</h3>
+            <div class="value">{{ statistics.summary.average_order_value|floatformat:2 }} PLN</div>
+            <div class="subtitle">Na zamówienie</div>
+        </div>
+    </div>
+
+    <!-- Top Products Section -->
+    {% if statistics.top_products %}
+    <div class="section">
+        <h2>🏆 Top 5 Najlepiej Sprzedających Się Produktów</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 10%; text-align: center;">#</th>
+                    <th style="width: 45%;">Produkt</th>
+                    <th style="width: 20%; text-align: center;">Sprzedano</th>
+                    <th style="width: 25%; text-align: right;">Przychód</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in statistics.top_products %}
+                <tr>
+                    <td class="rank">{{ forloop.counter }}</td>
+                    <td>
+                        <div class="product-info">
+                            <div>
+                                <div class="product-name">{{ item.product.name }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="text-align: center;">
+                        <span class="quantity">{{ item.quantity }} szt.</span>
+                    </td>
+                    <td class="revenue">{{ item.revenue|floatformat:2 }} PLN</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="section">
+        <h2>🏆 Top 5 Najlepiej Sprzedających Się Produktów</h2>
+        <div class="no-data">Brak danych o produktach w wybranym okresie</div>
+    </div>
+    {% endif %}
+
+    <!-- Revenue by Category Section -->
+    {% if statistics.revenue_by_category %}
+    <div class="section">
+        <h2>📂 Przychód według Kategorii</h2>
+        {% for item in statistics.revenue_by_category %}
+        <div class="category-row">
+            <span class="category-name">{{ item.category.name }}</span>
+            <span class="category-revenue">{{ item.revenue|floatformat:2 }} PLN</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="section">
+        <h2>📂 Przychód według Kategorii</h2>
+        <div class="no-data">Brak danych o przychodach według kategorii</div>
+    </div>
+    {% endif %}
+
+    <!-- Orders by Status Section -->
+    {% if statistics.orders_by_status %}
+    <div class="section">
+        <h2>📦 Zamówienia według Statusu</h2>
+        <div class="status-grid">
+            {% for item in statistics.orders_by_status %}
+            <div class="status-card">
+                <div class="status-count">{{ item.count }}</div>
+                <div class="status-label">{{ item.status_display }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="section">
+        <h2>📦 Zamówienia według Statusu</h2>
+        <div class="no-data">Brak danych o statusach zamówień</div>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Raport wygenerowany automatycznie | {{ company.name }}</p>
+        <p>Data wygenerowania: {% now "d.m.Y H:i" %}</p>
+    </div>
+</body>
+</html>
