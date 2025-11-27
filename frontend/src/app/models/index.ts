@@ -356,14 +356,21 @@ export interface LoyaltyReward {
   id: string;
   name: string;
   description: string;
-  pointsCost: number;
+  pointsCost: number; // Frontend unified field
+  pointsRequired: number; // Backend field (will be mapped to pointsCost)
+  points_required?: number; // Backend snake_case (raw response)
   rewardType: 'discount_percentage' | 'discount_fixed' | 'free_product' | 'free_shipping';
-  rewardValue: number; // Wartość zniżki lub ID produktu
-  isActive: boolean;
+  rewardValue: number; // Frontend camelCase
+  reward_value?: string; // Backend snake_case (raw response)
+  isActive: boolean; // Frontend camelCase
+  is_percentage?: boolean; // Backend snake_case (raw response)
+  isPercentage: boolean; // Frontend camelCase
+  active?: boolean; // Backend field (raw response)
   image?: string;
   validUntil?: Date;
   usageLimit?: number; // Limit użyć na użytkownika (null = bez limitu)
-  createdAt: Date;
+  createdAt?: Date;
+  created_at?: string; // Backend snake_case (raw response)
 }
 
 export interface UserLoyaltyPoints {
@@ -391,13 +398,24 @@ export interface RedeemedReward {
   id: string;
   userId: string;
   rewardId: string;
+  rewardName?: string; // Backend field
   reward: LoyaltyReward;
   pointsSpent: number;
   code?: string; // Kod kuponu jeśli applicable
+  couponCode?: string; // Backend response field
   isUsed: boolean;
   usedAt?: Date;
   expiresAt?: Date;
   createdAt: Date;
+  redeemedAt?: string;
+  couponDetails?: {
+    code: string;
+    validFrom: string;
+    validTo: string;
+    value: number;
+    isPercentage: boolean;
+    active: boolean;
+  };
 }
 
 export interface InsertLoyaltyProgram {

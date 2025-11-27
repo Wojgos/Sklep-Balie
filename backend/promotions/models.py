@@ -8,14 +8,49 @@ from django.utils import timezone
 
 class LoyaltyReward(models.Model):
     """Nagroda w programie lojalnościowym (np. Kupon 50zł)."""
+    name = models.CharField(max_length=200, verbose_name="Nazwa nagrody", default="Nagroda")
     points_required = models.PositiveIntegerField(verbose_name="Wymagane punkty")
     reward_value = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Wartość nagrody")
     is_percentage = models.BooleanField(default=False, verbose_name="Czy procentowa?")
     description = models.CharField(max_length=255, verbose_name="Opis (dla klienta)")
     active = models.BooleanField(default=True, verbose_name="Aktywna")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Data utworzenia", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Nagroda lojalnościowa"
+        verbose_name_plural = "Nagrody lojalnościowe"
+        ordering = ['points_required']
 
     def __str__(self):
-        return f"{self.points_required} pkt -> {self.description}"
+        return f"{self.name} ({self.points_required} pkt)"
+
+
+class RedeemedReward(models.Model):
+    """Historia zrealizowanych nagród przez użytkowników."""
+    user = models.ForeignKey(
+        'users.CustomUser',
+        on_delete=models.CASCADE,
+        related_name='redeemed_rewards',
+        verbose_name="Użytkownik"
+    )
+    reward = models.ForeignKey(
+        LoyaltyReward,
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name="Nagroda"
+    )
+    reward_name = models.CharField(max_length=200, verbose_name="Nazwa nagrody")
+    points_spent = models.PositiveIntegerField(verbose_name="Wydane punkty")
+    coupon_code = models.CharField(max_length=50, verbose_name="Kod kuponu")
+    redeemed_at = models.DateTimeField(auto_now_add=True, verbose_name="Data realizacji")
+    
+    class Meta:
+        verbose_name = "Zrealizowana nagroda"
+        verbose_name_plural = "Zrealizowane nagrody"
+        ordering = ['-redeemed_at']
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.reward_name} ({self.redeemed_at.strftime('%Y-%m-%d')})"
 
 
 class DiscountCoupon(models.Model):

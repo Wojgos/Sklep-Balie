@@ -1255,61 +1255,192 @@ export class ApiService {
 
   // Loyalty Program - Admin API
   getLoyaltyProgram(): Observable<LoyaltyProgram | null> {
+    // Backend doesn't have this endpoint yet, using mock data
     return this.mockDataService.getLoyaltyProgram();
-    // Real API call (uncomment when backend is ready):
-    // return this.http.get<LoyaltyProgram>(`${this.apiUrl}/loyalty/program/`);
   }
 
   createOrUpdateLoyaltyProgram(program: InsertLoyaltyProgram): Observable<LoyaltyProgram> {
+    // Backend doesn't have this endpoint yet, using mock data
     return this.mockDataService.createOrUpdateLoyaltyProgram(program);
-    // Real API call (uncomment when backend is ready):
-    // return this.http.post<LoyaltyProgram>(`${this.apiUrl}/loyalty/program/`, program);
   }
 
   // Loyalty Rewards - Admin API
   getLoyaltyRewards(): Observable<LoyaltyReward[]> {
-    return this.mockDataService.getLoyaltyRewards();
-    // Real API call (uncomment when backend is ready):
-    // return this.http.get<LoyaltyReward[]>(`${this.apiUrl}/loyalty/rewards/`);
+    return this.http.get<any[]>(`${this.apiUrl}/promotions/rewards/`).pipe(
+      map(rewards => rewards.map(reward => {
+        const pointsRequired = reward.points_required || 0;
+        const rewardValue = parseFloat(reward.reward_value || '0');
+        const isPercentage = reward.is_percentage || false;
+        
+        return {
+          id: reward.id.toString(),
+          name: reward.name,
+          description: reward.description,
+          pointsCost: pointsRequired,
+          pointsRequired: pointsRequired,
+          rewardType: isPercentage ? 'discount_percentage' : 'discount_fixed',
+          rewardValue: rewardValue,
+          isActive: reward.active || false,
+          isPercentage: isPercentage,
+          active: reward.active,
+          createdAt: reward.created_at ? new Date(reward.created_at) : undefined
+        } as LoyaltyReward;
+      }))
+    );
   }
 
   createLoyaltyReward(reward: InsertLoyaltyReward): Observable<LoyaltyReward> {
-    return this.mockDataService.createLoyaltyReward(reward);
-    // Real API call (uncomment when backend is ready):
-    // return this.http.post<LoyaltyReward>(`${this.apiUrl}/loyalty/rewards/`, reward);
+    const payload = {
+      name: reward.name,
+      description: reward.description,
+      points_required: reward.pointsCost,
+      reward_value: reward.rewardValue.toString(),
+      is_percentage: reward.rewardType === 'discount_percentage',
+      active: reward.isActive
+    };
+    
+    return this.http.post<any>(`${this.apiUrl}/promotions/rewards/`, payload).pipe(
+      map(response => ({
+        id: response.id.toString(),
+        name: response.name,
+        description: response.description,
+        pointsCost: response.points_required,
+        pointsRequired: response.points_required,
+        rewardType: response.is_percentage ? 'discount_percentage' : 'discount_fixed',
+        rewardValue: parseFloat(response.reward_value),
+        isActive: response.active,
+        isPercentage: response.is_percentage,
+        createdAt: new Date(response.created_at)
+      } as LoyaltyReward))
+    );
   }
 
   updateLoyaltyReward(id: string, reward: Partial<InsertLoyaltyReward>): Observable<LoyaltyReward> {
-    return this.mockDataService.updateLoyaltyReward(id, reward);
-    // Real API call (uncomment when backend is ready):
-    // return this.http.patch<LoyaltyReward>(`${this.apiUrl}/loyalty/rewards/${id}/`, reward);
+    const payload: any = {};
+    
+    if (reward.name !== undefined) payload.name = reward.name;
+    if (reward.description !== undefined) payload.description = reward.description;
+    if (reward.pointsCost !== undefined) payload.points_required = reward.pointsCost;
+    if (reward.rewardValue !== undefined) payload.reward_value = reward.rewardValue.toString();
+    if (reward.rewardType !== undefined) payload.is_percentage = reward.rewardType === 'discount_percentage';
+    if (reward.isActive !== undefined) payload.active = reward.isActive;
+    
+    return this.http.patch<any>(`${this.apiUrl}/promotions/rewards/${id}/`, payload).pipe(
+      map(response => ({
+        id: response.id.toString(),
+        name: response.name,
+        description: response.description,
+        pointsCost: response.points_required,
+        pointsRequired: response.points_required,
+        rewardType: response.is_percentage ? 'discount_percentage' : 'discount_fixed',
+        rewardValue: parseFloat(response.reward_value),
+        isActive: response.active,
+        isPercentage: response.is_percentage,
+        createdAt: new Date(response.created_at)
+      } as LoyaltyReward))
+    );
   }
 
   deleteLoyaltyReward(id: string): Observable<void> {
-    return this.mockDataService.deleteLoyaltyReward(id);
-    // Real API call (uncomment when backend is ready):
-    // return this.http.delete<void>(`${this.apiUrl}/loyalty/rewards/${id}/`);
+    return this.http.delete<void>(`${this.apiUrl}/promotions/rewards/${id}/`);
   }
 
   // Loyalty - User API
   getUserLoyaltyPoints(): Observable<UserLoyaltyPoints> {
-    const userId = this.authService.currentUserValue?.id || '2';
-    return this.mockDataService.getUserLoyaltyPoints(userId);
-    // Real API call (uncomment when backend is ready):
-    // return this.http.get<UserLoyaltyPoints>(`${this.apiUrl}/loyalty/my-points/`);
+    return this.http.get<any>(`${this.apiUrl}/users/loyalty-points/`).pipe(
+      switchMap(response => {
+        // Pobierz historię realizacji aby obliczyć wykorzystane punkty
+        return this.http.get<any[]>(`${this.apiUrl}/promotions/loyalty/my-rewards/`).pipe(
+          map(rewards => {
+            const totalSpent = rewards.reduce((sum, r) => sum + (r.points_spent || 0), 0);
+            const availablePoints = response.available_points || 0;
+            
+            return {
+              userId: response.user_id?.toString() || '',
+              totalPoints: availablePoints + totalSpent,
+              availablePoints: availablePoints,
+              usedPoints: totalSpent,
+              history: []
+            } as UserLoyaltyPoints;
+          })
+        );
+      })
+    );
+  }
+
+  getLoyaltyOffers(): Observable<LoyaltyReward[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/promotions/loyalty/offers/`).pipe(
+      map(rewards => rewards.map(reward => {
+        const pointsRequired = reward.points_required || 0;
+        const rewardValue = parseFloat(reward.reward_value || '0');
+        const isPercentage = reward.is_percentage || false;
+        
+        return {
+          id: reward.id.toString(),
+          name: reward.name,
+          description: reward.description,
+          pointsCost: pointsRequired, // Unified field for frontend
+          pointsRequired: pointsRequired,
+          rewardType: isPercentage ? 'discount_percentage' : 'discount_fixed',
+          rewardValue: rewardValue,
+          isActive: reward.active || false,
+          isPercentage: isPercentage,
+          active: reward.active
+        } as LoyaltyReward;
+      }))
+    );
   }
 
   redeemReward(rewardId: string): Observable<RedeemedReward> {
-    const userId = this.authService.currentUserValue?.id || '2';
-    return this.mockDataService.redeemReward(userId, rewardId);
-    // Real API call (uncomment when backend is ready):
-    // return this.http.post<RedeemedReward>(`${this.apiUrl}/loyalty/rewards/${rewardId}/redeem/`, {});
+    return this.http.post<any>(`${this.apiUrl}/promotions/loyalty/redeem/`, { 
+      reward_id: rewardId 
+    }).pipe(
+      map(response => ({
+        id: response.coupon_code,
+        userId: this.authService.currentUserValue?.id || '',
+        rewardId: rewardId,
+        rewardName: response.reward_name,
+        reward: {} as LoyaltyReward,
+        pointsSpent: response.points_spent || 0,
+        code: response.coupon_code,
+        isUsed: false,
+        createdAt: new Date(),
+        couponCode: response.coupon_code,
+        redeemedAt: new Date().toISOString(),
+        couponDetails: {
+          code: response.coupon_code,
+          validFrom: response.coupon_details.valid_from,
+          validTo: response.coupon_details.valid_to,
+          value: parseFloat(response.coupon_details.value),
+          isPercentage: response.coupon_details.is_percentage,
+          active: response.coupon_details.active
+        }
+      } as any))
+    );
   }
 
   getMyRedeemedRewards(): Observable<RedeemedReward[]> {
-    const userId = this.authService.currentUserValue?.id || '2';
-    return this.mockDataService.getMyRedeemedRewards(userId);
-    // Real API call (uncomment when backend is ready):
-    // return this.http.get<RedeemedReward[]>(`${this.apiUrl}/loyalty/my-rewards/`);
+    return this.http.get<any[]>(`${this.apiUrl}/promotions/loyalty/my-rewards/`).pipe(
+      map(rewards => rewards.map(r => ({
+        id: r.id?.toString() || '',
+        userId: this.authService.currentUserValue?.id || '',
+        rewardId: r.reward?.toString() || '',
+        rewardName: r.reward_name,
+        reward: {} as LoyaltyReward,
+        pointsSpent: r.points_spent,
+        code: r.coupon_code,
+        couponCode: r.coupon_code,
+        isUsed: false,
+        createdAt: new Date(r.redeemed_at),
+        redeemedAt: r.redeemed_at
+      } as RedeemedReward)))
+    );
+  }
+
+  validateCoupon(code: string, cartTotal: number): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/promotions/coupons/validate/`, {
+      code: code,
+      cart_total: cartTotal
+    });
   }
 }

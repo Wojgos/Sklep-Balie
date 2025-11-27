@@ -65,14 +65,6 @@ import { LoyaltyProgram, LoyaltyReward, UserLoyaltyPoints, RedeemedReward } from
             >
               Moje nagrody
             </button>
-            <button
-              (click)="activeTab = 'history'"
-              [class]="activeTab === 'history'
-                ? 'border-primary text-primary border-b-2 py-4 px-1 text-sm font-medium'
-                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted border-b-2 py-4 px-1 text-sm font-medium'"
-            >
-              Historia
-            </button>
           </nav>
         </div>
 
@@ -193,60 +185,13 @@ import { LoyaltyProgram, LoyaltyReward, UserLoyaltyPoints, RedeemedReward } from
           </div>
         </div>
 
-        <!-- History Tab -->
-        <div *ngIf="activeTab === 'history'">
-          <div *ngIf="!userPoints?.history || userPoints?.history?.length === 0" class="text-center py-16">
-            <svg class="w-24 h-24 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <p class="text-muted-foreground">Brak historii transakcji punktowych</p>
-          </div>
-
-          <div *ngIf="(userPoints?.history?.length || 0) > 0" class="bg-card border border-card-border rounded-lg overflow-hidden">
-            <table class="w-full">
-              <thead class="bg-muted">
-                <tr>
-                  <th class="px-4 py-3 text-left text-sm font-semibold">Data</th>
-                  <th class="px-4 py-3 text-left text-sm font-semibold">Opis</th>
-                  <th class="px-4 py-3 text-left text-sm font-semibold">Typ</th>
-                  <th class="px-4 py-3 text-right text-sm font-semibold">Punkty</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let transaction of userPoints?.history"
-                    class="border-t border-card-border hover:bg-muted/50">
-                  <td class="px-4 py-3 text-sm">{{ transaction.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
-                  <td class="px-4 py-3 text-sm">{{ transaction.description }}</td>
-                  <td class="px-4 py-3">
-                    <span
-                      class="px-2 py-1 rounded text-xs font-medium"
-                      [ngClass]="{
-                        'bg-green-100 text-green-800': transaction.type === 'earned',
-                        'bg-red-100 text-red-800': transaction.type === 'spent',
-                        'bg-gray-100 text-gray-800': transaction.type === 'expired'
-                      }"
-                    >
-                      {{ getTransactionTypeLabel(transaction.type) }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-right font-semibold"
-                      [class.text-green-600]="transaction.type === 'earned'"
-                      [class.text-red-600]="transaction.type === 'spent'"
-                  >
-                    {{ transaction.points > 0 ? '+' : '' }}{{ transaction.points }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
     </div>
   `,
   styleUrls: ['./loyalty.component.scss']
 })
 export class LoyaltyComponent implements OnInit {
-  activeTab: 'rewards' | 'myRewards' | 'history' = 'rewards';
+  activeTab: 'rewards' | 'myRewards' = 'rewards';
   
   loyaltyProgram: LoyaltyProgram | null = null;
   userPoints: UserLoyaltyPoints | null = null;
@@ -254,7 +199,7 @@ export class LoyaltyComponent implements OnInit {
   redeemedRewards$: Observable<RedeemedReward[]>;
 
   constructor(private apiService: ApiService) {
-    this.availableRewards$ = this.apiService.getLoyaltyRewards();
+    this.availableRewards$ = this.apiService.getLoyaltyOffers();
     this.redeemedRewards$ = this.apiService.getMyRedeemedRewards();
   }
 
@@ -263,14 +208,16 @@ export class LoyaltyComponent implements OnInit {
   }
 
   loadData(): void {
-    this.apiService.getLoyaltyProgram().subscribe({
-      next: (program) => {
-        this.loyaltyProgram = program;
-      },
-      error: (err) => {
-        console.error('Error loading loyalty program:', err);
-      }
-    });
+    // Hardcoded loyalty program info (backend doesn't have this endpoint)
+    this.loyaltyProgram = {
+      id: '1',
+      name: 'Program Lojalnościowy EStore',
+      description: 'Zbieraj punkty za każde zamówienie i wymieniaj je na atrakcyjne nagrody!',
+      pointsPerZloty: 1,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
     this.apiService.getUserLoyaltyPoints().subscribe({
       next: (points) => {
@@ -299,40 +246,31 @@ export class LoyaltyComponent implements OnInit {
 
     this.apiService.redeemReward(reward.id).subscribe({
       next: (redemption) => {
-        alert(`Gratulacje! Otrzymałeś nagrodę: ${reward.name}\nKod kuponu: ${redemption.code}`);
+        if (redemption.couponDetails && redemption.couponCode) {
+          const expiryDate = new Date(redemption.couponDetails.validTo);
+          alert(`Gratulacje! Otrzymałeś nagrodę: ${reward.name}\n\nKod kuponu: ${redemption.couponCode}\nWażny do: ${expiryDate.toLocaleDateString('pl-PL')}\n\nKod został skopiowany do schowka!`);
+          navigator.clipboard.writeText(redemption.couponCode);
+        } else {
+          alert(`Gratulacje! Otrzymałeś nagrodę: ${reward.name}`);
+        }
         this.loadData();
         this.redeemedRewards$ = this.apiService.getMyRedeemedRewards();
         this.activeTab = 'myRewards';
       },
       error: (err) => {
         console.error('Error redeeming reward:', err);
-        alert('Błąd podczas wymiany nagrody');
+        const errorMsg = err.error?.error || 'Błąd podczas wymiany nagrody';
+        alert(errorMsg);
       }
     });
   }
 
   formatRewardValue(reward: LoyaltyReward): string {
-    switch (reward.rewardType) {
-      case 'discount_percentage':
-        return `${reward.rewardValue}% zniżki`;
-      case 'discount_fixed':
-        return `${reward.rewardValue} PLN zniżki`;
-      case 'free_shipping':
-        return 'Darmowa dostawa';
-      case 'free_product':
-        return `Darmowy produkt`;
-      default:
-        return reward.rewardValue.toString();
+    if (reward.isPercentage) {
+      return `${reward.rewardValue}% zniżki`;
+    } else {
+      return `${reward.rewardValue} PLN zniżki`;
     }
-  }
-
-  getTransactionTypeLabel(type: string): string {
-    const labels: Record<string, string> = {
-      'earned': 'Zdobyte',
-      'spent': 'Wydane',
-      'expired': 'Wygasłe'
-    };
-    return labels[type] || type;
   }
 
   copyCode(code?: string): void {

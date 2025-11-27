@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { CartService } from '../../services/cart.service';
@@ -10,7 +10,7 @@ import { CartItem } from '../../models';
 @Component({
   selector: 'bg-checkout',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   template: `
     <div class="flex-1">
       <div class="py-12 bg-muted/30" *ngIf="!orderSuccess && (cart$ | async)!.length > 0">
@@ -182,6 +182,53 @@ import { CartItem } from '../../models';
                   </div>
                 </div>
 
+                <!-- Coupon Section -->
+                <div class="border-t pt-4 mt-4">
+                  <div *ngIf="!appliedCoupon" class="space-y-2">
+                    <label class="block text-sm font-medium">Kod kuponu</label>
+                    <div class="flex gap-2">
+                      <input
+                        type="text"
+                        [(ngModel)]="couponCode"
+                        placeholder="Wpisz kod"
+                        class="flex-1 px-3 py-2 border border-border rounded-md bg-background text-sm"
+                        [disabled]="isValidatingCoupon"
+                      />
+                      <button
+                        (click)="applyCoupon()"
+                        [disabled]="isValidatingCoupon || !couponCode.trim()"
+                        class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+                      >
+                        {{ isValidatingCoupon ? 'Sprawdzanie...' : 'Zastosuj' }}
+                      </button>
+                    </div>
+                    <p *ngIf="couponError" class="text-destructive text-sm">{{ couponError }}</p>
+                  </div>
+
+                  <div *ngIf="appliedCoupon" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                    <div class="flex justify-between items-center mb-2">
+                      <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-green-800 dark:text-green-200">Kupon zastosowany</span>
+                      </div>
+                      <button
+                        (click)="removeCoupon()"
+                        class="text-sm text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100 underline"
+                      >
+                        Usuń
+                      </button>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                      <span class="text-green-700 dark:text-green-300">{{ appliedCoupon.code }}</span>
+                      <span class="font-semibold text-green-800 dark:text-green-200">
+                        -{{ appliedCoupon.discount_amount | number:'1.2-2' }} PLN
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="border-t pt-4 mt-4">
                   <div class="flex justify-between text-lg font-bold">
                     <span>Suma:</span>
@@ -249,6 +296,12 @@ export class CheckoutComponent implements OnInit {
   totalPrice$: Observable<number>;
   isSubmitting = false;
   orderSuccess = false;
+  
+  // Coupon functionality
+  couponCode = '';
+  appliedCoupon: any = null;
+  couponError = '';
+  isValidatingCoupon = false;
 
   constructor(
     private fb: FormBuilder,
@@ -271,6 +324,46 @@ export class CheckoutComponent implements OnInit {
   }
 
   ngOnInit(): void {}
+  
+  applyCoupon(): void {
+    if (!this.couponCode.trim()) {
+      this.couponError = 'Wprowadź kod kuponu';
+      return;
+    }
+
+    this.isValidatingCoupon = true;
+    this.couponError = '';
+    
+    this.totalPrice$.subscribe(cartTotal => {
+      this.apiService.validateCoupon(this.couponCode, cartTotal).subscribe({
+        next: (response) => {
+          this.appliedCoupon = {
+            code: this.couponCode,
+            discount_amount: response.discount_amount,
+            is_percentage: response.is_percentage,
+            value: response.value
+          };
+          this.couponError = '';
+          this.isValidatingCoupon = false;
+        },
+        error: (err) => {
+          this.couponError = err.error?.error || 'Nieprawidłowy kod kuponu';
+          this.appliedCoupon = null;
+          this.isValidatingCoupon = false;
+        }
+      });
+    }).unsubscribe();
+  }
+
+  removeCoupon(): void {
+    this.appliedCoupon = null;
+    this.couponCode = '';
+    this.couponError = '';
+  }
+
+  getDiscountAmount(): number {
+    return this.appliedCoupon ? this.appliedCoupon.discount_amount : 0;
+  }
 
   onSubmit(): void {
     if (this.checkoutForm.valid) {
@@ -279,7 +372,7 @@ export class CheckoutComponent implements OnInit {
       const formData = this.checkoutForm.value;
       const cartItems = this.cartService.getItems();
       
-      const orderData = {
+      const orderData: any = {
         ...formData,
         totalPrice: this.getFinalTotal().toFixed(2),
         items: cartItems.map(item => ({
@@ -291,6 +384,12 @@ export class CheckoutComponent implements OnInit {
           price: item.product.price
         }))
       };
+      
+      // Add coupon if applied
+      if (this.appliedCoupon) {
+        orderData.couponCode = this.appliedCoupon.code;
+        orderData.discountAmount = this.appliedCoupon.discount_amount;
+      }
 
       console.log('🛒 Order data being sent:', orderData);
       
@@ -332,7 +431,9 @@ export class CheckoutComponent implements OnInit {
   }
 
   getFinalTotal(): number {
-    return this.cartService.getTotalPrice() + this.getShippingCost();
+    const subtotal = this.cartService.getTotalPrice() + this.getShippingCost();
+    const discount = this.getDiscountAmount();
+    return Math.max(0, subtotal - discount);
   }
 
   goHome(): void {

@@ -474,9 +474,11 @@ export class MockDataService {
       name: 'Zniżka 5%',
       description: 'Zniżka 5% na następne zamówienie',
       pointsCost: 100,
+      pointsRequired: 100,
       rewardType: 'discount_percentage',
       rewardValue: 5,
       isActive: true,
+      isPercentage: true,
       image: 'assets/reward-5-percent.png',
       usageLimit: undefined,
       createdAt: new Date('2024-01-01')
@@ -486,9 +488,11 @@ export class MockDataService {
       name: 'Zniżka 10%',
       description: 'Zniżka 10% na następne zamówienie',
       pointsCost: 250,
+      pointsRequired: 250,
       rewardType: 'discount_percentage',
       rewardValue: 10,
       isActive: true,
+      isPercentage: true,
       image: 'assets/reward-10-percent.png',
       usageLimit: 1,
       createdAt: new Date('2024-01-01')
@@ -498,9 +502,11 @@ export class MockDataService {
       name: 'Zniżka 50 PLN',
       description: 'Rabat 50 PLN na następne zamówienie',
       pointsCost: 500,
+      pointsRequired: 500,
       rewardType: 'discount_fixed',
       rewardValue: 50,
       isActive: true,
+      isPercentage: false,
       image: 'assets/reward-50-pln.png',
       usageLimit: undefined,
       createdAt: new Date('2024-01-01')
@@ -510,9 +516,11 @@ export class MockDataService {
       name: 'Darmowa dostawa',
       description: 'Darmowa dostawa na następne zamówienie',
       pointsCost: 150,
+      pointsRequired: 150,
       rewardType: 'free_shipping',
       rewardValue: 0,
       isActive: true,
+      isPercentage: false,
       image: 'assets/reward-free-shipping.png',
       usageLimit: undefined,
       createdAt: new Date('2024-01-01')
@@ -522,9 +530,11 @@ export class MockDataService {
       name: 'Zniżka 20%',
       description: 'Zniżka 20% na następne zamówienie - limitowana oferta!',
       pointsCost: 800,
+      pointsRequired: 800,
       rewardType: 'discount_percentage',
       rewardValue: 20,
       isActive: true,
+      isPercentage: true,
       image: 'assets/reward-20-percent.png',
       validUntil: new Date('2025-12-31'),
       usageLimit: 1,
@@ -1062,9 +1072,12 @@ export class MockDataService {
   }
 
   createLoyaltyReward(reward: InsertLoyaltyReward): Observable<LoyaltyReward> {
+    const isPercentage = reward.rewardType === 'discount_percentage';
     const newReward: LoyaltyReward = {
       id: this.rewardIdCounter.toString(),
       ...reward,
+      pointsRequired: reward.pointsCost,
+      isPercentage: isPercentage,
       createdAt: new Date()
     };
     this.rewardIdCounter++;
@@ -1126,20 +1139,21 @@ export class MockDataService {
       throw new Error('User loyalty data not found');
     }
 
-    if (userPoints.availablePoints < reward.pointsCost) {
+    const pointsCost = reward.pointsCost || 0;
+    if (userPoints.availablePoints < pointsCost) {
       throw new Error('Insufficient points');
     }
 
     // Deduct points
-    userPoints.availablePoints -= reward.pointsCost;
-    userPoints.usedPoints += reward.pointsCost;
+    userPoints.availablePoints -= pointsCost;
+    userPoints.usedPoints += pointsCost;
 
     // Add transaction
     const transaction: LoyaltyTransaction = {
       id: this.transactionIdCounter.toString(),
       userId,
       type: 'spent',
-      points: -reward.pointsCost,
+      points: -pointsCost,
       description: `Wymiana na: ${reward.name}`,
       rewardId,
       createdAt: new Date()
@@ -1154,7 +1168,7 @@ export class MockDataService {
       userId,
       rewardId,
       reward,
-      pointsSpent: reward.pointsCost,
+      pointsSpent: pointsCost,
       code,
       isUsed: false,
       expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days from now

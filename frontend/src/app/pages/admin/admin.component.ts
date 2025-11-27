@@ -732,64 +732,23 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             <div class="bg-card border border-card-border rounded-lg p-6">
               <h2 class="text-2xl font-semibold mb-6">Konfiguracja Programu Lojalnościowego</h2>
               
-              <form *ngIf="loyaltyProgram" (submit)="saveLoyaltyProgram($event)" class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium mb-2">Nazwa programu</label>
-                  <input 
-                    type="text" 
-                    [(ngModel)]="loyaltyProgramForm.name" 
-                    name="name"
-                    required
-                    class="w-full px-3 py-2 border border-border rounded-lg bg-background"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium mb-2">Opis</label>
-                  <textarea 
-                    [(ngModel)]="loyaltyProgramForm.description" 
-                    name="description"
-                    rows="2"
-                    class="w-full px-3 py-2 border border-border rounded-lg bg-background"
-                  ></textarea>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-sm font-medium mb-2">Punkty za 1 PLN</label>
-                    <input 
-                      type="number" 
-                      [(ngModel)]="loyaltyProgramForm.pointsPerZloty" 
-                      name="pointsPerZloty"
-                      step="0.1"
-                      min="0"
-                      required
-                      class="w-full px-3 py-2 border border-border rounded-lg bg-background"
-                    />
-                  </div>
-
-                  <div class="flex items-end">
-                    <label class="inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        [(ngModel)]="loyaltyProgramForm.isActive" 
-                        name="isActive"
-                        class="w-4 h-4 text-primary border-border rounded focus:ring-primary"
-                      />
-                      <span class="ml-2 text-sm font-medium">Program aktywny</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div class="flex justify-end gap-2 pt-4">
-                  <button 
-                    type="submit"
-                    class="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2 rounded-lg font-semibold transition-colors"
-                  >
-                    Zapisz konfigurację
-                  </button>
-                </div>
-              </form>
+              <div class="space-y-3">
+                <p class="text-foreground">
+                  <span class="font-semibold">Nazwa programu:</span> Program Lojalnościowy BarrelGarden
+                </p>
+                
+                <p class="text-foreground">
+                  <span class="font-semibold">Opis:</span> Zbieraj punkty za każde zamówienie i wymieniaj je na atrakcyjne nagrody!
+                </p>
+                
+                <p class="text-foreground">
+                  <span class="font-semibold">Punkty za 1 PLN:</span> 1
+                </p>
+                
+                <p class="text-foreground">
+                  <span class="font-semibold">Status:</span> <span class="text-green-600">✓ Program aktywny</span>
+                </p>
+              </div>
             </div>
 
             <!-- Rewards Management -->
@@ -826,7 +785,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                     </div>
                     <div class="flex justify-between text-sm">
                       <span class="text-muted-foreground">Typ:</span>
-                      <span class="font-medium">{{ getRewardTypeLabel(reward.rewardType) }}</span>
+                      <span class="font-medium">{{ getRewardTypeLabel(reward.rewardType || 'discount_fixed') }}</span>
                     </div>
                     <div class="flex justify-between text-sm">
                       <span class="text-muted-foreground">Wartość:</span>
@@ -1817,18 +1776,6 @@ export class AdminComponent implements OnInit {
   loyaltyRewards$: Observable<LoyaltyReward[]>;
   showRewardModal: boolean = false;
   editingReward: LoyaltyReward | null = null;
-  
-  loyaltyProgramForm: {
-    name: string;
-    description: string;
-    pointsPerZloty: number;
-    isActive: boolean;
-  } = {
-    name: '',
-    description: '',
-    pointsPerZloty: 1,
-    isActive: true
-  };
 
   rewardForm: {
     name: string;
@@ -2654,39 +2601,9 @@ export class AdminComponent implements OnInit {
     this.apiService.getLoyaltyProgram().subscribe({
       next: (program) => {
         this.loyaltyProgram = program;
-        if (program) {
-          this.loyaltyProgramForm = {
-            name: program.name,
-            description: program.description,
-            pointsPerZloty: program.pointsPerZloty,
-            isActive: program.isActive
-          };
-        }
       },
       error: (err) => {
         console.error('Error loading loyalty program:', err);
-      }
-    });
-  }
-
-  saveLoyaltyProgram(event: Event): void {
-    event.preventDefault();
-    
-    const programData: InsertLoyaltyProgram = {
-      name: this.loyaltyProgramForm.name,
-      description: this.loyaltyProgramForm.description,
-      pointsPerZloty: this.loyaltyProgramForm.pointsPerZloty,
-      isActive: this.loyaltyProgramForm.isActive
-    };
-
-    this.apiService.createOrUpdateLoyaltyProgram(programData).subscribe({
-      next: (program) => {
-        this.loyaltyProgram = program;
-        alert('Konfiguracja programu lojalnościowego została zapisana');
-      },
-      error: (err) => {
-        console.error('Error saving loyalty program:', err);
-        alert('Błąd podczas zapisywania konfiguracji');
       }
     });
   }
@@ -2698,10 +2615,10 @@ export class AdminComponent implements OnInit {
       this.rewardForm = {
         name: reward.name,
         description: reward.description,
-        pointsCost: reward.pointsCost,
-        rewardType: reward.rewardType,
-        rewardValue: reward.rewardValue,
-        isActive: reward.isActive,
+        pointsCost: reward.pointsCost || 100,
+        rewardType: reward.rewardType || 'discount_percentage',
+        rewardValue: reward.rewardValue || 0,
+        isActive: reward.isActive !== undefined ? reward.isActive : true,
         image: reward.image,
         validUntilString: reward.validUntil ? new Date(reward.validUntil).toISOString().split('T')[0] : undefined,
         usageLimit: reward.usageLimit || undefined
@@ -2795,17 +2712,18 @@ export class AdminComponent implements OnInit {
   }
 
   formatRewardValue(reward: LoyaltyReward): string {
+    const value = reward.rewardValue || 0;
     switch (reward.rewardType) {
       case 'discount_percentage':
-        return `${reward.rewardValue}%`;
+        return `${value}%`;
       case 'discount_fixed':
-        return `${reward.rewardValue} PLN`;
+        return `${value} PLN`;
       case 'free_shipping':
         return 'Darmowa dostawa';
       case 'free_product':
-        return `Produkt #${reward.rewardValue}`;
+        return `Produkt #${value}`;
       default:
-        return reward.rewardValue.toString();
+        return value.toString();
     }
   }
 }

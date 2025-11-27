@@ -68,3 +68,21 @@ class UserProfileView(generics.RetrieveAPIView):
         Zwraca obiekt użytkownika, który wysyła to żądanie.
         """
         return self.request.user
+
+
+class UserLoyaltyPointsView(generics.GenericAPIView):
+    """
+    API endpoint do pobierania punktów lojalnościowych zalogowanego użytkownika.
+    
+    GET /api/v1/users/loyalty-points/
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        return Response({
+            "user_id": user.id,
+            "email": user.email,
+            "available_points": user.loyalty_points,
+            "total_points_earned": user.loyalty_points  # Możesz rozszerzyć o historię
+        }, status=status.HTTP_200_OK)

@@ -1,6 +1,6 @@
 # promotions/serializers.py
 from rest_framework import serializers
-from .models import DiscountCoupon, LoyaltyReward
+from .models import DiscountCoupon, LoyaltyReward, RedeemedReward
 
 
 class LoyaltyRewardSerializer(serializers.ModelSerializer):
@@ -8,7 +8,17 @@ class LoyaltyRewardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LoyaltyReward
-        fields = ['id', 'points_required', 'reward_value', 'is_percentage', 'description', 'active']
+        fields = ['id', 'name', 'points_required', 'reward_value', 'is_percentage', 'description', 'active', 'created_at']
+        read_only_fields = ['created_at']
+
+
+class RedeemedRewardSerializer(serializers.ModelSerializer):
+    """Serializer dla zrealizowanych nagród."""
+    
+    class Meta:
+        model = RedeemedReward
+        fields = ['id', 'reward_name', 'points_spent', 'coupon_code', 'redeemed_at']
+        read_only_fields = ['id', 'redeemed_at']
 
 
 class DiscountCouponSerializer(serializers.ModelSerializer):
