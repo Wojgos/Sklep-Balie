@@ -8,13 +8,18 @@ class LoyaltyRewardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LoyaltyReward
-        fields = ['id', 'name', 'points_required', 'reward_value', 'is_percentage', 'description', 'active', 'created_at']
+        fields = ['id', 'name', 'points_required', 'reward_value', 'is_percentage', 'description', 'active',
+                  'created_at']
         read_only_fields = ['created_at']
+
+
+class RedeemRewardInputSerializer(serializers.Serializer):
+    reward_id = serializers.IntegerField(required=True)
 
 
 class RedeemedRewardSerializer(serializers.ModelSerializer):
     """Serializer dla zrealizowanych nagród."""
-    
+
     class Meta:
         model = RedeemedReward
         fields = ['id', 'reward_name', 'points_spent', 'coupon_code', 'redeemed_at']

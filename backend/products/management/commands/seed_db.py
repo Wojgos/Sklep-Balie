@@ -6,6 +6,8 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from faker import Faker
 from django.contrib.sites.models import Site
+from django.conf import settings
+from promotions.models import LoyaltyReward
 
 # --- IMPORTUJEMY WSZYSTKIE MODELE ---
 from products.models import (
@@ -42,10 +44,14 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         amount = options['amount']
 
-        site = Site.objects.get_current()
-        site.domain = 'localhost:4200'
-        site.name = 'Balie Ogrodowe Sklep'
-        site.save()
+        try:
+            site = Site.objects.get(id=settings.SITE_ID)
+            site.domain = 'localhost:4200'
+            site.name = 'Balie Ogrodowe Sklep'
+            site.save()
+            self.stdout.write(self.style.SUCCESS(f'  Domena ustawiona na: {site.domain}'))
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f'  Nie udało się ustawić domeny: {e}'))
 
         self.stdout.write(self.style.WARNING(
             'Rozpoczynanie czyszczenia starych danych (Użytkownicy ZOSTANĄ)...'
@@ -76,6 +82,8 @@ class Command(BaseCommand):
 
         # 5. Stwórz losowe zamówienia dla `anna_nowak`
         self._create_orders(users['anna_nowak'], variants)
+
+        self._create_loyalty_rewards()
 
         self.stdout.write(self.style.SUCCESS(
             f'Baza danych została pomyślnie wypełniona {amount} produktami!'
@@ -149,6 +157,22 @@ class Command(BaseCommand):
                 'is_superuser': False
             }
         )
+
+        if not User.objects.filter(username='anna_nowak').exists():
+            User.objects.create_user(
+                username='anna_nowak',
+                email='nowy_uzytkownik@przyklad.pl',
+                password='BardzoSilneHaslo123!',
+                first_name='Anna',
+                last_name='Nowak',
+                loyalty_points=10000  # <--- DODAJEMY 10 000 PUNKTÓW NA START
+            )
+        else:
+            # Opcjonalnie: Jeśli Anna już istnieje (bo np. nie czyściliśmy bazy),
+            # możemy jej zaktualizować punkty, żeby mieć pewność.
+            anna = User.objects.get(username='anna_nowak')
+            anna.loyalty_points = 10000
+            anna.save()
 
         if tester_created:
             tester_user.set_password('BardzoSilneHaslo123!')
@@ -313,3 +337,27 @@ class Command(BaseCommand):
             OrderItem.objects.bulk_create(items_to_create)
             order.total_price = total_price
             order.save(update_fields=['total_price'])
+
+    def _create_loyalty_rewards(self):
+        self.stdout.write('  Tworzenie nagród lojalnościowych...')
+        if LoyaltyReward.objects.exists():
+            return
+
+        LoyaltyReward.objects.create(
+            points_required=500,
+            reward_value=25.00,
+            is_percentage=False,
+            description="Rabat 25 zł na start"
+        )
+        LoyaltyReward.objects.create(
+            points_required=1000,
+            reward_value=60.00,
+            is_percentage=False,
+            description="Zniżka 60 zł dla stałego klienta"
+        )
+        LoyaltyReward.objects.create(
+            points_required=5000,
+            reward_value=15.00,
+            is_percentage=True,
+            description="Złoty status: -15% na wszystko"
+        )

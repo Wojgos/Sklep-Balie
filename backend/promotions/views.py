@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 from EStore.permissions import IsAdminUser
 from users.models import CustomUser as User
 from .models import DiscountCoupon, LoyaltyReward
-from .serializers import DiscountCouponSerializer, LoyaltyRewardSerializer
+from .serializers import DiscountCouponSerializer, LoyaltyRewardSerializer, RedeemRewardInputSerializer
 
 
 class CouponAdminViewSet(viewsets.ModelViewSet):
@@ -73,37 +73,46 @@ class RedeemLoyaltyPointsView(APIView):
     Body: { "offer_id": 1 }
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = RedeemRewardInputSerializer
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
+        # 1. Używamy serializera do pobrania i walidacji danych
+        serializer = self.serializer_class(data=request.data)
+
+        # Jeśli klient nie wysłał JSONa lub wysłał zły, tu dostanie 400 Bad Request
+        # z jasnym komunikatem od Django
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Pobieramy czyste dane (teraz mamy pewność, że reward_id tam jest i jest liczbą)
+        reward_id = serializer.validated_data['reward_id']
         user = request.user
-        reward_id = request.data.get('reward_id')
 
-        if not reward_id:
-            return Response({"error": "Musisz podać ID nagrody (reward_id)."}, status=status.HTTP_400_BAD_REQUEST)
+        # --- DALEJ LOGIKA BEZ ZMIAN ---
 
-        # 1. Pobierz nagrodę z bazy danych
+        # 2. Pobierz nagrodę z bazy danych
+        # (get_object_or_404 rzuci 404, jeśli nagroda o tym ID nie istnieje)
         reward = get_object_or_404(LoyaltyReward, id=reward_id, active=True)
 
-        # 2. Zablokuj użytkownika do edycji (zapobiega race condition)
+        # 3. Zablokuj użytkownika
         user_locked = User.objects.select_for_update().get(id=user.id)
 
-        # 3. Sprawdź punkty
+        # 4. Sprawdź punkty
         if user_locked.loyalty_points < reward.points_required:
             return Response(
                 {
-                    "error": f"Masz za mało punktów. Wymagane: {reward.points_required}, "
-                             f"Posiadane: {user_locked.loyalty_points}"},
+                    "error": f"Masz za mało punktów. Wymagane: {reward.points_required}, Posiadane: {user_locked.loyalty_points}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 4. Odejmij punkty
+        # 5. Odejmij punkty
         user_locked.loyalty_points -= reward.points_required
         user_locked.save(update_fields=['loyalty_points'])
 
-        # 5. Wygeneruj kupon na podstawie danych z nagrody
+        # 6. Wygeneruj kupon
         new_code = f"LOYALTY-{user.id}-{uuid.uuid4().hex[:6].upper()}"
-        valid_to_date = timezone.now() + datetime.timedelta(days=90)  # Kupon ważny 90 dni
+        valid_to_date = timezone.now() + datetime.timedelta(days=90)
 
         new_coupon = DiscountCoupon.objects.create(
             code=new_code,
@@ -111,26 +120,14 @@ class RedeemLoyaltyPointsView(APIView):
             valid_to=valid_to_date,
             value=reward.reward_value,
             is_percentage=reward.is_percentage,
-            usage_limit=1,  # Jednorazowy
+            usage_limit=1,
             active=True
         )
 
-        # 6. Zapisz historię realizacji nagrody
-        from .models import RedeemedReward
-        RedeemedReward.objects.create(
-            user=user_locked,
-            reward=reward,
-            reward_name=reward.name,
-            points_spent=reward.points_required,
-            coupon_code=new_code
-        )
-
-        # 7. Zwróć kupon
+        # 7. Zwróć odpowiedź
         return Response({
             "message": "Punkty wymienione pomyślnie!",
             "coupon_code": new_code,
-            "points_spent": reward.points_required,
-            "reward_name": reward.name,
             "points_remaining": user_locked.loyalty_points,
             "coupon_details": DiscountCouponSerializer(new_coupon).data
         }, status=status.HTTP_201_CREATED)
