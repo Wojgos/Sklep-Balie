@@ -5,6 +5,7 @@ from decimal import Decimal
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from faker import Faker
+from django.contrib.sites.models import Site
 
 # --- IMPORTUJEMY WSZYSTKIE MODELE ---
 from products.models import (
@@ -40,6 +41,11 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         amount = options['amount']
+
+        site = Site.objects.get_current()
+        site.domain = 'localhost:4200'
+        site.name = 'Balie Ogrodowe Sklep'
+        site.save()
 
         self.stdout.write(self.style.WARNING(
             'Rozpoczynanie czyszczenia starych danych (Użytkownicy ZOSTANĄ)...'
