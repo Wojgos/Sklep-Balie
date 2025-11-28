@@ -671,7 +671,7 @@ export class ApiService {
     const firstName = nameParts[0] || order.customerName;
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName; // Use firstName as fallback
     
-    const payload = {
+    const payload: any = {
       first_name: firstName,
       last_name: lastName,
       email: order.email,
@@ -685,6 +685,10 @@ export class ApiService {
         quantity: item.quantity
       }))
     };
+
+    if (order.couponCode?.trim()) {
+      payload.coupon_code = order.couponCode.trim();
+    }
 
     console.log('📦 Sending order to backend:', payload);
 
@@ -1430,7 +1434,7 @@ export class ApiService {
         pointsSpent: r.points_spent,
         code: r.coupon_code,
         couponCode: r.coupon_code,
-        isUsed: false,
+        isUsed: !!r.is_used,
         createdAt: new Date(r.redeemed_at),
         redeemedAt: r.redeemed_at
       } as RedeemedReward)))

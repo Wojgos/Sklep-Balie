@@ -63,6 +63,15 @@ class DiscountCoupon(models.Model):
         verbose_name="Kod kuponu"
     )
 
+    user = models.ForeignKey(
+        'users.CustomUser',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='loyalty_coupons',
+        verbose_name="Właściciel kuponu"
+    )
+
     # Kiedy kupon staje się aktywny
     valid_from = models.DateTimeField(
         default=timezone.now,

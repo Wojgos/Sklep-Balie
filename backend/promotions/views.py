@@ -1,19 +1,20 @@
 # promotions/views.py
 import datetime
 import uuid
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from EStore.permissions import IsAdminUser
 from users.models import CustomUser as User
-from .models import DiscountCoupon, LoyaltyReward
+from .models import DiscountCoupon, LoyaltyReward, RedeemedReward
 from .serializers import DiscountCouponSerializer, LoyaltyRewardSerializer, RedeemRewardInputSerializer
 
 
@@ -121,13 +122,25 @@ class RedeemLoyaltyPointsView(APIView):
             value=reward.reward_value,
             is_percentage=reward.is_percentage,
             usage_limit=1,
-            active=True
+            active=True,
+            user=user_locked
         )
 
-        # 7. Zwróć odpowiedź
+        # 7. Zapisz historię realizacji
+        RedeemedReward.objects.create(
+            user=user_locked,
+            reward=reward,
+            reward_name=reward.name,
+            points_spent=reward.points_required,
+            coupon_code=new_code
+        )
+
+        # 8. Zwróć odpowiedź
         return Response({
             "message": "Punkty wymienione pomyślnie!",
             "coupon_code": new_code,
+            "reward_name": reward.name,
+            "points_spent": reward.points_required,
             "points_remaining": user_locked.loyalty_points,
             "coupon_details": DiscountCouponSerializer(new_coupon).data
         }, status=status.HTTP_201_CREATED)
@@ -140,7 +153,8 @@ class ValidateCouponView(APIView):
     POST /api/v1/promotions/coupons/validate/
     Body: { "code": "LOYALTY-1-ABC123", "cart_total": 150.00 }
     """
-    permission_classes = []  # Allow anyone to validate coupons
+    permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request, *args, **kwargs):
         code = request.data.get('code', '').strip()
@@ -153,9 +167,12 @@ class ValidateCouponView(APIView):
             return Response({"error": "Wartość koszyka (cart_total) jest wymagana."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            cart_total = float(cart_total)
-        except (ValueError, TypeError):
+            cart_total = Decimal(str(cart_total))
+        except (InvalidOperation, TypeError, ValueError):
             return Response({"error": "Nieprawidłowa wartość koszyka."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if cart_total < 0:
+            return Response({"error": "Wartość koszyka nie może być ujemna."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Znajdź kupon
         try:
@@ -175,20 +192,24 @@ class ValidateCouponView(APIView):
             return Response({"error": "Ten kupon został już wykorzystany."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Oblicz zniżkę
+        coupon_value = coupon.value if isinstance(coupon.value, Decimal) else Decimal(str(coupon.value))
+
         if coupon.is_percentage:
-            discount_amount = (cart_total * coupon.value) / 100
+            discount_amount = (cart_total * coupon_value) / Decimal('100')
         else:
-            discount_amount = coupon.value
+            discount_amount = coupon_value
 
         # Upewnij się, że zniżka nie przekracza wartości koszyka
         discount_amount = min(discount_amount, cart_total)
+        discount_amount = discount_amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        final_total = (cart_total - discount_amount).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
         return Response({
             "valid": True,
-            "discount_amount": round(discount_amount, 2),
+            "discount_amount": float(discount_amount),
             "is_percentage": coupon.is_percentage,
-            "value": coupon.value,
-            "final_total": round(cart_total - discount_amount, 2)
+            "value": float(coupon_value),
+            "final_total": float(final_total)
         }, status=status.HTTP_200_OK)
 
 

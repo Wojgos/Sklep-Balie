@@ -142,7 +142,7 @@ import { LoyaltyProgram, LoyaltyReward, UserLoyaltyPoints, RedeemedReward } from
               <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-2">
-                    <h3 class="text-lg font-semibold">{{ redemption.reward.name }}</h3>
+                    <h3 class="text-lg font-semibold">{{ redemption.rewardName || redemption.reward?.name || 'Nagroda' }}</h3>
                     <span
                       class="px-3 py-1 rounded-full text-xs font-medium"
                       [ngClass]="redemption.isUsed ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800'"
@@ -150,7 +150,9 @@ import { LoyaltyProgram, LoyaltyReward, UserLoyaltyPoints, RedeemedReward } from
                       {{ redemption.isUsed ? 'Wykorzystane' : 'Do użycia' }}
                     </span>
                   </div>
-                  <p class="text-sm text-muted-foreground mb-3">{{ redemption.reward.description }}</p>
+                  <p class="text-sm text-muted-foreground mb-3" *ngIf="redemption.reward?.description">
+                    {{ redemption.reward?.description }}
+                  </p>
 
                   <div class="grid grid-cols-2 gap-4 text-sm">
                     <div>

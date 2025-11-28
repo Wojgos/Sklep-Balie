@@ -167,6 +167,8 @@ export interface InsertOrder {
   postalCode: string;
   totalPrice: string;
   notes?: string;
+  couponCode?: string;
+  discountAmount?: number;
 }
 
 // Order Item models
@@ -399,7 +401,7 @@ export interface RedeemedReward {
   userId: string;
   rewardId: string;
   rewardName?: string; // Backend field
-  reward: LoyaltyReward;
+  reward?: LoyaltyReward;
   pointsSpent: number;
   code?: string; // Kod kuponu jeśli applicable
   couponCode?: string; // Backend response field

@@ -20,10 +20,18 @@ class RedeemRewardInputSerializer(serializers.Serializer):
 class RedeemedRewardSerializer(serializers.ModelSerializer):
     """Serializer dla zrealizowanych nagród."""
 
+    is_used = serializers.SerializerMethodField()
+
     class Meta:
         model = RedeemedReward
-        fields = ['id', 'reward_name', 'points_spent', 'coupon_code', 'redeemed_at']
-        read_only_fields = ['id', 'redeemed_at']
+        fields = ['id', 'reward_name', 'points_spent', 'coupon_code', 'redeemed_at', 'is_used']
+        read_only_fields = ['id', 'redeemed_at', 'is_used']
+
+    def get_is_used(self, obj):
+        coupon = DiscountCoupon.objects.filter(code=obj.coupon_code).only('usage_count').first()
+        if not coupon:
+            return False
+        return coupon.usage_count >= coupon.usage_limit if coupon.usage_limit else coupon.usage_count > 0
 
 
 class DiscountCouponSerializer(serializers.ModelSerializer):
@@ -31,7 +39,7 @@ class DiscountCouponSerializer(serializers.ModelSerializer):
         model = DiscountCoupon
         fields = (
             'id', 'code', 'valid_from', 'valid_to', 'value',
-            'is_percentage', 'usage_limit', 'usage_count', 'active'
+            'is_percentage', 'usage_limit', 'usage_count', 'active', 'user'
         )
         # Liczba użyć jest tylko do odczytu dla admina
-        read_only_fields = ('usage_count',)
+        read_only_fields = ('usage_count', 'user')
