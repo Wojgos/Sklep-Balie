@@ -4,6 +4,17 @@ import { Observable } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { LoyaltyProgram, LoyaltyReward, UserLoyaltyPoints, RedeemedReward } from '../../models';
 
+type ModalType = 'confirm' | 'success' | 'code' | 'error';
+
+interface ModalState {
+  open: boolean;
+  type?: ModalType;
+  title?: string;
+  message?: string;
+  couponCode?: string;
+  expiryText?: string | null;
+}
+
 @Component({
   selector: 'bg-loyalty',
   standalone: true,
@@ -177,9 +188,9 @@ import { LoyaltyProgram, LoyaltyReward, UserLoyaltyPoints, RedeemedReward } from
                 <div *ngIf="!redemption.isUsed" class="text-right">
                   <button
                     class="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold"
-                    (click)="copyCode(redemption.code)"
+                    (click)="showCouponCodeModal(redemption.couponCode || redemption.code, redemption.rewardName || redemption.reward?.name)"
                   >
-                    Kopiuj kod
+                    Pokaż kod
                   </button>
                 </div>
               </div>
@@ -187,6 +198,94 @@ import { LoyaltyProgram, LoyaltyReward, UserLoyaltyPoints, RedeemedReward } from
           </div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- Custom Modal -->
+    <div *ngIf="modalState.open" class="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div class="absolute inset-0 bg-black/50" (click)="closeModal()"></div>
+  <div class="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md p-6 z-10">
+        <button
+          class="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
+          (click)="closeModal()"
+          aria-label="Zamknij"
+        >
+          ✕
+        </button>
+        <h3 class="text-xl font-semibold mb-2">{{ modalState.title }}</h3>
+        <p class="text-sm text-muted-foreground mb-4" *ngIf="modalState.message">{{ modalState.message }}</p>
+
+        <div *ngIf="modalState.couponCode" class="mb-4">
+          <div class="font-mono text-lg tracking-wide bg-muted rounded-lg px-4 py-3 text-center border border-border">
+            {{ modalState.couponCode }}
+          </div>
+          <p *ngIf="modalState.expiryText" class="text-xs text-muted-foreground mt-2">
+            Ważny do: {{ modalState.expiryText }}
+          </p>
+          <p *ngIf="copyFeedback" class="text-xs mt-2" [ngClass]="{'text-green-600': copyFeedbackSuccess, 'text-red-500': !copyFeedbackSuccess}">
+            {{ copyFeedback }}
+          </p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:justify-end gap-3 mt-6" [ngSwitch]="modalState.type">
+          <ng-container *ngSwitchCase="'confirm'">
+            <button
+              class="px-4 py-2 rounded-lg border border-border text-sm"
+              (click)="closeModal()"
+              [disabled]="modalLoading"
+            >
+              Anuluj
+            </button>
+            <button
+              class="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
+              (click)="confirmRedeemReward()"
+              [disabled]="modalLoading"
+            >
+              {{ modalLoading ? 'Przetwarzanie...' : 'Potwierdź' }}
+            </button>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'success'">
+            <button
+              class="px-4 py-2 rounded-lg border border-border text-sm"
+              *ngIf="modalState.couponCode"
+              (click)="copyCouponToClipboard(modalState.couponCode)"
+            >
+              Kopiuj kod
+            </button>
+            <button
+              class="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
+              (click)="closeModal()"
+            >
+              Zamknij
+            </button>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'code'">
+            <button
+              class="px-4 py-2 rounded-lg border border-border text-sm"
+              *ngIf="modalState.couponCode"
+              (click)="copyCouponToClipboard(modalState.couponCode)"
+            >
+              Kopiuj kod
+            </button>
+            <button
+              class="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
+              (click)="closeModal()"
+            >
+              Zamknij
+            </button>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'error'">
+            <button
+              class="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold w-full"
+              (click)="closeModal()"
+            >
+              Zamknij
+            </button>
+          </ng-container>
+        </div>
       </div>
     </div>
   `,
@@ -199,6 +298,11 @@ export class LoyaltyComponent implements OnInit {
   userPoints: UserLoyaltyPoints | null = null;
   availableRewards$: Observable<LoyaltyReward[]>;
   redeemedRewards$: Observable<RedeemedReward[]>;
+  modalState: ModalState = { open: false };
+  pendingReward: LoyaltyReward | null = null;
+  modalLoading = false;
+  copyFeedback = '';
+  copyFeedbackSuccess = true;
 
   constructor(private apiService: ApiService) {
     this.availableRewards$ = this.apiService.getLoyaltyOffers();
@@ -238,23 +342,53 @@ export class LoyaltyComponent implements OnInit {
 
   redeemReward(reward: LoyaltyReward): void {
     if (!this.canAffordReward(reward)) {
-      alert('Nie masz wystarczającej liczby punktów!');
+      this.openModal({
+        type: 'error',
+        title: 'Za mało punktów',
+        message: 'Zgromadź więcej punktów, aby odebrać tę nagrodę.'
+      });
+      return;
+    }
+    this.pendingReward = reward;
+    this.openModal({
+      type: 'confirm',
+      title: 'Potwierdź wymianę',
+      message: `Czy na pewno chcesz wymienić ${reward.pointsCost} punktów na ${reward.name}?`
+    });
+  }
+
+  confirmRedeemReward(): void {
+    if (!this.pendingReward || this.modalLoading) {
       return;
     }
 
-    if (!confirm(`Czy na pewno chcesz wymienić ${reward.pointsCost} punktów na ${reward.name}?`)) {
-      return;
-    }
+    this.modalLoading = true;
+    const reward = this.pendingReward;
 
     this.apiService.redeemReward(reward.id).subscribe({
       next: (redemption) => {
-        if (redemption.couponDetails && redemption.couponCode) {
-          const expiryDate = new Date(redemption.couponDetails.validTo);
-          alert(`Gratulacje! Otrzymałeś nagrodę: ${reward.name}\n\nKod kuponu: ${redemption.couponCode}\nWażny do: ${expiryDate.toLocaleDateString('pl-PL')}\n\nKod został skopiowany do schowka!`);
-          navigator.clipboard.writeText(redemption.couponCode);
-        } else {
-          alert(`Gratulacje! Otrzymałeś nagrodę: ${reward.name}`);
+        this.modalLoading = false;
+        this.pendingReward = null;
+
+        const couponCode = redemption.couponCode || redemption.code;
+  const couponDetails: Record<string, any> | undefined = redemption.couponDetails as Record<string, any> | undefined;
+  const validToRaw = couponDetails ? (couponDetails['valid_to'] ?? couponDetails['validTo']) : null;
+        const expiryText = validToRaw ? new Date(validToRaw).toLocaleDateString('pl-PL') : null;
+
+        this.openModal({
+          type: 'success',
+          title: 'Nagroda odebrana! 🎉',
+          message: redemption.rewardName
+            ? `Kod dla nagrody ${redemption.rewardName}`
+            : `Kod dla nagrody ${reward.name}`,
+          couponCode,
+          expiryText
+        });
+
+        if (couponCode) {
+          this.copyCouponToClipboard(couponCode, true);
         }
+
         this.loadData();
         this.redeemedRewards$ = this.apiService.getMyRedeemedRewards();
         this.activeTab = 'myRewards';
@@ -262,7 +396,12 @@ export class LoyaltyComponent implements OnInit {
       error: (err) => {
         console.error('Error redeeming reward:', err);
         const errorMsg = err.error?.error || 'Błąd podczas wymiany nagrody';
-        alert(errorMsg);
+        this.modalLoading = false;
+        this.openModal({
+          type: 'error',
+          title: 'Nie udało się wymienić nagrody',
+          message: errorMsg
+        });
       }
     });
   }
@@ -275,13 +414,56 @@ export class LoyaltyComponent implements OnInit {
     }
   }
 
-  copyCode(code?: string): void {
-    if (!code) return;
-    navigator.clipboard.writeText(code).then(() => {
-      alert('Kod kuponu został skopiowany do schowka!');
-    }).catch(err => {
-      console.error('Error copying code:', err);
-      alert('Nie udało się skopiować kodu');
+  showCouponCodeModal(code?: string, rewardName?: string): void {
+    if (!code) {
+      return;
+    }
+
+    this.openModal({
+      type: 'code',
+      title: rewardName ? `Kod dla ${rewardName}` : 'Kod kuponu',
+      message: 'Skopiuj kod i wykorzystaj go podczas składania zamówienia.',
+      couponCode: code,
+      expiryText: null
     });
+  }
+
+  copyCouponToClipboard(code?: string, silent = false): void {
+    if (!code || typeof navigator === 'undefined' || !navigator.clipboard) {
+      if (!silent) {
+        this.copyFeedbackSuccess = false;
+        this.copyFeedback = 'Kopiowanie jest niedostępne w tej przeglądarce.';
+      }
+      return;
+    }
+
+    navigator.clipboard.writeText(code)
+      .then(() => {
+        this.copyFeedbackSuccess = true;
+        this.copyFeedback = 'Kod został skopiowany do schowka.';
+      })
+      .catch(() => {
+        this.copyFeedbackSuccess = false;
+        this.copyFeedback = 'Nie udało się skopiować kodu. Skopiuj go ręcznie.';
+      });
+
+    if (silent) {
+      this.copyFeedbackSuccess = true;
+      this.copyFeedback = 'Kod został automatycznie skopiowany do schowka.';
+    }
+  }
+
+  closeModal(): void {
+    this.modalState = { open: false };
+    this.pendingReward = null;
+    this.modalLoading = false;
+    this.copyFeedback = '';
+    this.copyFeedbackSuccess = true;
+  }
+
+  private openModal(state: Partial<ModalState>): void {
+    this.copyFeedback = '';
+    this.copyFeedbackSuccess = true;
+    this.modalState = { open: true, ...state };
   }
 }
