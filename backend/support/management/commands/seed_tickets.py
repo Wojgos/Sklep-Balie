@@ -17,7 +17,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write('Starting to seed support tickets...')
 
-        # Get users
         try:
             admin = User.objects.filter(is_staff=True).first()
             customer = User.objects.filter(is_staff=False).first()
@@ -32,13 +31,11 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f'Error getting users: {e}'))
             return
 
-        # Clear existing tickets if any
         existing_count = Ticket.objects.count()
         if existing_count > 0:
             self.stdout.write(f'Found {existing_count} existing tickets. Deleting...')
             Ticket.objects.all().delete()
 
-        # Create sample tickets
         tickets_data = [
             {
                 'subject': 'Problem z płatnością',
@@ -46,7 +43,8 @@ class Command(BaseCommand):
                 'messages': [
                     {
                         'author': customer,
-                        'body': 'Witam, mam problem z dokonaniem płatności. Po kliknięciu "Zapłać" nic się nie dzieje. Próbowałem już kilka razy.',
+                        'body': 'Witam, mam problem z dokonaniem płatności. Po kliknięciu "Zapłać" nic się nie '
+                                'dzieje. Próbowałem już kilka razy.',
                         'created_at': timezone.now() - timedelta(hours=2)
                     }
                 ]
@@ -57,12 +55,14 @@ class Command(BaseCommand):
                 'messages': [
                     {
                         'author': customer,
-                        'body': 'Dzień dobry, zamówiłem produkt 3 dni temu (zamówienie #1234). Kiedy mogę spodziewać się przesyłki?',
+                        'body': 'Dzień dobry, zamówiłem produkt 3 dni temu (zamówienie #1234). Kiedy mogę spodziewać '
+                                'się przesyłki?',
                         'created_at': timezone.now() - timedelta(days=1, hours=5)
                     },
                     {
                         'author': admin,
-                        'body': 'Dzień dobry! Sprawdziłem Pana zamówienie. Przesyłka została wysłana wczoraj i powinna dotrzeć w ciągu 1-2 dni roboczych. Numer śledzenia przesyłki: 1234567890.',
+                        'body': 'Dzień dobry! Sprawdziłem Pana zamówienie. Przesyłka została wysłana wczoraj i '
+                                'powinna dotrzeć w ciągu 1-2 dni roboczych. Numer śledzenia przesyłki: 1234567890.',
                         'created_at': timezone.now() - timedelta(days=1, hours=2)
                     },
                     {
@@ -78,12 +78,15 @@ class Command(BaseCommand):
                 'messages': [
                     {
                         'author': customer,
-                        'body': 'Otrzymany produkt różni się od tego na zdjęciu. Kolor jest zupełnie inny niż w opisie. Chciałbym zwrócić produkt.',
+                        'body': 'Otrzymany produkt różni się od tego na zdjęciu. Kolor jest zupełnie inny niż w '
+                                'opisie. Chciałbym zwrócić produkt.',
                         'created_at': timezone.now() - timedelta(hours=8)
                     },
                     {
                         'author': admin,
-                        'body': 'Bardzo przepraszamy za niedogodności. Oczywiście może Pan zwrócić produkt. Proszę wypełnić formularz zwrotu dostępny w linku: [link]. Po otrzymaniu zwrotu natychmiast zwrócimy pieniądze.',
+                        'body': 'Bardzo przepraszamy za niedogodności. Oczywiście może Pan zwrócić produkt. Proszę '
+                                'wypełnić formularz zwrotu dostępny w linku: [link]. Po otrzymaniu zwrotu natychmiast '
+                                'zwrócimy pieniądze.',
                         'created_at': timezone.now() - timedelta(hours=6)
                     }
                 ]
@@ -94,12 +97,14 @@ class Command(BaseCommand):
                 'messages': [
                     {
                         'author': customer,
-                        'body': 'Chciałem podzielić się pozytywną opinią. Zamówienie dotarło szybko, produkt świetnej jakości. Bardzo polecam!',
+                        'body': 'Chciałem podzielić się pozytywną opinią. Zamówienie dotarło szybko, produkt świetnej '
+                                'jakości. Bardzo polecam!',
                         'created_at': timezone.now() - timedelta(days=3)
                     },
                     {
                         'author': admin,
-                        'body': 'Bardzo dziękujemy za tak miłe słowa! To dla nas ogromna motywacja do dalszej pracy. Zapraszamy ponownie!',
+                        'body': 'Bardzo dziękujemy za tak miłe słowa! To dla nas ogromna motywacja do dalszej pracy. '
+                                'Zapraszamy ponownie!',
                         'created_at': timezone.now() - timedelta(days=3, hours=-2)
                     }
                 ]
@@ -115,7 +120,9 @@ class Command(BaseCommand):
                     },
                     {
                         'author': admin,
-                        'body': 'Dziękujemy za lojalność! Tak, mamy program lojalnościowy. Za każde zamówienie zbiera Pan punkty, które można wymienić na zniżki. Dodatkowo wysłałem Panu na email specjalny kod rabatowy 15% na następne zakupy.',
+                        'body': 'Dziękujemy za lojalność! Tak, mamy program lojalnościowy. Za każde zamówienie zbiera '
+                                'Pan punkty, które można wymienić na zniżki. Dodatkowo wysłałem Panu na email '
+                                'specjalny kod rabatowy 15% na następne zakupy.',
                         'created_at': timezone.now() - timedelta(days=5, hours=-3)
                     },
                     {
@@ -132,14 +139,12 @@ class Command(BaseCommand):
 
         for ticket_data in tickets_data:
             try:
-                # Create ticket
                 ticket = Ticket.objects.create(
                     user=customer,
                     subject=ticket_data['subject'],
                     status=ticket_data['status']
                 )
                 
-                # Set created_at for the first message's time
                 if ticket_data['messages']:
                     ticket.created_at = ticket_data['messages'][0]['created_at']
                     ticket.updated_at = ticket_data['messages'][-1]['created_at']
@@ -148,7 +153,6 @@ class Command(BaseCommand):
                 created_tickets += 1
                 self.stdout.write(f'  Created ticket: {ticket.subject}')
 
-                # Create messages
                 for msg_data in ticket_data['messages']:
                     message = TicketMessage.objects.create(
                         ticket=ticket,

@@ -1,8 +1,9 @@
-from rest_framework import generics, permissions, status
-from rest_framework.response import Response
 from dj_rest_auth.registration.views import RegisterView
 from django.db import transaction
-from .serializers import UserProfileSerializer, CustomRegisterSerializer
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
+
+from .serializers import UserProfileSerializer
 from .tasks import send_registration_confirmation_email_task
 
 
@@ -12,18 +13,13 @@ class CustomRegisterView(RegisterView):
     Nadpisuje domyślne zachowanie, aby wysyłać e-mail w tle (asynchronicznie).
     """
 
-    # Używa 'CustomRegisterSerializer' (zdefiniowanego w settings.py)
-
     def perform_create(self, serializer):
         """
         Nadpisuje domyślną metodę.
         Tworzy użytkownika (is_active=True) i zleca wysłanie e-maila.
         """
-        # Serializer.save() tworzy użytkownika z domyślnymi ustawieniami
-        # (is_active=True), co jest w porządku.
         user = serializer.save(self.request)
 
-        # Zleca zadanie wysłania e-maila do Celery
         try:
             transaction.on_commit(
                 lambda: send_registration_confirmation_email_task.delay(user.id)
@@ -43,9 +39,6 @@ class CustomRegisterView(RegisterView):
 
         headers = self.get_success_headers(serializer.data)
 
-        # Zwracamy prostą odpowiedź
-        # Użytkownik jest 'aktywny', ale 'niezweryfikowany',
-        # więc nie może się zalogować.
         return Response(
             {"detail": "Konto zostało pomyśtnie utworzone. Sprawdź e-mail, aby aktywować konto."},
             status=status.HTTP_201_CREATED,
@@ -61,7 +54,7 @@ class UserProfileView(generics.RetrieveAPIView):
     GET /api/v1/users/profile/
     """
     serializer_class = UserProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]  # Tylko dla zalogowanych
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
         """
@@ -84,5 +77,5 @@ class UserLoyaltyPointsView(generics.GenericAPIView):
             "user_id": user.id,
             "email": user.email,
             "available_points": user.loyalty_points,
-            "total_points_earned": user.loyalty_points  # Możesz rozszerzyć o historię
+            "total_points_earned": user.loyalty_points
         }, status=status.HTTP_200_OK)

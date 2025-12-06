@@ -61,13 +61,13 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
 
-    'dj_rest_auth',  # Logika logowania, resetu hasła itp.
+    'dj_rest_auth',
 
-    'django.contrib.sites',  # Wymagane przez allauth
+    'django.contrib.sites',
     'allauth',
-    'allauth.account',  # Główna logika kont
-    'allauth.socialaccount',  # Możemy dodać logowanie Google/FB później
-    'dj_rest_auth.registration',  # Logika rejestracji
+    'allauth.account',
+    'allauth.socialaccount',
+    'dj_rest_auth.registration',
     'django_filters',
     'django_elasticsearch_dsl',
     'promotions.apps.PromotionsConfig',
@@ -200,7 +200,7 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
-# Konfiguracja JWT (jak długo token jest ważny itp.)
+# --- Konfiguracja JWT ---
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
@@ -209,10 +209,9 @@ SIMPLE_JWT = {
 
 # --- USTAWIENIA DJ-REST-AUTH ---
 
-# Mówimy dj-rest-auth, aby używał JWT
 REST_AUTH = {
     'USE_JWT': True,
-    'JWT_AUTH_HTTPONLY': False,  # Pozwól frontendowi odczytać tokeny
+    'JWT_AUTH_HTTPONLY': False,
     'REGISTER_SERIALIZER': 'users.serializers.CustomRegisterSerializer',
     'LOGIN_SERIALIZER': 'users.serializers.CustomLoginSerializer',
     'USER_DETAILS_SERIALIZER': 'users.serializers.UserProfileSerializer',
@@ -230,7 +229,6 @@ MEDIA_URL = '/media/'
 
 ELASTICSEARCH_DSL = {
     'default': {
-        # Tu też
         'hosts': os.environ.get('ELASTICSEARCH_URL', 'http://localhost:9200')
     },
 }
@@ -244,9 +242,9 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Europe/Warsaw'
 CELERY_BEAT_SCHEDULE = {
     'check-low-stock-every-hour': {
-        'task': 'products.tasks.check_low_stock_levels',  # Ścieżka do naszego zadania
-        # 'schedule': crontab(minute='0', hour='*'), # Uruchom co pełną godzinę
-        'schedule': crontab(minute='*/1'),  # (Do testów: uruchom co 5 minut)
+        'task': 'products.tasks.check_low_stock_levels',
+        'schedule': crontab(minute='0', hour='*'),  # Uruchom co pełną godzinę
+        # 'schedule': crontab(minute='*/1'),  # (Do testów: uruchom co 5 minut)
     },
 }
 

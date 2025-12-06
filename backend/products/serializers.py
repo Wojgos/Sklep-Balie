@@ -1,4 +1,3 @@
-# products/serializers.py
 from rest_framework import serializers
 from .models import (
     Product, Category, ProductAttribute, AttributeValue,
@@ -74,14 +73,12 @@ class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     available_attributes = serializers.SerializerMethodField()
     
-    # Pola do zapisu (write-only) używane przez panel admina
     category_write = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(),
         source='category',
         write_only=True,
         required=False
     )
-    # Pola dla domyślnego wariantu (opcjonalne)
     price = serializers.DecimalField(max_digits=10, decimal_places=2, write_only=True, required=False)
     stock = serializers.IntegerField(write_only=True, required=False, default=0)
     image = serializers.ImageField(write_only=True, required=False, allow_null=True)
@@ -97,15 +94,12 @@ class ProductSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        # Wyciągamy dane dla wariantu
         price = validated_data.pop('price', None)
         stock = validated_data.pop('stock', 0)
         image_file = validated_data.pop('image', None)
         
-        # Tworzymy produkt
         product = Product.objects.create(**validated_data)
         
-        # Jeśli podano cenę, tworzymy domyślny wariant
         if price is not None:
             import uuid
             sku = f"SKU-{product.id}-{uuid.uuid4().hex[:8].upper()}"
@@ -119,7 +113,6 @@ class ProductSerializer(serializers.ModelSerializer):
                 available=True
             )
             
-            # Dodajemy zdjęcie jeśli podano (teraz jako plik)
             if image_file:
                 ProductImage.objects.create(
                     product=product,
@@ -132,19 +125,15 @@ class ProductSerializer(serializers.ModelSerializer):
         return product
     
     def update(self, instance, validated_data):
-        # Wyciągamy dane dla wariantu
         price = validated_data.pop('price', None)
         stock = validated_data.pop('stock', None)
         image_file = validated_data.pop('image', None)
         
-        # Aktualizujemy produkt
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         
-        # Aktualizujemy lub tworzymy domyślny wariant
         if price is not None or stock is not None or image_file is not None:
-            # Szukamy pierwszego wariantu lub tworzymy nowy
             variant = instance.variants.first()
             
             if not variant:
@@ -165,7 +154,6 @@ class ProductSerializer(serializers.ModelSerializer):
                     variant.stock = stock
                 variant.save()
             
-            # Aktualizujemy lub dodajemy zdjęcie (teraz jako plik)
             if image_file is not None:
                 main_image = ProductImage.objects.filter(
                     product=instance,
@@ -187,7 +175,6 @@ class ProductSerializer(serializers.ModelSerializer):
         return instance
 
     def get_available_attributes(self, instance):
-        # Jeśli produkt ma attributes_config (konfiguracje z panelu admina), użyj ich
         if instance.attributes_config:
             attributes_map = {}
             for attr_config in instance.attributes_config:
@@ -195,7 +182,6 @@ class ProductSerializer(serializers.ModelSerializer):
                 variants = attr_config.get('variants', [])
                 
                 if attr_name and variants:
-                    # Zbieramy nazwy wariantów (wartości)
                     values = [v.get('name') for v in variants if v.get('name')]
                     if values:
                         attributes_map[attr_name] = sorted(values)
@@ -203,7 +189,6 @@ class ProductSerializer(serializers.ModelSerializer):
             if attributes_map:
                 return attributes_map
         
-        # Fallback: pobierz z wariantów jeśli nie ma attributes_config
         attributes_map = {}
         variants = instance.variants.filter(available=True).prefetch_related('attributes__attribute')
 

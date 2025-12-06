@@ -1,4 +1,3 @@
-# products/tasks.py
 from celery import shared_task
 from django.db.models import F
 from django.conf import settings
@@ -7,6 +6,7 @@ from django.core.cache import cache
 from .models import ProductVariant
 
 ALERT_COOLDOWN = 86400
+
 
 @shared_task
 def check_low_stock_levels():

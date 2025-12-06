@@ -1,4 +1,3 @@
-# promotions/views.py
 import datetime
 import uuid
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
@@ -25,16 +24,8 @@ class CouponAdminViewSet(viewsets.ModelViewSet):
     """
     queryset = DiscountCoupon.objects.all()
     serializer_class = DiscountCouponSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]  # Tylko dla admina
+    permission_classes = [IsAuthenticated, IsAdminUser]
 
-
-# LOYALTY_OFFERS = {
-#     1: {"points_required": 500, "value": 25, "is_percentage": False, "type": "kwotowy"},
-#     2: {"points_required": 1000, "value": 60, "is_percentage": False, "type": "kwotowy"},
-#     3: {"points_required": 1500, "value": 10, "is_percentage": True, "type": "procentowy"},
-#     4: {"points_required": 2000, "value": 150, "is_percentage": False, "type": "kwotowy"},
-#     # Możemy dodać tu w przyszłości np. darmową dostawę
-# }
 
 class LoyaltyRewardAdminViewSet(viewsets.ModelViewSet):
     """
@@ -57,7 +48,6 @@ class LoyaltyOffersView(APIView):
     serializer_class = LoyaltyRewardSerializer
 
     def get_queryset(self):
-        # Pobieramy tylko aktywne nagrody z bazy danych, posortowane po koszcie punktowym
         return LoyaltyReward.objects.filter(active=True).order_by('points_required')
 
     def get(self, request, *args, **kwargs):
@@ -78,40 +68,29 @@ class RedeemLoyaltyPointsView(APIView):
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
-        # 1. Używamy serializera do pobrania i walidacji danych
         serializer = self.serializer_class(data=request.data)
 
-        # Jeśli klient nie wysłał JSONa lub wysłał zły, tu dostanie 400 Bad Request
-        # z jasnym komunikatem od Django
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # Pobieramy czyste dane (teraz mamy pewność, że reward_id tam jest i jest liczbą)
         reward_id = serializer.validated_data['reward_id']
         user = request.user
 
-        # --- DALEJ LOGIKA BEZ ZMIAN ---
-
-        # 2. Pobierz nagrodę z bazy danych
-        # (get_object_or_404 rzuci 404, jeśli nagroda o tym ID nie istnieje)
         reward = get_object_or_404(LoyaltyReward, id=reward_id, active=True)
 
-        # 3. Zablokuj użytkownika
         user_locked = User.objects.select_for_update().get(id=user.id)
 
-        # 4. Sprawdź punkty
         if user_locked.loyalty_points < reward.points_required:
             return Response(
                 {
-                    "error": f"Masz za mało punktów. Wymagane: {reward.points_required}, Posiadane: {user_locked.loyalty_points}"},
+                    "error": f"Masz za mało punktów. Wymagane: {reward.points_required}, "
+                             f"Posiadane: {user_locked.loyalty_points}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 5. Odejmij punkty
         user_locked.loyalty_points -= reward.points_required
         user_locked.save(update_fields=['loyalty_points'])
 
-        # 6. Wygeneruj kupon
         new_code = f"LOYALTY-{user.id}-{uuid.uuid4().hex[:6].upper()}"
         valid_to_date = timezone.now() + datetime.timedelta(days=90)
 
@@ -126,7 +105,6 @@ class RedeemLoyaltyPointsView(APIView):
             user=user_locked
         )
 
-        # 7. Zapisz historię realizacji
         RedeemedReward.objects.create(
             user=user_locked,
             reward=reward,
@@ -135,7 +113,6 @@ class RedeemLoyaltyPointsView(APIView):
             coupon_code=new_code
         )
 
-        # 8. Zwróć odpowiedź
         return Response({
             "message": "Punkty wymienione pomyślnie!",
             "coupon_code": new_code,
@@ -164,7 +141,8 @@ class ValidateCouponView(APIView):
             return Response({"error": "Kod kuponu jest wymagany."}, status=status.HTTP_400_BAD_REQUEST)
 
         if cart_total is None:
-            return Response({"error": "Wartość koszyka (cart_total) jest wymagana."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Wartość koszyka (cart_total) jest wymagana."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         try:
             cart_total = Decimal(str(cart_total))
@@ -174,24 +152,20 @@ class ValidateCouponView(APIView):
         if cart_total < 0:
             return Response({"error": "Wartość koszyka nie może być ujemna."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Znajdź kupon
         try:
             coupon = DiscountCoupon.objects.get(code=code, active=True)
         except DiscountCoupon.DoesNotExist:
             return Response({"error": "Nieprawidłowy kod kuponu."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Sprawdź ważność czasową
         now = timezone.now()
         if coupon.valid_from and now < coupon.valid_from:
             return Response({"error": "Ten kupon jeszcze nie jest aktywny."}, status=status.HTTP_400_BAD_REQUEST)
         if coupon.valid_to and now > coupon.valid_to:
             return Response({"error": "Ten kupon wygasł."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Sprawdź limit użyć
         if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:
             return Response({"error": "Ten kupon został już wykorzystany."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Oblicz zniżkę
         coupon_value = coupon.value if isinstance(coupon.value, Decimal) else Decimal(str(coupon.value))
 
         if coupon.is_percentage:
@@ -199,7 +173,6 @@ class ValidateCouponView(APIView):
         else:
             discount_amount = coupon_value
 
-        # Upewnij się, że zniżka nie przekracza wartości koszyka
         discount_amount = min(discount_amount, cart_total)
         discount_amount = discount_amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
         final_total = (cart_total - discount_amount).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
@@ -224,8 +197,8 @@ class MyRedeemedRewardsView(APIView):
     def get(self, request):
         from .models import RedeemedReward
         from .serializers import RedeemedRewardSerializer
-        
+
         redeemed_rewards = RedeemedReward.objects.filter(user=request.user)
         serializer = RedeemedRewardSerializer(redeemed_rewards, many=True)
-        
+
         return Response(serializer.data, status=status.HTTP_200_OK)

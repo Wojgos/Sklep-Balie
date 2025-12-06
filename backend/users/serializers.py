@@ -18,20 +18,12 @@ class CustomRegisterSerializer(RegisterSerializer):
         """
         Nadpisujemy metodę walidacji pola 'email'.
         """
-        # Sprawdzamy, czy ten e-mail (bez względu na wielkość liter)
-        # istnieje już w tabeli EmailAddress.
         if EmailAddress.objects.filter(email__iexact=email).exists():
-            # Jeśli tak, natychmiast przerwij walidację i zwróć błąd 400
             raise ValidationError("A user is already registered with this e-mail address.")
-
-        # Jeśli e-mail jest wolny, przekaż go do dalszej,
-        # domyślnej walidacji (np. sprawdzania formatu)
         return email
 
     def get_cleaned_data(self):
-        # Pobierz standardowe dane (email, hasło1, hasło2)
         data = super().get_cleaned_data()
-        # Dodaj nasze nowe pola
         data.update({
             'first_name': self.validated_data.get('first_name', ''),
             'last_name': self.validated_data.get('last_name', ''),
@@ -39,9 +31,7 @@ class CustomRegisterSerializer(RegisterSerializer):
         return data
 
     def save(self, request):
-        # Standardowa metoda 'save' tworzy użytkownika
         user = super().save(request)
-        # Aktualizujemy użytkownika o dodatkowe dane
         user.first_name = self.validated_data.get('first_name', '')
         user.last_name = self.validated_data.get('last_name', '')
         user.save()
@@ -54,7 +44,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
     w tym punktów lojalnościowych.
     Zwraca zarówno snake_case (dla kompatybilności) jak i camelCase (dla nowych funkcji).
     """
-    # CamelCase aliases for frontend compatibility (support module)
     firstName = serializers.CharField(source='first_name', read_only=True)
     lastName = serializers.CharField(source='last_name', read_only=True)
     loyaltyPoints = serializers.IntegerField(source='loyalty_points', read_only=True)
@@ -65,7 +54,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        # Pola, które zobaczy użytkownik (zachowujemy oba formaty dla kompatybilności)
         fields = (
             'id',
             'username',
@@ -77,7 +65,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'is_superuser',
             'date_joined',
             'is_active',
-            # CamelCase aliases
             'firstName',
             'lastName',
             'loyaltyPoints',
@@ -86,7 +73,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'dateJoined',
             'isActive'
         )
-        # Endpoint będzie tylko do odczytu
         read_only_fields = fields
 
 

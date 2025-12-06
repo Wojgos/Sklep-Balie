@@ -1,18 +1,16 @@
-# support/views.py
+from django.db import transaction
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import get_object_or_404
-from django.db import transaction
+from rest_framework.response import Response
 
+from EStore.permissions import IsAdminUser
 from .models import Ticket, TicketMessage
+from .permissions import IsTicketOwnerOrAdmin
 from .serializers import (
     TicketListSerializer, TicketDetailSerializer, TicketCreateSerializer,
     TicketReplySerializer, TicketAdminUpdateSerializer
 )
-from EStore.permissions import IsAdminUser
-from .permissions import IsTicketOwnerOrAdmin
 
 
 # === API DLA KLIENTA ===
@@ -21,7 +19,7 @@ class ClientTicketViewSet(viewsets.ModelViewSet):
     """
     API endpoint dla zalogowanego klienta do zarządzania WŁASNYMI zgłoszeniami.
     """
-    permission_classes = [IsAuthenticated]  # Wymaga zalogowania do wszystkich akcji
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """
@@ -42,7 +40,6 @@ class ClientTicketViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         """Używa dodatkowych uprawnień dla akcji na konkretnym obiekcie."""
         if self.action in ['retrieve', 'reply']:
-            # Sprawdź, czy klient jest właścicielem tego zgłoszenia
             return [IsAuthenticated(), IsTicketOwnerOrAdmin()]
         return super().get_permissions()
 
@@ -53,23 +50,18 @@ class ClientTicketViewSet(viewsets.ModelViewSet):
         Tworzy nowe zgłoszenie ORAZ pierwszą wiadomość.
         Nadpisane, aby poprawnie obsłużyć pole 'body'.
         """
-        # validated_data z serializera zawiera 'subject' i 'body'
         validated_data = serializer.validated_data
 
-        # 1. Wyciągamy 'body' ze słownika, aby nie trafiło do Ticket.objects.create()
         body = validated_data.pop('body')
 
-        # 2. Tworzymy Ticket używając tylko pozostałych danych (czyli 'subject')
-        #    i przypisujemy zalogowanego użytkownika
         ticket = Ticket.objects.create(
             user=self.request.user,
-            **validated_data  # To przekaże teraz tylko 'subject'
+            **validated_data
         )
 
-        # 3. Tworzymy pierwszą wiadomość używając wyciągniętego 'body'
         TicketMessage.objects.create(
             ticket=ticket,
-            author=self.request.user,  # Autorem jest klient
+            author=self.request.user,
             body=body
         )
 
@@ -79,18 +71,16 @@ class ClientTicketViewSet(viewsets.ModelViewSet):
         Niestandardowa akcja dla klienta do wysłania odpowiedzi.
         POST /api/v1/support/tickets/<id>/reply/
         """
-        ticket = self.get_object()  # To automatycznie sprawdza uprawnienia
+        ticket = self.get_object()
         serializer = TicketReplySerializer(data=request.data)
 
         if serializer.is_valid():
-            # Stwórz nową wiadomość powiązaną ze zgłoszeniem
             TicketMessage.objects.create(
                 ticket=ticket,
-                author=request.user,  # Autorem jest klient
+                author=request.user,
                 body=serializer.validated_data['body']
             )
 
-            # Zmień status zgłoszenia na "Nowe" (lub "Odpisano")
             ticket.status = Ticket.STATUS_NEW
             ticket.save(update_fields=['status', 'updated_at'])
 
@@ -98,7 +88,6 @@ class ClientTicketViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    # Blokujemy domyślne akcje 'update', 'partial_update' i 'destroy' dla klienta
     def update(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -115,7 +104,7 @@ class AdminTicketViewSet(viewsets.ModelViewSet):
     """
     API endpoint dla administratora do zarządzania WSZYSTKIMI zgłoszeniami.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]  # Wymaga bycia adminem
+    permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get_queryset(self):
         """
@@ -133,10 +122,10 @@ class AdminTicketViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return TicketListSerializer
         if self.action in ['update', 'partial_update']:
-            return TicketAdminUpdateSerializer  # Tylko zmiana statusu
+            return TicketAdminUpdateSerializer
         if self.action == 'reply':
             return TicketReplySerializer
-        return TicketDetailSerializer  # dla 'retrieve'
+        return TicketDetailSerializer
 
     @action(detail=True, methods=['post'], url_path='reply')
     def reply(self, request, pk=None):
@@ -148,14 +137,12 @@ class AdminTicketViewSet(viewsets.ModelViewSet):
         serializer = TicketReplySerializer(data=request.data)
 
         if serializer.is_valid():
-            # Stwórz nową wiadomość
             TicketMessage.objects.create(
                 ticket=ticket,
-                author=request.user,  # Autorem jest zalogowany admin
+                author=request.user,
                 body=serializer.validated_data['body']
             )
 
-            # Zmień status zgłoszenia na "W trakcie" (bo admin odpisał)
             ticket.status = Ticket.STATUS_IN_PROGRESS
             ticket.save(update_fields=['status', 'updated_at'])
 
@@ -163,6 +150,5 @@ class AdminTicketViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    # Blokujemy domyślne 'create' dla admina (admin nie tworzy zgłoszeń)
     def create(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)

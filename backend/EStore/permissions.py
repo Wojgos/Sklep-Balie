@@ -1,4 +1,3 @@
-# EStore/permissions.py
 from rest_framework import permissions
 
 
@@ -9,7 +8,6 @@ class IsAdminUser(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        # Sprawdź, czy użytkownik jest zalogowany I czy ma flagę 'is_staff'
         return bool(request.user and request.user.is_staff)
 
 
@@ -21,12 +19,9 @@ class IsAdminUserOrReadOnly(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        # Metody "bezpieczne" (GET, HEAD, OPTIONS) są dozwolone dla każdego.
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        # Metody "niebezpieczne" (zapis) są dozwolone tylko dla admina.
-        # Sprawdzamy, czy użytkownik jest zalogowany I czy ma flagę 'is_staff'.
         return bool(request.user and request.user.is_staff)
 
 

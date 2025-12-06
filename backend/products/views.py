@@ -1,4 +1,3 @@
-# products/views.py
 from rest_framework import viewsets, generics, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -22,12 +21,11 @@ from .serializers import (
 from .tasks import check_low_stock_levels
 
 
-# Usuwamy 'TranslatableModelViewSet'
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().annotate(product_count=Count('products'))
     serializer_class = CategorySerializer
     permission_classes = [IsAdminUserOrReadOnly]
-    
+
     def get_object(self):
         """
         Obsługa zarówno ID jak i slug dla elastyczności.
@@ -50,7 +48,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'created_at', 'variants__price']
     ordering = ['-created_at']
     permission_classes = [IsAdminUserOrReadOnly]
-    
+
     def get_queryset(self):
         """
         Override get_queryset to allow admin users to see all products
@@ -109,7 +107,7 @@ class LowStockVariantsViewSet(viewsets.ReadOnlyModelViewSet):
     """
     serializer_class = ProductVariantSerializer
     permission_classes = [IsAdminUser]
-    
+
     def get_queryset(self):
         """
         Zwraca warianty, których stan magazynowy jest poniżej progu alarmowego.
@@ -121,20 +119,18 @@ class LowStockVariantsViewSet(viewsets.ReadOnlyModelViewSet):
         ).select_related('product', 'product__category').prefetch_related(
             'attributes__attribute', 'images'
         ).order_by('stock', 'product__name')
-        
-        # Opcjonalny parametr severity (krytyczny, ostrzeżenie, wszystkie)
+
         severity = self.request.query_params.get('severity', None)
         if severity == 'critical':
             queryset = queryset.filter(stock=0)
         elif severity == 'warning':
-            # Stock > 0 ale mniej niż połowa progu
             queryset = queryset.filter(
                 stock__gt=0,
                 stock__lt=F('low_stock_threshold') / 2
             )
-        
+
         return queryset
-    
+
     @action(detail=False, methods=['post'], permission_classes=[IsAdminUser])
     def trigger_alert(self, request):
         """
@@ -142,7 +138,6 @@ class LowStockVariantsViewSet(viewsets.ReadOnlyModelViewSet):
         """
         try:
             result = check_low_stock_levels.delay()
-            # Czekamy na wynik (maksymalnie 30 sekund)
             message = result.get(timeout=30)
             return Response({
                 'success': True,
@@ -153,7 +148,7 @@ class LowStockVariantsViewSet(viewsets.ReadOnlyModelViewSet):
                 'success': False,
                 'message': f'Błąd podczas wyzwalania alertu: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
     @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
     def statistics(self, request):
         """
@@ -173,7 +168,7 @@ class LowStockVariantsViewSet(viewsets.ReadOnlyModelViewSet):
             stock__lt=F('low_stock_threshold') / 2,
             available=True
         ).count()
-        
+
         return Response({
             'total_variants': total_variants,
             'low_stock_count': low_stock_variants,

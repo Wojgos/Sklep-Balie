@@ -1,4 +1,3 @@
-# backend/chatbot/logic.py
 from orders.models import Order
 from products.models import Product
 

@@ -1,4 +1,3 @@
-# promotions/serializers.py
 from rest_framework import serializers
 from .models import DiscountCoupon, LoyaltyReward, RedeemedReward
 
@@ -41,5 +40,4 @@ class DiscountCouponSerializer(serializers.ModelSerializer):
             'id', 'code', 'valid_from', 'valid_to', 'value',
             'is_percentage', 'usage_limit', 'usage_count', 'active', 'user'
         )
-        # Liczba użyć jest tylko do odczytu dla admina
         read_only_fields = ('usage_count', 'user')

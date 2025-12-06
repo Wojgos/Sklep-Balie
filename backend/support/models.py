@@ -1,7 +1,7 @@
-# support/models.py
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+
 
 class Ticket(models.Model):
     """
@@ -18,7 +18,6 @@ class Ticket(models.Model):
         (STATUS_CLOSED, 'Zamknięte'),
     ]
 
-    # Klient, który otworzył zgłoszenie
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -47,7 +46,7 @@ class Ticket(models.Model):
     class Meta:
         verbose_name = "Zgłoszenie"
         verbose_name_plural = "Zgłoszenia"
-        ordering = ['-updated_at']  # Najnowsze (ostatnio aktywne) na górze
+        ordering = ['-updated_at']
 
     def __str__(self):
         return f"Zgłoszenie #{self.id} - {self.subject}"
@@ -60,11 +59,10 @@ class TicketMessage(models.Model):
     ticket = models.ForeignKey(
         Ticket,
         on_delete=models.CASCADE,
-        related_name='messages',  # Pozwoli nam łatwo pobrać wiadomości dla biletu
+        related_name='messages',
         verbose_name="Zgłoszenie"
     )
 
-    # Autor wiadomości (może to być klient lub admin)
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -81,7 +79,7 @@ class TicketMessage(models.Model):
     class Meta:
         verbose_name = "Wiadomość w zgłoszeniu"
         verbose_name_plural = "Wiadomości w zgłoszeniach"
-        ordering = ['created_at']  # Wiadomości chronologicznie (od najstarszej)
+        ordering = ['created_at']
 
     def __str__(self):
         return f"Wiadomość od {self.author.username} (Zgłoszenie #{self.ticket.id})"

@@ -1,4 +1,3 @@
-# orders/pdf_generator.py
 import logging
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -7,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from weasyprint import HTML
-except OSError as exc:  # Typically missing GTK / Pango libs on Windows
+except OSError as exc:
     HTML = None
     WEASYPRINT_IMPORT_ERROR = exc
     logger.warning(
@@ -29,7 +28,6 @@ def generate_invoice_pdf(order):
             "na środowisku, w którym są dostępne."
         ) from WEASYPRINT_IMPORT_ERROR
 
-    # Dane sprzedawcy (można je przenieść do settings.py)
     seller_data = {
         "name": "Balie Ogrodowe Premium Sp. z o.o.",
         "address": "ul. Drzewna 123",
@@ -38,22 +36,15 @@ def generate_invoice_pdf(order):
         "email": "kontakt@baliepremium.pl"
     }
 
-    # Przygotuj kontekst dla szablonu
     context = {
         'order': order,
         'seller': seller_data,
     }
 
-    # Renderuj HTML do stringa
-    # Używamy ścieżki, którą stworzyliśmy: 'orders/invoice.html'
     html_string = render_to_string('orders/invoice.html', context)
 
-    # Opcjonalnie: jeśli masz pliki CSS/obrazy statyczne, musisz
-    # podać Django 'base_url', aby WeasyPrint mógł je znaleźć
-    base_url = settings.STATIC_URL or '/'  # Działa dla trybu DEBUG
+    base_url = settings.STATIC_URL or '/'
 
-    # Generuj PDF
-    # .write_pdf() zwraca dane binarne PDF (bytes)
     pdf_file = HTML(string=html_string, base_url=base_url).write_pdf()
 
     return pdf_file
@@ -81,7 +72,6 @@ def generate_statistics_pdf(statistics_data):
             "na środowisku, w którym są dostępne."
         ) from WEASYPRINT_IMPORT_ERROR
 
-    # Dane firmy
     company_data = {
         "name": "Balie Ogrodowe Premium Sp. z o.o.",
         "address": "ul. Wiejska 45",
@@ -90,19 +80,15 @@ def generate_statistics_pdf(statistics_data):
         "email": "kontakt@baliepremium.pl"
     }
 
-    # Przygotuj kontekst dla szablonu
     context = {
         'statistics': statistics_data,
         'company': company_data,
     }
 
-    # Renderuj HTML do stringa
     html_string = render_to_string('orders/statistics_report.html', context)
 
-    # Ustaw base_url dla zasobów statycznych
     base_url = settings.STATIC_URL or '/'
 
-    # Generuj PDF
     pdf_file = HTML(string=html_string, base_url=base_url).write_pdf()
 
     return pdf_file

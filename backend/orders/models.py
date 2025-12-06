@@ -1,13 +1,11 @@
-# orders/models.py
 from django.db import models
 from django.conf import settings
 from products.models import ProductVariant  # Upewnij się, że to jest zaimportowane
 from promotions.models import DiscountCoupon
 
+
 class Order(models.Model):
     """Główny model zamówienia."""
-    # Jeśli użytkownik jest zalogowany, przypiszemy go tutaj.
-    # 'null=True' i 'blank=True' pozwala na zakupy anonimowe.
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -16,7 +14,6 @@ class Order(models.Model):
         related_name='orders'
     )
 
-    # Dane adresowe, które przyjdą z API
     first_name = models.CharField(max_length=100, verbose_name="Imię")
     last_name = models.CharField(max_length=100, verbose_name="Nazwisko")
     email = models.EmailField(verbose_name="E-mail")
@@ -29,7 +26,6 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Utworzono")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Zaktualizowano")
 
-    # Przechowujemy całkowity koszt dla historii i łatwego dostępu
     total_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -61,9 +57,9 @@ class Order(models.Model):
     coupon = models.ForeignKey(
         DiscountCoupon,
         related_name='orders',
-        null=True,  # Zamówienie nie musi mieć kuponu
+        null=True,
         blank=True,
-        on_delete=models.SET_NULL,  # Nie usuwaj zamówienia, jeśli kupon zniknie
+        on_delete=models.SET_NULL,
         verbose_name="Użyty kupon"
     )
     discount_amount = models.DecimalField(
@@ -92,14 +88,12 @@ class OrderItem(models.Model):
 
     variant = models.ForeignKey(
         ProductVariant,
-        on_delete=models.SET_NULL,  # Nie usuwaj pozycji, jeśli wariant zniknie
+        on_delete=models.SET_NULL,
         null=True,
         related_name='order_items'
     )
 
-    # Przechowujemy "migawkę" (snapshot) na wypadek,
-    # gdyby nazwa wariantu lub cena się zmieniły.
-    product_name = models.CharField(max_length=255)  # Np. "Balia Premium (Piec na drewno)"
+    product_name = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField(default=1)
 

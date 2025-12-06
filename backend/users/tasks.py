@@ -1,4 +1,3 @@
-# users/tasks.py
 from celery import shared_task
 from django.contrib.auth import get_user_model
 from allauth.account.models import EmailAddress
@@ -16,7 +15,7 @@ def send_registration_confirmation_email_task(user_id):
 
         email_address = EmailAddress.objects.get(
             user=user,
-            primary=True  # Upewnij się, że to główny e-mail
+            primary=True
         )
 
         email_address.send_confirmation(request=None, signup=True)

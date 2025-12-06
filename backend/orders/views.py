@@ -38,26 +38,20 @@ class OrderViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return OrderCreateSerializer
 
-        # Admin używa PUT/PATCH do zmiany statusu
         if self.action in ['update', 'partial_update']:
             return OrderAdminUpdateSerializer
 
-        # Dla GET (lista/szczegóły) wszyscy używają tego samego
         return OrderResponseSerializer
 
     def get_permissions(self):
         """Zwraca inne uprawnienia w zależności od akcji."""
 
-        # Tworzenie (POST) jest dozwolone dla każdego (nawet anonimowego)
         if self.action == 'create':
             return []
 
-        # Aktualizacja (PUT/PATCH) jest tylko dla Admina
         if self.action in ['update', 'partial_update']:
             return [IsAuthenticated(), IsAdminUser()]
 
-        # Przeglądanie (GET) jest tylko dla zalogowanych
-        # (Logikę "kto co widzi" załatwiamy w get_queryset)
         return [IsAuthenticated()]
 
     def get_queryset(self):
@@ -71,13 +65,11 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Order.objects.none()
 
         if user.is_staff:
-            # Admin widzi wszystkie zamówienia
             return Order.objects.all().prefetch_related('items', 'user')
 
-        # Zwykły użytkownik widzi tylko swoje zamówienia
         return Order.objects.filter(user=user).prefetch_related('items', 'user')
 
-    @transaction.atomic  # Gwarantuje, że albo wszystko się uda, albo nic
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -93,7 +85,6 @@ class OrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 2. Oblicz cenę PRZED rabatem i sprawdź stany magazynowe
         price_before_discount = Decimal('0.00')
         variants_to_update = []
         order_items_to_create = []
@@ -132,14 +123,13 @@ class OrderViewSet(viewsets.ModelViewSet):
                 )
             )
 
-        # 3. Waliduj i zastosuj kupon (jeśli podano)
         coupon_obj = None
         discount_amount = Decimal('0.00')
         final_total_price = price_before_discount
 
         if coupon_code:
             try:
-                coupon_obj = DiscountCoupon.objects.get(code__iexact=coupon_code)  # __iexact ignoruje wielkość liter
+                coupon_obj = DiscountCoupon.objects.get(code__iexact=coupon_code)
 
                 is_valid, error_message = coupon_obj.is_valid()
                 if not is_valid:
@@ -148,7 +138,6 @@ class OrderViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
-                # Zastosuj zniżkę
                 final_total_price, discount_amount = coupon_obj.apply_discount(
                     price_before_discount
                 )
@@ -159,32 +148,27 @@ class OrderViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        # 4. Stwórz główny obiekt Zamówienia (z nowymi polami)
         user = request.user if request.user.is_authenticated else None
 
         order = Order.objects.create(
             user=user,
-            total_price=final_total_price,  # Zapisujemy cenę KOŃCOWĄ
+            total_price=final_total_price,
             discount_amount=discount_amount,
-            coupon=coupon_obj,  # Powiąż kupon z zamówieniem
+            coupon=coupon_obj,
             **validated_data
         )
 
-        # 5. Powiąż pozycje z zamówieniem
         for item in order_items_to_create:
             item.order = order
 
         OrderItem.objects.bulk_create(order_items_to_create)
 
-        # 6. Zaktualizuj stany magazynowe
         ProductVariant.objects.bulk_update(variants_to_update, ['stock'])
 
-        # 7. Zaktualizuj licznik użycia kuponu
         if coupon_obj:
             coupon_obj.usage_count = F('usage_count') + 1
             coupon_obj.save(update_fields=['usage_count'])
 
-        # 8. (F 1.1: System Lojalnościowy) Przyznaj punkty od CENY KOŃCOWEJ
         if user:
             try:
                 points_to_add = int(final_total_price // 10)  # 1 pkt za 10 PLN
@@ -194,13 +178,11 @@ class OrderViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 print(f"KRYTYCZNY BŁĄD: Nie można było przyznać punktów lojalnościowych: {e}")
 
-        # 9. Zleć wysyłkę faktury (Celery)
         try:
             transaction.on_commit(lambda: send_invoice_email_task.delay(order.id))
         except Exception as e:
             print(f"KRYTYCZNY BŁĄD: Nie można było zakolejkować zadania Celery: {e}")
 
-        # 10. Zwróć dane nowo utworzonego zamówienia
         response_serializer = OrderResponseSerializer(order)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
@@ -212,13 +194,9 @@ class SalesStatsView(APIView):
 
     GET /api/v1/reports/sales/?start_date=RRRR-MM-DD&end_date=RRRR-MM-DD
     """
-    # Używamy OBU uprawnień:
-    # 1. Musi być zalogowany (IsAuthenticated)
-    # 2. Musi być adminem (IsAdminUser)
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get(self, request, *args, **kwargs):
-        # 1. Pobierz i waliduj parametry daty z URL
         start_date_str = request.query_params.get('start_date')
         end_date_str = request.query_params.get('end_date')
 
@@ -237,35 +215,27 @@ class SalesStatsView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 2. Filtruj zamówienia (tylko opłacone i w zakresie dat)
-        # Dodajemy +1 dzień do end_date, aby objąć cały dzień
         from datetime import timedelta
         queryset = Order.objects.filter(
-            paid=True,  # Bierzemy pod uwagę tylko opłacone
+            paid=True,
             created_at__gte=start_date,
             created_at__lt=end_date + timedelta(days=1)
         )
 
-        # 3. Oblicz agregaty (sumy)
         total_stats = queryset.aggregate(
             total_revenue=Sum('total_price'),
             total_orders=Count('id')
         )
 
-        # 4. Oblicz dane do wykresu (sprzedaż dzienna)
-        # F 1.1: Raporty i wykresy sprzedaży
         daily_sales = queryset.annotate(
-            # Grupuj po dniu
             day=TruncDay('created_at')
         ).values(
-            'day'  # Grupuj po tym polu
+            'day'
         ).annotate(
-            # Agreguj w ramach każdej grupy
             daily_revenue=Sum('total_price'),
             orders_count=Count('id')
-        ).order_by('day')  # Sortuj chronologicznie
+        ).order_by('day')
 
-        # 5. Zwróć dane
         response_data = {
             'period': {
                 'start_date': start_date_str,
@@ -275,7 +245,7 @@ class SalesStatsView(APIView):
                 'total_revenue': total_stats['total_revenue'] or 0,
                 'total_orders': total_stats['total_orders'] or 0,
             },
-            'by_day': list(daily_sales)  # Dane do wykresu liniowego
+            'by_day': list(daily_sales)
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
@@ -288,29 +258,22 @@ class OrderInvoiceView(APIView):
 
     GET /api/v1/orders/<id>/invoice/
     """
-    # Wymagamy zalogowania ORAZ sprawdzamy, czy to właściciel/admin
     permission_classes = [IsAuthenticated, IsOrderOwnerOrAdmin]
 
     def get(self, request, order_id, *args, **kwargs):
-        # 1. Znajdź zamówienie
         order = get_object_or_404(Order, id=order_id)
 
-        # 2. Sprawdź uprawnienia (czy to właściciel lub admin)
         self.check_object_permissions(request, order)
 
-        # 3. Wygeneruj PDF
         try:
             pdf_data = generate_invoice_pdf(order)
 
-            # 4. Zwróć odpowiedź HTTP z plikiem PDF
             response = HttpResponse(pdf_data, content_type='application/pdf')
-            # 'inline' otwiera w przeglądarce, 'attachment' wymusza pobranie
             response['Content-Disposition'] = f'inline; filename="zamowienie_{order.id}.pdf"'
 
             return response
 
         except Exception as e:
-            # Obsługa błędów generowania PDF
             print(f"Błąd generowania PDF: {e}")
             return Response(
                 {"error": "Wystąpił błąd podczas generowania pliku PDF."},
@@ -331,7 +294,6 @@ class StatisticsReportPDFView(APIView):
         from .pdf_generator import generate_statistics_pdf
         from products.models import Product, Category
         
-        # 1. Pobierz i waliduj parametry daty z URL
         start_date_str = request.query_params.get('start_date')
         end_date_str = request.query_params.get('end_date')
 
@@ -350,7 +312,6 @@ class StatisticsReportPDFView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 2. Filtruj zamówienia (tylko opłacone i w zakresie dat)
         from datetime import timedelta
         queryset = Order.objects.filter(
             paid=True,
@@ -358,7 +319,6 @@ class StatisticsReportPDFView(APIView):
             created_at__lt=end_date + timedelta(days=1)
         )
 
-        # 3. Oblicz agregaty
         total_stats = queryset.aggregate(
             total_revenue=Sum('total_price'),
             total_orders=Count('id')
@@ -368,7 +328,6 @@ class StatisticsReportPDFView(APIView):
         total_orders = total_stats['total_orders'] or 0
         average_order_value = total_revenue / total_orders if total_orders > 0 else 0
 
-        # 4. Oblicz top produkty
         from collections import defaultdict
         product_stats = defaultdict(lambda: {'quantity': 0, 'revenue': 0})
         
@@ -388,7 +347,6 @@ class StatisticsReportPDFView(APIView):
             reverse=True
         )[:5]
 
-        # 5. Oblicz przychód według kategorii
         category_stats = defaultdict(lambda: {'revenue': 0})
         
         for order in queryset.prefetch_related('items__variant__product__category'):
@@ -406,7 +364,6 @@ class StatisticsReportPDFView(APIView):
             reverse=True
         )
 
-        # 6. Zamówienia według statusu
         STATUS_CHOICES = {
             'pending': 'Oczekujące',
             'processing': 'Przetwarzane',
@@ -428,7 +385,6 @@ class StatisticsReportPDFView(APIView):
             for item in orders_by_status
         ]
 
-        # 7. Przygotuj dane dla PDF
         statistics_data = {
             'period': {
                 'start_date': start_date_str,
@@ -444,11 +400,9 @@ class StatisticsReportPDFView(APIView):
             'orders_by_status': orders_by_status_list,
         }
 
-        # 8. Wygeneruj PDF
         try:
             pdf_data = generate_statistics_pdf(statistics_data)
 
-            # 9. Zwróć odpowiedź HTTP z plikiem PDF
             response = HttpResponse(pdf_data, content_type='application/pdf')
             filename = f'raport_statystyk_{start_date_str}_{end_date_str}.pdf'
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -456,7 +410,6 @@ class StatisticsReportPDFView(APIView):
             return response
 
         except Exception as e:
-            # Obsługa błędów generowania PDF
             print(f"Błąd generowania PDF statystyk: {e}")
             import traceback
             traceback.print_exc()

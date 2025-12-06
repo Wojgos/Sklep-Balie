@@ -1,18 +1,14 @@
-# products/models.py
 from django.db import models
 from django.utils.text import slugify
 from django.conf import settings
-
-
-# Usuwamy importy parler
-# from parler.models import TranslatableModel, TranslatedFields
 
 
 class Category(models.Model):
     name = models.CharField(max_length=255, verbose_name="Nazwa kategorii")
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     description = models.TextField(blank=True, null=True, verbose_name="Opis")
-    image = models.ImageField(upload_to='category_images/%Y/%m/%d/', blank=True, null=True, verbose_name="Zdjęcie kategorii")
+    image = models.ImageField(upload_to='category_images/%Y/%m/%d/', blank=True, null=True,
+                              verbose_name="Zdjęcie kategorii")
 
     class Meta:
         verbose_name = "Kategoria"
@@ -132,7 +128,7 @@ class ProductVariant(models.Model):
         return f'{self.product.name} (Wariant {self.id})'
 
     def save(self, *args, **kwargs):
-        if not self.name and self.pk:  # Sprawdź 'pk', aby upewnić się, że atrybuty mogą być dodane
+        if not self.name and self.pk:
             attrs = self.attributes.all().order_by('attribute__name')
             self.name = ", ".join(str(attr.value) for attr in attrs)
         super().save(*args, **kwargs)

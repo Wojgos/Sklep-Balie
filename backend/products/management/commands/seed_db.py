@@ -1,5 +1,3 @@
-# products/management/commands/seed_db.py
-
 import random
 from decimal import Decimal
 from django.core.management.base import BaseCommand
@@ -9,7 +7,6 @@ from django.contrib.sites.models import Site
 from django.conf import settings
 from promotions.models import LoyaltyReward
 
-# --- IMPORTUJEMY WSZYSTKIE MODELE ---
 from products.models import (
     Category,
     ProductAttribute,
@@ -62,7 +59,6 @@ class Command(BaseCommand):
             'Tworzenie nowych danych...'
         ))
 
-        # 1. Pobierz lub stwórz użytkowników `rafal` i `anna_nowak`
         users = self._get_or_create_users()
         if not users:
             self.stdout.write(self.style.ERROR(
@@ -70,17 +66,13 @@ class Command(BaseCommand):
             ))
             return
 
-        # 2. Stwórz dane
         categories = self._create_categories()
         attributes = self._create_attributes_and_values()
 
-        # 3. Stwórz produkty
         products = self._create_products(categories, amount)
 
-        # 4. Stwórz warianty dla tych produktów
         variants = self._create_variants(products, attributes)
 
-        # 5. Stwórz losowe zamówienia dla `anna_nowak`
         self._create_orders(users['anna_nowak'], variants)
 
         self._create_loyalty_rewards()
@@ -114,7 +106,6 @@ class Command(BaseCommand):
         """
         self.stdout.write("  Sprawdzanie/tworzenie użytkowników `rafal` i `anna_nowak`...")
 
-        # --- Użytkownik Admin: rafal ---
         admin_user, admin_created = User.objects.get_or_create(
             username='rafal',
             defaults={
@@ -138,14 +129,12 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.SUCCESS(f"  Stworzono admina 'rafal'."))
         else:
-            # Upewnij się, że istniejący 'rafal' jest adminem
             if not admin_user.is_staff:
                 admin_user.is_staff = True
                 admin_user.is_superuser = True
                 admin_user.save()
             self.stdout.write(self.style.NOTICE(f"  Znaleziono admina 'rafal'."))
 
-        # --- Użytkownik Testowy: anna_nowak ---
         tester_user, tester_created = User.objects.get_or_create(
             username='anna_nowak',
             defaults={
@@ -153,7 +142,7 @@ class Command(BaseCommand):
                 'first_name': 'Anna',
                 'last_name': 'Nowak',
                 'is_active': True,
-                'is_staff': False,  # Upewniamy się, że nie jest adminem
+                'is_staff': False,
                 'is_superuser': False
             }
         )
@@ -165,11 +154,9 @@ class Command(BaseCommand):
                 password='BardzoSilneHaslo123!',
                 first_name='Anna',
                 last_name='Nowak',
-                loyalty_points=10000  # <--- DODAJEMY 10 000 PUNKTÓW NA START
+                loyalty_points=10000
             )
         else:
-            # Opcjonalnie: Jeśli Anna już istnieje (bo np. nie czyściliśmy bazy),
-            # możemy jej zaktualizować punkty, żeby mieć pewność.
             anna = User.objects.get(username='anna_nowak')
             anna.loyalty_points = 10000
             anna.save()
@@ -229,13 +216,10 @@ class Command(BaseCommand):
         self.stdout.write(f'  Tworzenie {amount} produktów (matek)...')
         products_list = []
         
-        # Kategorie główne dla produktów
         lista_kategorii = [categories['jacuzzi'], categories['drewniane']]
         
-        # Kategorie akcesoriów
         lista_akcesoriow = [categories['akcesoria'], categories['pokrywy']]
 
-        # Tworzymy główne produkty (Balie/Jacuzzi)
         for i in range(amount):
             nazwa = f'Balia Ogrodowa Model {self.faker.word().capitalize()} {i + 1}'
             product = Product.objects.create(
@@ -246,7 +230,6 @@ class Command(BaseCommand):
             )
             products_list.append(product)
 
-        # Tworzymy dodatkowe produkty (Akcesoria)
         self.stdout.write('  Tworzenie dodatkowych 10 akcesoriów...')
         for i in range(10):
             is_cover = random.choice([True, False])
@@ -268,7 +251,6 @@ class Command(BaseCommand):
         self.stdout.write('  Tworzenie wariantów dla produktów...')
         variants_list = []
         for product in products:
-            # Stwórz od 1 do 3 wariantów dla każdego produktu
             for i in range(random.randint(1, 3)):
                 piec = random.choice(attributes['piece'])
                 wklad = random.choice(attributes['wklady'])
