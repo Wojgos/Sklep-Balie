@@ -11,14 +11,15 @@ class ProductFilter(filters.FilterSet):
         field_name='variants__price',
         lookup_expr='lt'
     )
+
     attributes = filters.AllValuesMultipleFilter(
         field_name='variants__attributes__id',
         label='Filtruj po ID Wartości Atrybutu'
     )
 
+    category = filters.CharFilter(field_name='category__slug', lookup_expr='exact')
+    category__in = filters.BaseInFilter(field_name='category__slug')
+
     class Meta:
         model = Product
-        fields = {
-            'category__slug': ['exact', 'in'],
-            'available': ['exact'],
-        }
+        fields = ['available']

@@ -6,7 +6,10 @@ from .models import Product, AttributeValue
 
 @registry.register_document
 class ProductDocument(Document):
-    category = TextField(attr='category.name')
+    name = TextField()
+    description = TextField()
+
+    category = TextField(attr='category.safe_translation_getter("name", any_language=True)')
     attributes_flat = TextField()
 
     class Index:
@@ -18,23 +21,35 @@ class ProductDocument(Document):
 
     class Django:
         model = Product
+        fields = []
 
-        fields = [
-            'name',
-            'description',
-        ]
+    def prepare_name(self, instance):
+        """
+        Indeksujemy nazwę we wszystkich dostępnych językach.
+        Dzięki temu wpisanie "Balia" lub "Hot Tub" znajdzie ten sam produkt.
+        """
+        return [t.name for t in instance.translations.all()]
+
+    def prepare_description(self, instance):
+        """Indeksujemy opisy we wszystkich językach."""
+        return [t.description for t in instance.translations.all()]
 
     def prepare_attributes_flat(self, instance):
         """
-        Zbiera unikalne wartości atrybutów ze wszystkich wariantów
-        danego produktu i łączy je w jeden tekst do przeszukiwania.
+        Zbiera wartości atrybutów ze wszystkich wariantów i wszystkich języków.
         """
         try:
             variant_ids = instance.variants.values_list('id', flat=True)
-            attributes = AttributeValue.objects.filter(
+            all_values = AttributeValue.objects.filter(
                 variants__id__in=variant_ids
-            ).values_list('value', flat=True)
+            ).prefetch_related('translations')
 
-            return " ".join(list(set(attributes)))
-        except:
+            values_set = set()
+            for val in all_values:
+                for translation in val.translations.all():
+                    if translation.value:
+                        values_set.add(translation.value)
+
+            return " ".join(list(values_set))
+        except Exception:
             return ""

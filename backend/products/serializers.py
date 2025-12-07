@@ -1,4 +1,6 @@
+import uuid
 from rest_framework import serializers
+from django.utils import translation
 from .models import (
     Product, Category, ProductAttribute, AttributeValue,
     ProductVariant, ProductImage
@@ -6,37 +8,100 @@ from .models import (
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    name = serializers.CharField()
+    description = serializers.CharField(required=False, allow_blank=True)
+    slug = serializers.CharField(read_only=True)
     product_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Category
+        # Pamiętaj, żeby 'image' i 'description' były tu wymienione
         fields = ['id', 'name', 'slug', 'description', 'image', 'product_count']
-        read_only_fields = ['slug']
+
+    def create(self, validated_data):
+        # Wyciągamy pola tłumaczone
+        name = validated_data.pop('name')
+        description = validated_data.pop('description', '')
+
+        # Tworzymy obiekt (tu zapisze się 'image' jeśli jest w validated_data)
+        category = Category.objects.create(**validated_data)
+
+        # Zapisujemy tłumaczenia
+        category.set_current_language(translation.get_language())
+        category.name = name
+        category.description = description
+        category.save()
+        return category
+
+    def update(self, instance, validated_data):
+        # 1. Wyciągamy pola tłumaczone (name, description)
+        name = validated_data.pop('name', None)
+        description = validated_data.pop('description', None)
+
+        # 2. Aktualizujemy pola standardowe (np. image)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        # 3. Aktualizujemy tłumaczenia (jeśli zostały przesłane)
+        if name is not None or description is not None:
+            instance.set_current_language(translation.get_language())
+            if name is not None:
+                instance.name = name
+            if description is not None:
+                instance.description = description
+
+        instance.save()
+        return instance
 
 
 class AttributeValueSerializer(serializers.ModelSerializer):
+    value = serializers.CharField()
+
     class Meta:
         model = AttributeValue
         fields = ['id', 'attribute', 'value']
 
+    def create(self, validated_data):
+        value = validated_data.pop('value')
+        instance = AttributeValue.objects.create(**validated_data)
+        instance.set_current_language(translation.get_language())
+        instance.value = value
+        instance.save()
+        return instance
+
 
 class ProductAttributeSerializer(serializers.ModelSerializer):
+    name = serializers.CharField()
     values = AttributeValueSerializer(many=True, read_only=True)
 
     class Meta:
         model = ProductAttribute
         fields = ['id', 'name', 'values']
 
+    def create(self, validated_data):
+        name = validated_data.pop('name')
+        instance = ProductAttribute.objects.create(**validated_data)
+        instance.set_current_language(translation.get_language())
+        instance.name = name
+        instance.save()
+        return instance
+
 
 class ProductVariantAttributeSerializer(serializers.ModelSerializer):
     attribute = serializers.StringRelatedField()
+    value = serializers.SerializerMethodField()
 
     class Meta:
         model = AttributeValue
         fields = ['attribute', 'value']
 
+    def get_value(self, obj):
+        return obj.safe_translation_getter('value', any_language=True)
+
 
 class ProductImageSerializer(serializers.ModelSerializer):
+    alt_text = serializers.CharField(required=False, allow_blank=True)
+
     class Meta:
         model = ProductImage
         fields = ('id', 'image', 'alt_text', 'is_main', 'product', 'variant')
@@ -45,34 +110,52 @@ class ProductImageSerializer(serializers.ModelSerializer):
             'variant': {'write_only': True},
         }
 
+    def create(self, validated_data):
+        alt_text = validated_data.pop('alt_text', '')
+        instance = ProductImage.objects.create(**validated_data)
+        instance.set_current_language(translation.get_language())
+        instance.alt_text = alt_text
+        instance.save()
+        return instance
+
 
 class ProductVariantSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(required=False, allow_blank=True)
     attributes_details = ProductVariantAttributeSerializer(
         many=True, read_only=True, source='attributes'
     )
     images = ProductImageSerializer(many=True, read_only=True)
-    product_name = serializers.CharField(source='product.name', read_only=True)
-    product_slug = serializers.CharField(source='product.slug', read_only=True)
-    category_name = serializers.CharField(source='product.category.name', read_only=True)
 
     class Meta:
         model = ProductVariant
         fields = [
-            'id', 'product', 'product_name', 'product_slug', 'category_name',
-            'sku', 'name', 'price', 'stock',
+            'id', 'product', 'sku', 'name', 'price', 'stock',
             'low_stock_threshold', 'available',
             'attributes_details', 'images'
         ]
 
+    def create(self, validated_data):
+        name = validated_data.pop('name', '')
+        instance = ProductVariant.objects.create(**validated_data)
+        instance.set_current_language(translation.get_language())
+        instance.name = name
+        instance.save()
+        return instance
+
 
 class ProductSerializer(serializers.ModelSerializer):
+    name = serializers.CharField()
+    description = serializers.CharField(required=False, allow_blank=True)
+    slug = serializers.CharField(read_only=True)
+
     variants = ProductVariantSerializer(many=True, read_only=True)
     category = serializers.SlugRelatedField(slug_field='slug', read_only=True)
     category_id = serializers.IntegerField(source='category.id', read_only=True, required=False)
     category_name = serializers.CharField(source='category.name', read_only=True)
+
     images = ProductImageSerializer(many=True, read_only=True)
     available_attributes = serializers.SerializerMethodField()
-    
+
     category_write = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(),
         source='category',
@@ -81,14 +164,15 @@ class ProductSerializer(serializers.ModelSerializer):
     )
     price = serializers.DecimalField(max_digits=10, decimal_places=2, write_only=True, required=False)
     stock = serializers.IntegerField(write_only=True, required=False, default=0)
-    image = serializers.ImageField(write_only=True, required=False, allow_null=True)
+    image = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = Product
         lookup_field = 'slug'
         fields = [
-            'id', 'category', 'category_id', 'category_name', 'category_write', 'name',
-            'slug', 'description', 'available', 'attributes_config', 'available_attributes', 'variants', 'images',
+            'id', 'category', 'category_id', 'category_name', 'category_write',
+            'name', 'slug', 'description',
+            'available', 'attributes_config', 'available_attributes', 'variants', 'images',
             'price', 'stock', 'image',
             'created_at', 'updated_at'
         ]
@@ -96,82 +180,99 @@ class ProductSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         price = validated_data.pop('price', None)
         stock = validated_data.pop('stock', 0)
-        image_file = validated_data.pop('image', None)
-        
+        image_url = validated_data.pop('image', None)
+
+        name = validated_data.pop('name')
+        description = validated_data.pop('description', '')
+
         product = Product.objects.create(**validated_data)
-        
+
+        product.set_current_language(translation.get_language())
+        product.name = name
+        product.description = description
+        product.save()
+
         if price is not None:
-            import uuid
             sku = f"SKU-{product.id}-{uuid.uuid4().hex[:8].upper()}"
-            
+
             variant = ProductVariant.objects.create(
                 product=product,
-                name='Wariant domyślny',
                 sku=sku,
                 price=price,
                 stock=stock,
                 available=True
             )
-            
-            if image_file:
-                ProductImage.objects.create(
+            variant.set_current_language(translation.get_language())
+            variant.name = 'Wariant domyślny'
+            variant.save()
+
+            if image_url:
+                img = ProductImage.objects.create(
                     product=product,
                     variant=variant,
-                    image=image_file,
-                    is_main=True,
-                    alt_text=product.name
+                    image=image_url,
+                    is_main=True
                 )
-        
+                img.set_current_language(translation.get_language())
+                img.alt_text = name
+                img.save()
+
         return product
-    
+
     def update(self, instance, validated_data):
         price = validated_data.pop('price', None)
         stock = validated_data.pop('stock', None)
-        image_file = validated_data.pop('image', None)
-        
+        image_url = validated_data.pop('image', None)
+        name = validated_data.pop('name', None)
+        description = validated_data.pop('description', None)
+
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+
+        if name is not None or description is not None:
+            instance.set_current_language(translation.get_language())
+            if name is not None: instance.name = name
+            if description is not None: instance.description = description
+
         instance.save()
-        
-        if price is not None or stock is not None or image_file is not None:
+
+        if price is not None or stock is not None or image_url is not None:
             variant = instance.variants.first()
-            
+
             if not variant:
-                import uuid
                 sku = f"SKU-{instance.id}-{uuid.uuid4().hex[:8].upper()}"
                 variant = ProductVariant.objects.create(
                     product=instance,
-                    name='Wariant domyślny',
                     sku=sku,
                     price=price or 0,
                     stock=stock or 0,
                     available=True
                 )
-            else:
-                if price is not None:
-                    variant.price = price
-                if stock is not None:
-                    variant.stock = stock
+                variant.set_current_language(translation.get_language())
+                variant.name = 'Wariant domyślny'
                 variant.save()
-            
-            if image_file is not None:
-                main_image = ProductImage.objects.filter(
-                    product=instance,
-                    is_main=True
-                ).first()
-                
+            else:
+                if price is not None: variant.price = price
+                if stock is not None: variant.stock = stock
+                variant.save()
+
+            if image_url is not None:
+                main_image = ProductImage.objects.filter(product=instance, is_main=True).first()
+
                 if main_image:
-                    main_image.image = image_file
+                    main_image.image = image_url
                     main_image.save()
                 else:
-                    ProductImage.objects.create(
+                    img = ProductImage.objects.create(
                         product=instance,
                         variant=variant,
-                        image=image_file,
-                        is_main=True,
-                        alt_text=instance.name
+                        image=image_url,
+                        is_main=True
                     )
-        
+                    img.set_current_language(translation.get_language())
+                    img.alt_text = instance.safe_translation_getter('name', any_language=True) or "Product Image"
+                    img.save()
+
         return instance
 
     def get_available_attributes(self, instance):
@@ -180,26 +281,25 @@ class ProductSerializer(serializers.ModelSerializer):
             for attr_config in instance.attributes_config:
                 attr_name = attr_config.get('name')
                 variants = attr_config.get('variants', [])
-                
                 if attr_name and variants:
                     values = [v.get('name') for v in variants if v.get('name')]
                     if values:
                         attributes_map[attr_name] = sorted(values)
-            
             if attributes_map:
                 return attributes_map
-        
+
         attributes_map = {}
         variants = instance.variants.filter(available=True).prefetch_related('attributes__attribute')
 
         for variant in variants:
             for attr_value in variant.attributes.all():
-                attr_name = attr_value.attribute.name
-                value = attr_value.value
+                attr_name = attr_value.attribute.safe_translation_getter('name', any_language=True)
+                value = attr_value.safe_translation_getter('value', any_language=True)
 
-                if attr_name not in attributes_map:
+                if attr_name and attributes_map.get(attr_name) is None:
                     attributes_map[attr_name] = set()
 
-                attributes_map[attr_name].add(value)
+                if attr_name:
+                    attributes_map[attr_name].add(value)
 
         return {key: sorted(list(val)) for key, val in attributes_map.items()}

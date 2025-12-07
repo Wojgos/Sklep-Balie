@@ -63,6 +63,8 @@ INSTALLED_APPS = [
 
     'dj_rest_auth',
 
+    'parler',
+
     'django.contrib.sites',
     'allauth',
     'allauth.account',
@@ -79,6 +81,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -254,4 +257,23 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
+}
+
+# --- KONFIGURACJA I18N (Wielojęzyczność) ---
+LANGUAGE_CODE = 'pl'
+
+LANGUAGES = (
+    ('pl', 'Polski'),
+    ('en', 'English'),
+)
+
+PARLER_LANGUAGES = {
+    1: (
+        {'code': 'pl'},
+        {'code': 'en'},
+    ),
+    'default': {
+        'fallback': 'pl',
+        'hide_untranslated': False,
+    }
 }
