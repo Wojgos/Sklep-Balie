@@ -2,25 +2,35 @@ from decimal import Decimal
 
 from django.db import models
 from django.utils import timezone
+from parler.models import TranslatableModel, TranslatedFields
 
 
-class LoyaltyReward(models.Model):
-    """Nagroda w programie lojalnościowym (np. Kupon 50zł)."""
-    name = models.CharField(max_length=200, verbose_name="Nazwa nagrody", default="Nagroda")
+class LoyaltyReward(TranslatableModel):
+    """Nagroda w programie lojalnościowym (Tłumaczona)."""
+
+    # Pola wspólne (nietłumaczone)
     points_required = models.PositiveIntegerField(verbose_name="Wymagane punkty")
     reward_value = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Wartość nagrody")
     is_percentage = models.BooleanField(default=False, verbose_name="Czy procentowa?")
-    description = models.CharField(max_length=255, verbose_name="Opis (dla klienta)")
     active = models.BooleanField(default=True, verbose_name="Aktywna")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Data utworzenia", null=True, blank=True)
+
+    # Pola tłumaczone (zamiast w głównej klasie)
+    translations = TranslatedFields(
+        description=models.CharField(max_length=255, verbose_name="Opis (dla klienta)")
+    )
 
     class Meta:
         verbose_name = "Nagroda lojalnościowa"
         verbose_name_plural = "Nagrody lojalnościowe"
+        # UWAGA: Możesz sortować tylko po polach wspólnych (np. points_required).
+        # Nie możesz tu wpisać 'description', bo to pole jest w innej tabeli!
         ordering = ['points_required']
 
     def __str__(self):
-        return f"{self.name} ({self.points_required} pkt)"
+        # Używamy safe_translation_getter, żeby admin nie wybuchł,
+        # gdy brakuje tłumaczenia
+        desc = self.safe_translation_getter('description', any_language=True) or "(brak opisu)"
+        return f"{self.points_required} pkt -> {desc}"
 
 
 class RedeemedReward(models.Model):

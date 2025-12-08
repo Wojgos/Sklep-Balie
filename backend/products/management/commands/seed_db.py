@@ -140,18 +140,24 @@ class Command(BaseCommand):
     def _create_categories(self):
         self.stdout.write('  Tworzenie kategorii (i18n)...')
 
+<<<<<<< HEAD
         # Helper do tworzenia kategorii
         def make_cat(name_pl, name_en):
+=======
+        # Helper do tworzenia kategorii (BEZ parenta)
+        def make_cat(name_pl, name_en):  # Usunięto parent=None
+            # Tworzymy kategorię bez żadnych argumentów
+>>>>>>> af11c8844559522613158326f9c5ec6e9c4d1f83
             cat = Category.objects.create()
 
             cat.set_current_language('pl')
             cat.name = name_pl
-            cat.slug = slugify(name_pl)  # Generujemy slug jawnie
+            cat.slug = slugify(name_pl)
             cat.save()
 
             cat.set_current_language('en')
             cat.name = name_en
-            cat.slug = slugify(name_en)  # Generujemy slug jawnie
+            cat.slug = slugify(name_en)
             cat.save()
             return cat
 
@@ -159,6 +165,10 @@ class Command(BaseCommand):
         jacuzzi = make_cat('Jacuzzi Ogrodowe', 'Garden Jacuzzis')
         drewniane = make_cat('Balie Drewniane', 'Wooden Hot Tubs')
         akcesoria = make_cat('Akcesoria', 'Accessories')
+<<<<<<< HEAD
+=======
+        # Pokrywy teraz są samodzielną kategorią, nie dzieckiem
+>>>>>>> af11c8844559522613158326f9c5ec6e9c4d1f83
         pokrywy = make_cat('Pokrywy Termiczne', 'Thermal Covers')
 
         return {
@@ -181,11 +191,11 @@ class Command(BaseCommand):
 
         def make_val(attr, val_pl, val_en):
             val = AttributeValue.objects.create(attribute=attr)
-            val.set_current_language('pl');
-            val.value = val_pl;
+            val.set_current_language('pl')
+            val.value = val_pl
             val.save()
-            val.set_current_language('en');
-            val.value = val_en;
+            val.set_current_language('en')
+            val.value = val_en
             val.save()
             return val
 
@@ -292,11 +302,11 @@ class Command(BaseCommand):
                     product=product, variant=variant,
                     image="product_images/placeholder.jpg", is_main=True
                 )
-                img.set_current_language('pl');
-                img.alt_text = "Zdjęcie";
+                img.set_current_language('pl')
+                img.alt_text = "Zdjęcie"
                 img.save()
-                img.set_current_language('en');
-                img.alt_text = "Image";
+                img.set_current_language('en')
+                img.alt_text = "Image"
                 img.save()
 
                 variants_list.append(variant)
@@ -321,5 +331,24 @@ class Command(BaseCommand):
             order.save()
 
     def _create_loyalty_rewards(self):
-        LoyaltyReward.objects.create(points_required=500, reward_value=20, description="Rabat 20 PLN")
-        LoyaltyReward.objects.create(points_required=1000, reward_value=50, description="Rabat 50 PLN")
+        self.stdout.write('  Tworzenie nagród lojalnościowych (i18n)...')
+        if LoyaltyReward.objects.exists():
+            return
+
+        def create_reward(points, value, is_percent, desc_pl, desc_en):
+            reward = LoyaltyReward.objects.create(
+                points_required=points,
+                reward_value=value,
+                is_percentage=is_percent,
+                active=True
+            )
+            reward.set_current_language('pl')
+            reward.description = desc_pl
+            reward.save()
+            reward.set_current_language('en')
+            reward.description = desc_en
+            reward.save()
+
+        create_reward(500, 20.00, False, "Rabat 20 PLN", "Discount 20 PLN")
+        create_reward(1000, 50.00, False, "Super Rabat 50 PLN", "Super Discount 50 PLN")
+        create_reward(5000, 15.00, True, "Złoty status: -15%", "Gold Status: -15%")

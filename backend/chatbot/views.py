@@ -11,7 +11,6 @@ class ChatbotView(APIView):
     POST /api/v1/chatbot/ask/
     Body: { "message": "..." }
     """
-    # Pozwalamy pisać każdemu (Gość też może pytać o ofertę)
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
@@ -24,9 +23,8 @@ class ChatbotView(APIView):
             )
 
         bot = StoreChatbot()
+        lang = request.LANGUAGE_CODE
 
-        response_text = bot.get_response(user_message, request.user)
+        response_text = bot.get_response(user_message, request.user, language=lang)
 
-        return Response({
-            "response": response_text
-        })
+        return Response({"response": response_text})
