@@ -1,6 +1,8 @@
 # backend/products/management/commands/seed_db.py
 import random
 from decimal import Decimal
+
+from PIL import Image, ImageDraw
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.core.files.base import ContentFile
@@ -8,6 +10,7 @@ from django.contrib.sites.models import Site
 from django.conf import settings
 from django.utils import translation
 from django.utils.text import slugify
+from io import BytesIO
 
 from faker import Faker
 
@@ -147,43 +150,50 @@ class Command(BaseCommand):
         return {'admin': admin_user, 'anna_nowak': tester}
 
     def _create_categories(self):
-        self.stdout.write('  Tworzenie kategorii (i18n)...')
+        self.stdout.write('  Tworzenie/Pobieranie kategorii (i18n)...')
 
+        def make_cat(name_pl, name_en):
+            # Używamy get_or_create, żeby nie duplikować
+            # Szukamy po angielskiej nazwie (bo w translation table jest name)
+            # Uwaga: To uproszczenie. W parlerze lepiej sprawdzić czy obiekt istnieje.
 
-        # Helper do tworzenia kategorii (BEZ parenta)
-        def make_cat(name_pl, name_en):  # Usunięto parent=None
-            # Tworzymy kategorię bez żadnych argumentów
->>>>>>> af11c8844559522613158326f9c5ec6e9c4d1f83
+            # 1. Sprawdź czy kategoria o takiej nazwie (PL) już istnieje
+            # (To trochę trick, bo szukamy w tłumaczeniach, ale dla seedera wystarczy)
+            existing = Category.objects.filter(translations__name=name_pl).first()
+            if existing:
+                return existing
+
+            # 2. Jeśli nie ma, stwórz nową
             cat = Category.objects.create()
 
             cat.set_current_language('pl')
             cat.name = name_pl
             cat.slug = slugify(name_pl)
-            # Generujemy zdjęcie kategorii
-            cat.image = self._generate_dummy_image(name_pl)
             cat.save()
 
             cat.set_current_language('en')
             cat.name = name_en
             cat.slug = slugify(name_en)
             cat.save()
+
+            # Generuj zdjęcie tylko dla nowej
+            try:
+                cat.image = self._generate_dummy_image(name_pl)
+                cat.save()
+            except Exception:
+                pass  # Ignoruj błąd zdjęcia jeśli np. biblioteka nawali
+
             return cat
 
         balie = make_cat('Balie Ogrodowe', 'Garden Hot Tubs')
         jacuzzi = make_cat('Jacuzzi Ogrodowe', 'Garden Jacuzzis')
         drewniane = make_cat('Balie Drewniane', 'Wooden Hot Tubs')
         akcesoria = make_cat('Akcesoria', 'Accessories')
-<<<<<<< HEAD
-=======
-        # Pokrywy teraz są samodzielną kategorią, nie dzieckiem
->>>>>>> af11c8844559522613158326f9c5ec6e9c4d1f83
         pokrywy = make_cat('Pokrywy Termiczne', 'Thermal Covers')
 
         return {
-            'balie': make_cat('Balie Ogrodowe', 'Garden Hot Tubs'),
-            'jacuzzi': make_cat('Jacuzzi Ogrodowe', 'Garden Jacuzzis'),
-            'akcesoria': make_cat('Akcesoria', 'Accessories'),
-            'pokrywy': make_cat('Pokrywy Termiczne', 'Thermal Covers')
+            'balie': balie, 'jacuzzi': jacuzzi, 'drewniane': drewniane,
+            'akcesoria': akcesoria, 'pokrywy': pokrywy
         }
 
     def _create_attributes_and_values(self):
