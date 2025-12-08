@@ -303,3 +303,31 @@ class ProductSerializer(serializers.ModelSerializer):
                     attributes_map[attr_name].add(value)
 
         return {key: sorted(list(val)) for key, val in attributes_map.items()}
+
+    def to_representation(self, instance):
+        """
+        Override to add image field in read operations.
+        Returns the main image from the first variant or a placeholder.
+        """
+        representation = super().to_representation(instance)
+        
+        # Get main image from product images or first variant
+        main_image = None
+        product_images = instance.images.filter(is_main=True).first()
+        
+        if product_images:
+            main_image = product_images.image.url if product_images.image else None
+        elif instance.variants.exists():
+            # Get image from first variant
+            first_variant = instance.variants.first()
+            variant_image = ProductImage.objects.filter(variant=first_variant, is_main=True).first()
+            if variant_image and variant_image.image:
+                main_image = variant_image.image.url
+        
+        # Use placeholder if no image found
+        if not main_image:
+            from django.conf import settings
+            main_image = settings.MEDIA_URL + 'product_images/placeholder.jpg'
+        
+        representation['image'] = main_image
+        return representation

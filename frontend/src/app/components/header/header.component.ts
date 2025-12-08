@@ -7,12 +7,13 @@ import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../services/notification.service';
 import { SearchBarComponent } from '../search-bar/search-bar.component';
 import { CartDrawerComponent } from '../cart-drawer/cart-drawer.component';
+import { LanguageSwitcherComponent } from '../language-switcher/language-switcher.component';
 import { User, NotificationType } from '../../models';
 
 @Component({
   selector: 'bg-header',
   standalone: true,
-  imports: [CommonModule, RouterModule, SearchBarComponent, CartDrawerComponent],
+  imports: [CommonModule, RouterModule, SearchBarComponent, CartDrawerComponent, LanguageSwitcherComponent],
   template: `
     <header class="sticky top-0 z-50 bg-background border-b">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -66,6 +67,9 @@ import { User, NotificationType } from '../../models';
           </div>
 
           <div class="flex items-center gap-2">
+            <!-- Language Switcher -->
+            <bg-language-switcher></bg-language-switcher>
+            
             <button
               class="p-2 hover:bg-muted rounded-md transition-colors"
               (click)="toggleTheme()"

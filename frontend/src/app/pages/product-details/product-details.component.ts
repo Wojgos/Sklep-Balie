@@ -326,7 +326,7 @@ export class ProductDetailsComponent implements OnInit {
 
   getCurrentPrice(): number {
     // Jeśli produkt ma attributes (konfiguracje z panelu admina), oblicz cenę z modyfikatorami
-    if (this.product?.attributes && this.product.attributes.length > 0) {
+    if (this.product?.attributes && Array.isArray(this.product.attributes) && this.product.attributes.length > 0) {
       const basePrice = parseFloat(this.product?.price || '0');
       let totalModifier = 0;
 
@@ -371,7 +371,10 @@ export class ProductDetailsComponent implements OnInit {
   }
 
   getPriceModifier(attributeName: string, variantName: string): number {
-    if (!this.product?.attributes) return 0;
+    // Check if attributes exist and is an array
+    if (!this.product?.attributes || !Array.isArray(this.product.attributes) || this.product.attributes.length === 0) {
+      return 0;
+    }
     
     const attribute = this.product.attributes.find((attr: any) => attr.name === attributeName);
     if (!attribute) return 0;

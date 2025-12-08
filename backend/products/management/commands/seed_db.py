@@ -308,9 +308,10 @@ class Command(BaseCommand):
                 img = ProductImage.objects.create(
                     product=product,
                     variant=variant,
-                    image=img_file,
                     is_main=True
                 )
+                # Save image file separately to ensure it's properly stored
+                img.image.save(f'{slugify(product_name)}-{sku}.jpg', img_file, save=True)
 
                 # Tłumaczenie Alt Text zdjęcia
                 img.set_current_language('pl');

@@ -134,16 +134,20 @@ class LowStockVariantsViewSet(viewsets.ReadOnlyModelViewSet):
             stock__lt=F('low_stock_threshold'),
             available=True
         ).select_related('product', 'product__category').prefetch_related(
-            'attributes__attribute', 'images'
-        ).order_by('stock', 'product__name')
+            'attributes__attribute', 'images', 'product__translations'
+        ).order_by('stock', 'product__translations__name')
 
         severity = self.request.query_params.get('severity', None)
         if severity == 'critical':
             queryset = queryset.filter(stock=0)
         elif severity == 'warning':
+            from django.db.models import ExpressionWrapper, IntegerField
             queryset = queryset.filter(
                 stock__gt=0,
-                stock__lt=F('low_stock_threshold') / 2
+                stock__lt=ExpressionWrapper(
+                    F('low_stock_threshold') / 2,
+                    output_field=IntegerField()
+                )
             )
 
         return queryset
@@ -180,9 +184,14 @@ class LowStockVariantsViewSet(viewsets.ReadOnlyModelViewSet):
             stock=0,
             available=True
         ).count()
+        # Warning variants - use ExpressionWrapper for division
+        from django.db.models import ExpressionWrapper, IntegerField
         warning_variants = ProductVariant.objects.filter(
             stock__gt=0,
-            stock__lt=F('low_stock_threshold') / 2,
+            stock__lt=ExpressionWrapper(
+                F('low_stock_threshold') / 2,
+                output_field=IntegerField()
+            ),
             available=True
         ).count()
 
