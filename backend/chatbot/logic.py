@@ -1,56 +1,121 @@
+# backend/chatbot/logic.py
 from orders.models import Order
 from products.models import Product
 
 
 class StoreChatbot:
+    """
+    Wielojęzyczny chatbot e-commerce.
+    """
 
-    def get_response(self, message, user):
+    # Słownik słów kluczowych i odpowiedzi
+    CONFIG = {
+        'pl': {
+            'keywords': {
+                'status': ['status', 'zamówien', 'paczk', 'przesyłk', 'gdzie jest'],
+                'returns': ['zwrot', 'reklamacj', 'oddać', 'zwrócić'],
+                'products': ['szukam', 'cena', 'ile kosztuje', 'macie'],
+                'contact': ['kontakt', 'telefon', 'email', 'adres'],
+                'hello': ['cześć', 'hej', 'dzień dobry', 'witaj'],
+            },
+            'responses': {
+                'login_required': "Aby sprawdzić status swojego zamówienia, musisz się najpierw zalogować.",
+                'no_orders': "Nie widzę żadnych zamówień na Twoim koncie.",
+                'order_status': "Twoje ostatnie zamówienie (#{id}) ma status: '{status}'. Numer przesyłki: {tracking}.",
+                'returns': "Na zwrot towaru masz 14 dni. Aby zgłosić reklamację, wejdź w zakładkę 'Wsparcie'.",
+                'contact': "Nasz dział obsługi klienta pracuje pn-pt 8:00-16:00. Tel: +48 123 456 789.",
+                'hello': "Cześć! Jestem wirtualnym asystentem. Możesz zapytać mnie o status zamówienia lub ofertę.",
+                'product_found': "Mamy w ofercie '{name}'. Kliknij w zakładkę Produkty, aby zobaczyć szczegóły.",
+                'product_not_found': "Niestety, nie znalazłem produktu pasującego do hasła '{term}'.",
+                'offer_general': "Mamy szeroką ofertę balii i jacuzzi. Przejdź do katalogu, aby zobaczyć wszystko.",
+                'default': "Przepraszam, nie rozumiem. Możesz zapytać o: status zamówienia, ofertę lub kontakt."
+            }
+        },
+        'en': {
+            'keywords': {
+                'status': ['status', 'order', 'package', 'tracking', 'where is'],
+                'returns': ['return', 'complaint', 'refund', 'broken'],
+                'products': ['looking for', 'price', 'cost', 'have you', 'search'],
+                'contact': ['contact', 'phone', 'email', 'address'],
+                'hello': ['hi', 'hello', 'hey', 'good morning'],
+            },
+            'responses': {
+                'login_required': "You must be logged in to check your order status.",
+                'no_orders': "I don't see any orders on your account.",
+                'order_status': "Your last order (#{id}) status is: '{status}'. Tracking number: {tracking}.",
+                'returns': "You have 14 days to return the product. To file a complaint, go to the 'Support' tab.",
+                'contact': "Customer support is open Mon-Fri 8:00-16:00. Phone: +48 123 456 789.",
+                'hello': "Hi! I am a virtual assistant. You can ask me about order status or our offer.",
+                'product_found': "We have '{name}' in our offer. Check the Products tab for details.",
+                'product_not_found': "Unfortunately, I couldn't find a product matching '{term}'.",
+                'offer_general': "We have a wide range of hot tubs. Go to the catalog to see everything.",
+                'default': "I'm sorry, I don't understand. You can ask about: order status, products, or contact info."
+            }
+        }
+    }
+
+    def get_response(self, message, user, language='pl'):
+        """Główna metoda przetwarzająca wiadomość."""
+        lang_config = self.CONFIG.get(language, self.CONFIG['pl'])
+        keywords = lang_config['keywords']
+        responses = lang_config['responses']
+
         msg = message.lower().strip()
 
-        if any(word in msg for word in ['status', 'zamówien', 'paczk', 'przesyłk', 'gdzie jest']):
-            return self._handle_order_status(user)
+        # 1. STATUS ZAMÓWIENIA
+        if any(word in msg for word in keywords['status']):
+            return self._handle_order_status(user, responses)
 
-        if any(word in msg for word in ['zwrot', 'reklamacj', 'oddać', 'zwrócić']):
-            return ("Na zwrot towaru masz 14 dni. "
-                    "Aby zgłosić reklamację, wejdź w zakładkę 'Wsparcie' i utwórz nowe zgłoszenie.")
+        # 2. ZWROTY
+        if any(word in msg for word in keywords['returns']):
+            return responses['returns']
 
-        if any(word in msg for word in ['szukam', 'cena', 'ile kosztuje', 'macie']):
-            return self._handle_product_search(msg)
+        # 3. PRODUKTY
+        if any(word in msg for word in keywords['products']):
+            return self._handle_product_search(msg, responses, language)
 
-        if any(word in msg for word in ['kontakt', 'telefon', 'email', 'adres']):
-            return ("Nasz dział obsługi klienta pracuje pn-pt 8:00-16:00. "
-                    "Tel: +48 123 456 789, E-mail: kontakt@balie.pl")
+        # 4. KONTAKT
+        if any(word in msg for word in keywords['contact']):
+            return responses['contact']
 
-        if any(word in msg for word in ['cześć', 'hej', 'dzień dobry', 'witaj']):
-            return "Cześć! Jestem wirtualnym asystentem. Możesz zapytać mnie o status zamówienia lub ofertę."
+        # 5. POWITANIE
+        if any(word in msg for word in keywords['hello']):
+            return responses['hello']
 
-        # --- DEFAULT ---
-        return ("Przepraszam, nie rozumiem. Możesz zapytać o: status zamówienia, "
-                "ofertę produktów lub dane kontaktowe.")
+        # DEFAULT
+        return responses['default']
 
-    def _handle_order_status(self, user):
+    def _handle_order_status(self, user, responses):
         if not user or not user.is_authenticated:
-            return "Aby sprawdzić status swojego zamówienia, musisz się najpierw zalogować."
+            return responses['login_required']
 
         last_order = Order.objects.filter(user=user).order_by('-created_at').first()
 
         if not last_order:
-            return "Nie widzę żadnych zamówień na Twoim koncie."
+            return responses['no_orders']
 
-        status_pl = last_order.get_status_display()
-        tracking = last_order.tracking_number or "brak numeru śledzenia"
-        return f"Twoje ostatnie zamówienie (#{last_order.id}) ma status: '{status_pl}'. Numer przesyłki: {tracking}."
+        # Status jest tłumaczony automatycznie przez Django, jeśli w modelu użyto choices z gettext
+        # Ale tutaj dla uproszczenia zwrócimy surowy, lub musielibyśmy użyć translate
+        status_display = last_order.get_status_display()
+        tracking = last_order.tracking_number or "-"
 
-    def _handle_product_search(self, msg):
-        keywords = [word for word in msg.split() if len(word) > 3 and word not in ['ile', 'kosztuje', 'szukam']]
+        return responses['order_status'].format(id=last_order.id, status=status_display, tracking=tracking)
+
+    def _handle_product_search(self, msg, responses, language):
+        # Prosta heurystyka wyciągania słowa kluczowego
+        ignored = ['ile', 'kosztuje', 'szukam', 'price', 'cost', 'search', 'looking', 'for']
+        keywords = [word for word in msg.split() if len(word) > 3 and word not in ignored]
 
         if not keywords:
-            return "Mamy szeroką ofertę balii i jacuzzi. Przejdź do katalogu, aby zobaczyć wszystko."
+            return responses['offer_general']
 
         search_term = keywords[0]
-        product = Product.objects.filter(translations__name__icontains=search_term).first()
+
+        # Szukamy w tłumaczeniach (django-parler)
+        # Używamy translation__name__icontains
+        product = Product.objects.language(language).filter(translations__name__icontains=search_term).first()
 
         if product:
-            return f"Mamy w ofercie '{product.name}'. Kliknij w zakładkę Produkty, aby zobaczyć szczegóły."
+            return responses['product_found'].format(name=product.name)
         else:
-            return f"Niestety, nie znalazłem produktu pasującego do hasła '{search_term}'."
+            return responses['product_not_found'].format(term=search_term)
