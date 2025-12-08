@@ -20,8 +20,10 @@ export class AuthService {
     const storedUser = this.getStoredUser();
     this.currentUserSubject = new BehaviorSubject<User | null>(storedUser);
     this.currentUser$ = this.currentUserSubject.asObservable();
+  }
 
-    // Attempt to load user profile on startup if token exists
+  // Public method to initialize session - call after DI is complete
+  public initializeSession(): void {
     this.restoreSessionFromStorage();
   }
 

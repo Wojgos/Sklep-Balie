@@ -125,21 +125,55 @@ class ProductVariantSerializer(serializers.ModelSerializer):
         many=True, read_only=True, source='attributes'
     )
     images = ProductImageSerializer(many=True, read_only=True)
+    attribute_values = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        help_text="Lista ID wartości atrybutów do przypisania"
+    )
 
     class Meta:
         model = ProductVariant
         fields = [
             'id', 'product', 'sku', 'name', 'price', 'stock',
             'low_stock_threshold', 'available',
-            'attributes_details', 'images'
+            'attributes_details', 'attribute_values', 'images'
         ]
 
     def create(self, validated_data):
         name = validated_data.pop('name', '')
+        attribute_values = validated_data.pop('attribute_values', [])
+        
         instance = ProductVariant.objects.create(**validated_data)
         instance.set_current_language(translation.get_language())
         instance.name = name
         instance.save()
+        
+        # Set attributes
+        if attribute_values:
+            instance.attributes.set(attribute_values)
+        
+        return instance
+
+    def update(self, instance, validated_data):
+        name = validated_data.pop('name', None)
+        attribute_values = validated_data.pop('attribute_values', None)
+        
+        # Update standard fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Update translatable field if provided
+        if name is not None:
+            instance.set_current_language(translation.get_language())
+            instance.name = name
+        
+        instance.save()
+        
+        # Update attributes if provided
+        if attribute_values is not None:
+            instance.attributes.set(attribute_values)
+        
         return instance
 
 
@@ -276,18 +310,10 @@ class ProductSerializer(serializers.ModelSerializer):
         return instance
 
     def get_available_attributes(self, instance):
-        if instance.attributes_config:
-            attributes_map = {}
-            for attr_config in instance.attributes_config:
-                attr_name = attr_config.get('name')
-                variants = attr_config.get('variants', [])
-                if attr_name and variants:
-                    values = [v.get('name') for v in variants if v.get('name')]
-                    if values:
-                        attributes_map[attr_name] = sorted(values)
-            if attributes_map:
-                return attributes_map
-
+        """
+        Generate available attributes from actual ProductVariant instances.
+        This ensures frontend always displays real product options from the database.
+        """
         attributes_map = {}
         variants = instance.variants.filter(available=True).prefetch_related('attributes__attribute')
 

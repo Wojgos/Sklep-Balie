@@ -1,47 +1,37 @@
-import { Injectable, Injector } from '@angular/core';
+import { inject } from '@angular/core';
 import {
   HttpRequest,
-  HttpHandler,
+  HttpHandlerFn,
   HttpEvent,
-  HttpInterceptor
+  HttpInterceptorFn
 } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { LanguageService } from '../services/language.service';
 
-@Injectable()
-export class AuthInterceptor implements HttpInterceptor {
-  private authService?: AuthService;
-  private languageService?: LanguageService;
+export const authInterceptor: HttpInterceptorFn = (
+  request: HttpRequest<unknown>,
+  next: HttpHandlerFn
+): Observable<HttpEvent<unknown>> => {
+  const authService = inject(AuthService);
+  const languageService = inject(LanguageService);
 
-  constructor(private injector: Injector) {}
+  const token = authService.getToken();
+  const language = languageService.getCurrentLanguage();
 
-  intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
-    // Lazy load services to avoid circular dependency
-    if (!this.authService) {
-      this.authService = this.injector.get(AuthService);
-    }
-    if (!this.languageService) {
-      this.languageService = this.injector.get(LanguageService);
-    }
+  // Klonuj request i dodaj nagłówki
+  const headers: { [key: string]: string } = {
+    'Accept-Language': language
+  };
 
-    const token = this.authService.getToken();
-    const language = this.languageService.getCurrentLanguage();
-
-    // Klonuj request i dodaj nagłówki
-    const headers: { [key: string]: string } = {
-      'Accept-Language': language
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    request = request.clone({
-      setHeaders: headers
-    });
-
-    return next.handle(request);
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
-}
+
+  request = request.clone({
+    setHeaders: headers
+  });
+
+  return next(request);
+};
 

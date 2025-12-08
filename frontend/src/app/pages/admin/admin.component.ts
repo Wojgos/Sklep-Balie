@@ -1,12 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Observable, of } from 'rxjs';
+import { Observable, of, forkJoin } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { Product, Category, Order, InsertProduct, InsertCategory, SalesStatistics, LowStockAlert, LowStockVariantAlert, LowStockStatistics, GroupedLowStockAlert, ProductSkuVariant, OrderItem, ProductAttribute, ProductVariant, Ticket, TicketReply, TicketStatusUpdate, LoyaltyProgram, LoyaltyReward, InsertLoyaltyProgram, InsertLoyaltyReward } from '../../models';
 import { AdvancedStatisticsComponent } from './advanced-statistics.component';
 
-type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' | 'support' | 'loyalty';
+type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' | 'support' | 'loyalty' | 'attributes';
 
 @Component({
   selector: 'bg-admin',
@@ -59,8 +59,8 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                       <th class="px-4 py-3 text-left text-sm font-semibold">Zdjęcie</th>
                       <th class="px-4 py-3 text-left text-sm font-semibold">Nazwa</th>
                       <th class="px-4 py-3 text-left text-sm font-semibold">Kategoria</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Cena</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Stan</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">Zakres cen</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">Warianty</th>
                       <th class="px-4 py-3 text-right text-sm font-semibold">Akcje</th>
                     </tr>
                   </thead>
@@ -75,15 +75,26 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                       </td>
                       <td class="px-4 py-3 font-medium">{{ product.name }}</td>
                       <td class="px-4 py-3">{{ getCategoryName(product.categoryId) }}</td>
-                      <td class="px-4 py-3">{{ parseFloat(product.price) | number:'1.2-2' }} PLN</td>
                       <td class="px-4 py-3">
-                        <span [class]="product.stock > 10 
-                          ? 'bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium' 
-                          : product.stock > 0 
-                            ? 'bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium'
-                            : 'bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium'">
-                          {{ product.stock }} szt.
-                        </span>
+                        <div class="text-sm">
+                          <div *ngIf="product.minPrice && product.maxPrice && product.minPrice !== product.maxPrice">
+                            {{ parseFloat(product.minPrice) | number:'1.2-2' }} - {{ parseFloat(product.maxPrice) | number:'1.2-2' }} PLN
+                          </div>
+                          <div *ngIf="product.minPrice && (!product.maxPrice || product.minPrice === product.maxPrice)">
+                            {{ parseFloat(product.minPrice) | number:'1.2-2' }} PLN
+                          </div>
+                          <div *ngIf="!product.minPrice" class="text-muted-foreground">
+                            Brak wariantów
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-4 py-3">
+                        <div class="text-sm">
+                          <span class="font-medium">{{ product.variantCount || 0 }}</span>
+                          <span class="text-muted-foreground ml-1">
+                            {{ (product.variantCount || 0) === 1 ? 'wariant' : 'warianty' }}
+                          </span>
+                        </div>
                       </td>
                       <td class="px-4 py-3 text-right">
                         <div class="flex justify-end gap-2">
@@ -159,6 +170,74 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Attributes Tab -->
+          <div *ngIf="activeTab === 'attributes'" class="space-y-6">
+            <div class="flex justify-between items-center">
+              <h2 class="text-2xl font-semibold">Zarządzanie Atrybutami</h2>
+              <button
+                (click)="openAttributeModal(null)"
+                class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                + Dodaj Atrybut
+              </button>
+            </div>
+
+            <div class="bg-card border border-card-border rounded-lg overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full">
+                  <thead class="bg-muted">
+                    <tr>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">Nazwa atrybutu</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">Liczba wartości</th>
+                      <th class="px-4 py-3 text-right text-sm font-semibold">Akcje</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let attribute of attributesList$ | async" class="border-t border-card-border hover:bg-muted/50">
+                      <td class="px-4 py-3 font-medium">{{ attribute.name }}</td>
+                      <td class="px-4 py-3">
+                        <span class="text-sm text-muted-foreground">
+                          {{ attribute.values?.length || 0 }} wartości
+                        </span>
+                      </td>
+                      <td class="px-4 py-3 text-right">
+                        <div class="flex justify-end gap-2">
+                          <button
+                            (click)="manageAttributeValues(attribute)"
+                            class="p-2 hover:bg-muted rounded-md transition-colors"
+                            title="Zarządzaj wartościami"
+                          >
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                          </button>
+                          <button
+                            (click)="openAttributeModal(attribute)"
+                            class="p-2 hover:bg-muted rounded-md transition-colors"
+                            title="Edytuj"
+                          >
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                          </button>
+                          <button
+                            (click)="deleteAttribute(attribute.id)"
+                            class="p-2 hover:bg-red-50 text-red-600 rounded-md transition-colors"
+                            title="Usuń"
+                          >
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -744,45 +823,8 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               </select>
             </div>
 
-            <div class="grid grid-cols-3 gap-4">
-              <div>
-                <label class="block text-sm font-medium mb-2">Cena (PLN)</label>
-                <input 
-                  type="number" 
-                  [(ngModel)]="productForm.price" 
-                  name="price"
-                  step="0.01"
-                  min="0"
-                  required
-                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
-                />
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium mb-2">Stara cena (PLN)</label>
-                <input 
-                  type="number" 
-                  [(ngModel)]="productForm.oldPrice" 
-                  name="oldPrice"
-                  step="0.01"
-                  min="0"
-                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
-                />
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium mb-2">Stan magazynowy</label>
-                <input 
-                  type="number" 
-                  [(ngModel)]="productForm.stock" 
-                  name="stock"
-                  min="0"
-                  required
-                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
-                />
-              </div>
-            </div>
-
+          
+            
             <div>
               <label class="block text-sm font-medium mb-2">
                 Zdjęcie produktu
@@ -811,158 +853,127 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               }
             </div>
 
-            <!-- Attributes Section -->
-            <div class="border-t border-border pt-4 mt-4">
-              <div class="flex justify-between items-center mb-3">
-                <h3 class="text-lg font-semibold">Konfiguracja produktu</h3>
-                <button 
-                  type="button"
-                  (click)="showAttributeSection = !showAttributeSection"
-                  class="text-sm text-primary hover:underline"
-                >
-                  {{ showAttributeSection ? 'Ukryj' : '+ Dodaj konfigurację' }}
-                </button>
-              </div>
-
-              <!-- Add Attribute Form -->
-              <div *ngIf="showAttributeSection" class="bg-muted/50 p-4 rounded-lg mb-4">
-                <div class="mb-3">
-                  <label class="block text-sm font-medium mb-1">Nazwa konfiguracji</label>
-                  <input 
-                    type="text" 
-                    [(ngModel)]="currentAttribute.name" 
-                    [ngModelOptions]="{standalone: true}"
-                    placeholder="np. Materiał wkładu, Hydromasaż, Typ pieca"
-                    class="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm"
-                  />
-                </div>
-                <div class="flex gap-2">
+            <!-- SKU Variants Section -->
+            @if (editingProduct) {
+              <div class="border-t border-border pt-4 mt-4">
+                <div class="flex justify-between items-center mb-4">
+                  <div>
+                    <h3 class="text-lg font-semibold">📦 Warianty Produktu 
+                      @if (editingProduct.variants && editingProduct.variants.length > 0) {
+                        <span class="text-muted-foreground">({{ editingProduct.variants.length }})</span>
+                      }
+                    </h3>
+                    <p class="text-sm text-muted-foreground mt-1">
+                      Każdy wariant to osobny produkt z własnym SKU, ceną i stanem magazynowym
+                    </p>
+                  </div>
                   <button 
                     type="button"
-                    (click)="addAttribute()"
-                    class="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90"
+                    (click)="openSkuVariantModal(null)"
+                    class="text-sm px-3 py-1.5 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                   >
-                    {{ editingAttributeIndex >= 0 ? 'Aktualizuj' : 'Dodaj' }} konfigurację
-                  </button>
-                  <button 
-                    type="button"
-                    (click)="cancelAttributeEdit()"
-                    class="px-3 py-1 border border-border rounded text-sm hover:bg-muted"
-                  >
-                    Anuluj
+                    + Dodaj wariant
                   </button>
                 </div>
-              </div>
 
-              <!-- Attributes List -->
-              <div *ngIf="productForm.attributes && productForm.attributes.length > 0" class="space-y-3">
-                <div *ngFor="let attr of productForm.attributes; let attrIdx = index" 
-                     class="bg-muted/30 p-3 rounded-lg">
-                  <div class="flex justify-between items-start mb-3">
-                    <div>
-                      <span class="font-semibold text-base">{{ attr.name }}</span>
-                    </div>
-                    <div class="flex gap-1">
-                      <button 
-                        type="button"
-                        (click)="editAttribute(attrIdx)"
-                        class="p-1 hover:bg-muted rounded text-xs"
-                        title="Edytuj nazwę"
-                      >
-                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
-                      </button>
-                      <button 
-                        type="button"
-                        (click)="deleteAttribute(attrIdx)"
-                        class="p-1 hover:bg-destructive/10 text-destructive rounded text-xs"
-                        title="Usuń konfigurację"
-                      >
-                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                      </button>
-                    </div>
+                @if (!editingProduct.variants || editingProduct.variants.length === 0) {
+                  <div class="bg-muted/30 p-6 rounded-lg text-center">
+                    <p class="text-muted-foreground mb-3">
+                      Brak wariantów. Dodaj pierwszy wariant, aby produkt był dostępny w sklepie.
+                    </p>
+                    <button 
+                      type="button"
+                      (click)="openSkuVariantModal(null)"
+                      class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                    >
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                      </svg>
+                      Utwórz pierwszy wariant
+                    </button>
                   </div>
+                } @else {
 
-                  <!-- Variants -->
-                  <div class="space-y-2">
-                    <p class="text-xs text-muted-foreground mb-2">Warianty:</p>
-                    <div *ngFor="let variant of attr.variants; let varIdx = index" 
-                         class="flex justify-between items-center bg-background p-2 rounded text-sm border border-border">
-                      <div class="flex items-center gap-2">
-                        <span class="font-medium">{{ variant.name }}</span>
-                        <span *ngIf="variant.priceModifier && variant.priceModifier !== 0" class="text-xs text-primary">
-                          ({{ variant.priceModifier > 0 ? '+' : '' }}{{ variant.priceModifier }} PLN)
-                        </span>
-                      </div>
-                      <div class="flex gap-1">
-                        <button 
-                          type="button"
-                          (click)="editVariant(attrIdx, varIdx)"
-                          class="p-1 hover:bg-muted rounded"
-                          title="Edytuj"
-                        >
-                          <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                          </svg>
-                        </button>
-                        <button 
-                          type="button"
-                          (click)="deleteVariant(attrIdx, varIdx)"
-                          class="p-1 hover:bg-destructive/10 text-destructive rounded"
-                          title="Usuń"
-                        >
-                          <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                          </svg>
-                        </button>
+                <div class="space-y-2">
+                  @for (variant of editingProduct.variants; track variant.id) {
+                    <div class="bg-muted/30 p-4 rounded-lg border border-border hover:border-primary/50 transition-colors">
+                      <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                          <div class="flex items-center gap-3 mb-2">
+                            <span class="font-mono text-sm bg-background px-2 py-1 rounded border border-border">
+                              {{ variant.sku }}
+                            </span>
+                            <span class="font-semibold">{{ variant.name }}</span>
+                            @if (!variant.available) {
+                              <span class="text-xs px-2 py-0.5 bg-destructive/20 text-destructive rounded">
+                                Niedostępny
+                              </span>
+                            }
+                          </div>
+
+                          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                            <div>
+                              <span class="text-muted-foreground">Cena:</span>
+                              <span class="ml-2 font-semibold text-primary">{{ variant.price }} PLN</span>
+                            </div>
+                            <div>
+                              <span class="text-muted-foreground">Stan:</span>
+                              <span class="ml-2 font-semibold" [class.text-destructive]="variant.stock === 0">
+                                {{ variant.stock }} szt.
+                              </span>
+                            </div>
+                            <div>
+                              <span class="text-muted-foreground">Próg alertu:</span>
+                              <span class="ml-2">{{ variant.low_stock_threshold }} szt.</span>
+                            </div>
+                            <div>
+                              <span class="text-muted-foreground">Status:</span>
+                              <span class="ml-2" [class.text-green-600]="variant.available" [class.text-destructive]="!variant.available">
+                                {{ variant.available ? 'Aktywny' : 'Nieaktywny' }}
+                              </span>
+                            </div>
+                          </div>
+
+                          @if (variant.attributes_details && variant.attributes_details.length > 0) {
+                            <div class="mt-2 flex flex-wrap gap-2">
+                              @for (attr of variant.attributes_details; track $index) {
+                                <span class="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
+                                  <strong>{{ attr.attribute }}:</strong> {{ attr.value }}
+                                </span>
+                              }
+                            </div>
+                          }
+                        </div>
+
+                        <div class="flex gap-2 ml-4">
+                          <button 
+                            type="button"
+                            (click)="openSkuVariantModal(variant)"
+                            class="p-2 hover:bg-primary/10 rounded transition-colors"
+                            title="Edytuj wariant"
+                          >
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                          </button>
+                          <button 
+                            type="button"
+                            (click)="deleteSkuVariant(variant)"
+                            class="p-2 hover:bg-destructive/10 text-destructive rounded transition-colors"
+                            title="Usuń wariant"
+                          >
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
-
-                    <!-- Add Variant Form -->
-                    <div class="bg-muted/50 p-3 rounded">
-                      <p class="text-xs font-medium mb-2">Dodaj nowy wariant:</p>
-                      <div class="space-y-2">
-                        <input 
-                          type="text" 
-                          [(ngModel)]="currentVariant.name"
-                          [ngModelOptions]="{standalone: true}"
-                          placeholder="np. Akryl (Biała Perła), Brak, Piec elektryczny 8kW"
-                          class="w-full px-3 py-2 border border-border rounded-lg text-sm bg-background"
-                        />
-                        <input 
-                          type="number" 
-                          [(ngModel)]="currentVariant.priceModifier"
-                          [ngModelOptions]="{standalone: true}"
-                          placeholder="Zmiana ceny (PLN) - opcjonalnie"
-                          step="0.01"
-                          class="w-full px-3 py-2 border border-border rounded-lg text-sm bg-background"
-                        />
-                      </div>
-                      <div class="flex gap-2 mt-2">
-                        <button 
-                          type="button"
-                          (click)="addVariant(attrIdx)"
-                          class="px-3 py-1.5 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90"
-                        >
-                          {{ editingVariantIndex >= 0 ? 'Aktualizuj' : '+ Dodaj' }} wariant
-                        </button>
-                        <button 
-                          *ngIf="editingVariantIndex >= 0"
-                          type="button"
-                          (click)="cancelVariantEdit()"
-                          class="px-3 py-1.5 border border-border rounded text-sm hover:bg-muted"
-                        >
-                          Anuluj
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  }
                 </div>
+                }
               </div>
-            </div>
+            }
 
             <div class="flex justify-end gap-3 pt-4">
               <button 
@@ -977,6 +988,178 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
               >
                 {{ editingProduct ? 'Zapisz' : 'Dodaj' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- SKU Variant Edit Modal -->
+    <div *ngIf="showVariantModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" (click)="closeVariantModal()">
+      <div class="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+        <div class="p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold">{{ editingSkuVariant ? 'Edytuj Wariant SKU' : 'Dodaj Wariant SKU' }}</h2>
+            <button (click)="closeVariantModal()" class="text-muted-foreground hover:text-foreground">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <form (submit)="saveSkuVariant($event)" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-2">SKU *</label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="variantForm.sku" 
+                  name="sku"
+                  [readonly]="!!editingSkuVariant"
+                  required
+                  placeholder="SKU-123-ABC"
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                  [class.bg-muted]="!!editingSkuVariant"
+                />
+                @if (editingSkuVariant) {
+                  <p class="text-xs text-muted-foreground mt-1">SKU nie może być zmieniony</p>
+                }
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-2">Nazwa wariantu</label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="variantForm.name" 
+                  name="name"
+                  placeholder="np. Mały - Brązowy"
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-2">Cena (PLN) *</label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="variantForm.price" 
+                  name="price"
+                  required
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-2">Stan magazynowy *</label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="variantForm.stock" 
+                  name="stock"
+                  required
+                  min="0"
+                  placeholder="0"
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-2">Próg alertu niskiego stanu</label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="variantForm.low_stock_threshold" 
+                  name="low_stock_threshold"
+                  min="0"
+                  placeholder="5"
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-2">Dostępność</label>
+                <div class="flex items-center gap-4 pt-2">
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      [(ngModel)]="variantForm.available" 
+                      name="available"
+                      [value]="true"
+                      class="w-4 h-4"
+                    />
+                    <span>Dostępny</span>
+                  </label>
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      [(ngModel)]="variantForm.available" 
+                      name="available"
+                      [value]="false"
+                      class="w-4 h-4"
+                    />
+                    <span>Niedostępny</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Editable Attributes Section -->
+            <div class="border-t border-border pt-4">
+              <h3 class="text-sm font-semibold mb-3">Atrybuty wariantu</h3>
+              
+              @if (allAttributes.length === 0) {
+                <div class="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+                  <p>Ładowanie dostępnych atrybutów...</p>
+                </div>
+              }
+              
+              @if (allAttributes.length > 0) {
+                <div class="space-y-3">
+                  @for (attribute of allAttributes; track attribute.id) {
+                    <div>
+                      <label class="block text-sm font-medium mb-2">
+                        {{ attribute.name }}
+                        @if (selectedVariantAttributes[attribute.name]) {
+                          <span class="text-xs text-muted-foreground ml-2">(wybrano)</span>
+                        }
+                      </label>
+                      <select 
+                        [(ngModel)]="selectedVariantAttributes[attribute.name]"
+                        [name]="'attr_' + attribute.id"
+                        class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                      >
+                        @if (!selectedVariantAttributes[attribute.name]) {
+                          <option [value]="undefined" disabled selected>-- Wybierz {{ attribute.name }} --</option>
+                        }
+                        @for (value of attributeValues[attribute.id]; track value.id) {
+                          <option [value]="value.id">{{ value.value }}</option>
+                        }
+                      </select>
+                    </div>
+                  }
+                </div>
+                
+                      }
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 border-t border-border">
+              <button 
+                type="button"
+                (click)="closeVariantModal()"
+                class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              >
+                Anuluj
+              </button>
+              <button 
+                type="submit"
+                class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                {{ editingSkuVariant ? 'Zapisz zmiany' : 'Utwórz wariant' }}
               </button>
             </div>
           </form>
@@ -1063,6 +1246,131 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attribute Modal -->
+    <div *ngIf="showAttributeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" (click)="closeAttributeModal()">
+      <div class="bg-background rounded-lg max-w-lg w-full" (click)="$event.stopPropagation()">
+        <div class="p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold">{{ editingAttribute ? 'Edytuj Atrybut' : 'Dodaj Atrybut' }}</h2>
+            <button (click)="closeAttributeModal()" class="text-muted-foreground hover:text-foreground">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <form (submit)="saveAttribute($event)" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-2">Nazwa atrybutu *</label>
+              <input 
+                type="text" 
+                [(ngModel)]="attributeForm.name" 
+                name="name"
+                required
+                placeholder="np. Kolor, Rozmiar, Materiał"
+                class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+              />
+              <p class="text-xs text-muted-foreground mt-1">
+                Nazwa atrybutu (np. "Kolor", "Rozmiar", "Materiał"). Będzie wyświetlana w konfiguracjach produktów.
+              </p>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 border-t border-border">
+              <button 
+                type="button"
+                (click)="closeAttributeModal()"
+                class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              >
+                Anuluj
+              </button>
+              <button 
+                type="submit"
+                class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                {{ editingAttribute ? 'Zapisz zmiany' : 'Dodaj atrybut' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attribute Values Modal -->
+    <div *ngIf="showAttributeValueModal && selectedAttributeForValues" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" (click)="closeAttributeValueModal()">
+      <div class="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+        <div class="p-6">
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <h2 class="text-2xl font-semibold">Wartości atrybutu: {{ selectedAttributeForValues.name }}</h2>
+              <p class="text-sm text-muted-foreground mt-1">Zarządzaj możliwymi wartościami dla tego atrybutu</p>
+            </div>
+            <button (click)="closeAttributeValueModal()" class="text-muted-foreground hover:text-foreground">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Add Value Form -->
+          <form (submit)="saveAttributeValue($event)" class="mb-6 p-4 bg-muted rounded-lg">
+            <div class="flex gap-3">
+              <div class="flex-1">
+                <input 
+                  type="text" 
+                  [(ngModel)]="attributeValueForm.value" 
+                  name="value"
+                  required
+                  placeholder="Nowa wartość (np. Czerwony, XL, Bawełna)"
+                  class="w-full px-3 py-2 border border-border rounded-lg bg-background"
+                />
+              </div>
+              <button 
+                type="submit"
+                class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors whitespace-nowrap"
+              >
+                + Dodaj wartość
+              </button>
+            </div>
+          </form>
+
+          <!-- Values List -->
+          <div class="space-y-2">
+            <h3 class="font-semibold text-sm mb-3">Istniejące wartości:</h3>
+            <div *ngIf="selectedAttributeForValues.values && selectedAttributeForValues.values.length > 0" class="space-y-2">
+              <div 
+                *ngFor="let value of selectedAttributeForValues.values"
+                class="flex items-center justify-between p-3 bg-card border border-card-border rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <span class="font-medium">{{ value.value }}</span>
+                <button
+                  (click)="deleteAttributeValue(value.id)"
+                  class="p-2 hover:bg-red-50 text-red-600 rounded-md transition-colors"
+                  title="Usuń wartość"
+                >
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div *ngIf="!selectedAttributeForValues.values || selectedAttributeForValues.values.length === 0" class="text-center py-8 text-muted-foreground">
+              Brak wartości. Dodaj pierwszą wartość powyżej.
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-4 border-t border-border mt-6">
+            <button 
+              type="button"
+              (click)="closeAttributeValueModal()"
+              class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              Zamknij
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1574,6 +1882,7 @@ export class AdminComponent implements OnInit {
   tabs = [
     { id: 'products' as TabType, label: 'Produkty' },
     { id: 'categories' as TabType, label: 'Kategorie' },
+    { id: 'attributes' as TabType, label: 'Atrybuty' },
     { id: 'orders' as TabType, label: 'Zamówienia' },
     { id: 'lowStock' as TabType, label: 'Niski stan' },
     { id: 'statistics' as TabType, label: 'Statystyki' },
@@ -1601,16 +1910,39 @@ export class AdminComponent implements OnInit {
   orderItems: OrderItem[] = [];
   orderEditForm: Partial<Order> = {};
 
+  // Attributes management
+  attributesList$: Observable<any[]> = of([]);
+  showAttributeModal: boolean = false;
+  showAttributeValueModal: boolean = false;
+  editingAttribute: any = null;
+  editingAttributeValue: any = null;
+  attributeForm: Partial<{ name: string; description: string }> = {};
+  attributeValueForm: Partial<{ value: string; attribute: number }> = {};
+  selectedAttributeForValues: any = null;
+
   // Forms
-  productForm: Partial<InsertProduct & { attributes?: ProductAttribute[]; imageFile?: File; imagePreview?: string }> = {};
+  // Note: Product form only contains basic info. Price/stock are managed via SKU variants
+  productForm: Partial<{
+    name: string;
+    description: string;
+    categoryId: string;
+    image?: string;
+    imageFile?: File;
+    imagePreview?: string;
+  }> = {};
   categoryForm: Partial<InsertCategory & { imageFile?: File; imagePreview?: string }> = {};
 
-  // Attribute management
-  currentAttribute: Partial<ProductAttribute> = {};
-  currentVariant: Partial<ProductVariant> = {};
-  editingAttributeIndex: number = -1;
-  editingVariantIndex: number = -1;
-  showAttributeSection: boolean = false;
+  // SKU Variant management
+  showVariantModal: boolean = false;
+  editingSkuVariant: ProductSkuVariant | null = null;
+  variantForm: Partial<ProductSkuVariant & { 
+    selectedAttributes?: { attributeId: number; valueId: number }[] 
+  }> = {};
+  
+  // Attributes for variant editing
+  allAttributes: any[] = [];
+  attributeValues: { [attributeId: number]: any[] } = {};
+  selectedVariantAttributes: { [attributeName: string]: number } = {}; // attributeName -> valueId
 
   // Statistics filters
   statsStartDate: string = '';
@@ -1686,6 +2018,147 @@ export class AdminComponent implements OnInit {
     this.loadSupportTickets();
     this.loadLoyaltyProgram();
     this.loadLowStockAlerts();
+    this.loadAttributes();
+  }
+
+  // Attributes management methods
+  loadAttributes(): void {
+    this.attributesList$ = this.apiService.getAttributes();
+  }
+
+  openAttributeModal(attribute: any): void {
+    this.editingAttribute = attribute;
+    if (attribute) {
+      this.attributeForm = {
+        name: attribute.name,
+        description: attribute.description || ''
+      };
+    } else {
+      this.attributeForm = {};
+    }
+    this.showAttributeModal = true;
+  }
+
+  closeAttributeModal(): void {
+    this.showAttributeModal = false;
+    this.editingAttribute = null;
+    this.attributeForm = {};
+  }
+
+  saveAttribute(event: Event): void {
+    event.preventDefault();
+    
+    const attributeData: any = {
+      name: this.attributeForm.name!
+    };
+
+    if (this.editingAttribute) {
+      // Update existing attribute
+      this.apiService.updateAttribute(this.editingAttribute.id, attributeData).subscribe({
+        next: () => {
+          alert('Atrybut zaktualizowany pomyślnie!');
+          this.loadAttributes();
+          this.closeAttributeModal();
+        },
+        error: (err) => {
+          console.error('Błąd aktualizacji atrybutu:', err);
+          alert('Błąd podczas aktualizacji atrybutu');
+        }
+      });
+    } else {
+      // Create new attribute
+      this.apiService.createAttribute(attributeData).subscribe({
+        next: () => {
+          alert('Atrybut utworzony pomyślnie!');
+          this.loadAttributes();
+          this.closeAttributeModal();
+        },
+        error: (err) => {
+          console.error('Błąd tworzenia atrybutu:', err);
+          alert('Błąd podczas tworzenia atrybutu');
+        }
+      });
+    }
+  }
+
+  deleteAttribute(id: number): void {
+    if (confirm('Czy na pewno chcesz usunąć ten atrybut? Zostaną usunięte wszystkie jego wartości.')) {
+      this.apiService.deleteAttribute(id).subscribe({
+        next: () => {
+          alert('Atrybut usunięty pomyślnie!');
+          this.loadAttributes();
+        },
+        error: (err) => {
+          console.error('Błąd usuwania atrybutu:', err);
+          alert('Błąd podczas usuwania atrybutu');
+        }
+      });
+    }
+  }
+
+  manageAttributeValues(attribute: any): void {
+    this.selectedAttributeForValues = attribute;
+    this.attributeValueForm = {
+      attribute: attribute.id
+    };
+    this.showAttributeValueModal = true;
+  }
+
+  closeAttributeValueModal(): void {
+    this.showAttributeValueModal = false;
+    this.selectedAttributeForValues = null;
+    this.attributeValueForm = {};
+    this.loadAttributes(); // Refresh to get updated values
+  }
+
+  saveAttributeValue(event: Event): void {
+    event.preventDefault();
+    
+    if (!this.selectedAttributeForValues) return;
+
+    const valueData: any = {
+      attribute: this.selectedAttributeForValues.id,
+      value: this.attributeValueForm.value!
+    };
+
+    this.apiService.createAttributeValue(valueData).subscribe({
+      next: () => {
+        alert('Wartość dodana pomyślnie!');
+        this.attributeValueForm.value = '';
+        
+        // Refresh the current attribute to show new value
+        this.apiService.getAttribute(this.selectedAttributeForValues!.id).subscribe(updated => {
+          this.selectedAttributeForValues = updated;
+        });
+        this.loadAttributes();
+      },
+      error: (err) => {
+        console.error('Błąd dodawania wartości:', err);
+        alert('Błąd podczas dodawania wartości');
+      }
+    });
+  }
+
+  deleteAttributeValue(valueId: number): void {
+    if (confirm('Czy na pewno chcesz usunąć tę wartość?')) {
+      this.apiService.deleteAttributeValue(valueId).subscribe({
+        next: () => {
+          alert('Wartość usunięta pomyślnie!');
+          
+          // Refresh the current attribute
+          if (this.selectedAttributeForValues) {
+            this.apiService.getAttribute(this.selectedAttributeForValues.id).subscribe(updated => {
+              this.selectedAttributeForValues = updated;
+            });
+          }
+          this.loadAttributes();
+        },
+        error: (err) => {
+          console.error('Błąd usuwania wartości:', err);
+          alert('Błąd podczas usuwania wartości');
+        }
+      });
+    }
   }
 
   // Utility methods
@@ -1716,19 +2189,14 @@ export class AdminComponent implements OnInit {
       this.productForm = {
         name: product.name,
         description: product.description || '',
-        price: product.price,
-        oldPrice: product.oldPrice || '',
         categoryId: product.categoryId,
         image: product.image,
-        imagePreview: product.image, // Show current image as preview
-        stock: product.stock,
-        attributes: product.attributes ? JSON.parse(JSON.stringify(product.attributes)) : []
+        imagePreview: product.image // Show current image as preview
       };
     } else {
-      this.productForm = { stock: 0, price: '0', attributes: [] };
+      this.productForm = {};
     }
     this.showProductModal = true;
-    this.showAttributeSection = false;
   }
 
   closeProductModal(): void {
@@ -1778,12 +2246,9 @@ export class AdminComponent implements OnInit {
     const productData: any = {
       name: this.productForm.name!,
       description: this.productForm.description,
-      price: this.productForm.price!.toString(),
-      oldPrice: this.productForm.oldPrice,
       categoryId: this.productForm.categoryId!,
-      stock: Number(this.productForm.stock) || 0,
-      attributes: this.productForm.attributes || [],
       imageFile: this.productForm.imageFile
+      // Note: price, oldPrice, stock are now managed via SKU variants
     };
 
     if (this.editingProduct) {
@@ -1828,104 +2293,196 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  // Attribute management methods
-  addAttribute(): void {
-    if (!this.currentAttribute.name) {
-      alert('Nazwa konfiguracji jest wymagana');
-      return;
-    }
-
-    const newAttribute: ProductAttribute = {
-      id: `attr-${Date.now()}`,
-      name: this.currentAttribute.name,
-      type: 'text',
-      variants: [
-        {
-          id: `variant-${Date.now()}-standard`,
-          name: 'Standardowa',
-          value: 'Standardowa',
-          priceModifier: 0
-        }
-      ]
-    };
-
-    if (!this.productForm.attributes) {
-      this.productForm.attributes = [];
-    }
-
-    if (this.editingAttributeIndex >= 0) {
-      this.productForm.attributes[this.editingAttributeIndex] = {
-        ...newAttribute,
-        variants: this.productForm.attributes[this.editingAttributeIndex].variants
+  // SKU Variant methods
+  openSkuVariantModal(variant: ProductSkuVariant | null): void {
+    this.editingSkuVariant = variant;
+    
+    // Prepare form first
+    if (variant) {
+      this.variantForm = {
+        id: variant.id,
+        sku: variant.sku,
+        name: variant.name,
+        price: variant.price,
+        stock: variant.stock,
+        low_stock_threshold: variant.low_stock_threshold,
+        available: variant.available
       };
-      this.editingAttributeIndex = -1;
     } else {
-      this.productForm.attributes.push(newAttribute);
+      // Creating new variant
+      const productId = this.editingProduct?.numericId;
+      const timestamp = Date.now();
+      this.variantForm = {
+        sku: `SKU-${productId}-${timestamp}`,
+        name: 'Nowy wariant',
+        price: '0.00',
+        stock: 0,
+        low_stock_threshold: 5,
+        available: true
+      };
     }
-
-    this.currentAttribute = {};
-    this.showAttributeSection = false;
+    
+    // Load attributes and their values BEFORE showing modal
+    this.apiService.getAttributes().subscribe(attributes => {
+      this.allAttributes = attributes;
+      
+      // Load all attribute values in parallel
+      if (attributes.length > 0) {
+        const valueRequests = attributes.map(attr => 
+          this.apiService.getAttributeValues(attr.id)
+        );
+        
+        forkJoin(valueRequests).subscribe(valuesArrays => {
+          // Map values to attributes
+          attributes.forEach((attr, index) => {
+            this.attributeValues[attr.id] = valuesArrays[index];
+          });
+          
+          // Now map current variant attributes (after values are loaded)
+          if (variant && variant.attributes_details) {
+            this.selectedVariantAttributes = {};
+            variant.attributes_details.forEach(attrDetail => {
+              // Find the attribute by name
+              const attribute = this.allAttributes.find(a => a.name === attrDetail.attribute);
+              if (attribute) {
+                // Find the value by name
+                const values = this.attributeValues[attribute.id] || [];
+                const value = values.find(v => v.value === attrDetail.value);
+                if (value) {
+                  this.selectedVariantAttributes[attrDetail.attribute] = value.id;
+                }
+              }
+            });
+          } else {
+            this.selectedVariantAttributes = {};
+          }
+          
+          // Show modal AFTER all data is loaded and mapped
+          this.showVariantModal = true;
+        });
+      } else {
+        // No attributes, just show modal
+        this.selectedVariantAttributes = {};
+        this.showVariantModal = true;
+      }
+    });
   }
 
-  editAttribute(index: number): void {
-    const attr = this.productForm.attributes![index];
-    this.currentAttribute = {
-      name: attr.name
-    };
-    this.editingAttributeIndex = index;
-    this.showAttributeSection = true;
+  closeVariantModal(): void {
+    this.showVariantModal = false;
+    this.editingSkuVariant = null;
+    this.variantForm = {};
+    this.selectedVariantAttributes = {};
+    this.allAttributes = [];
+    this.attributeValues = {};
   }
 
-  deleteAttribute(index: number): void {
-    if (confirm('Czy na pewno chcesz usunąć ten atrybut?')) {
-      this.productForm.attributes!.splice(index, 1);
+  saveSkuVariant(event: Event): void {
+    event.preventDefault();
+    
+    // Collect selected attribute value IDs
+    const attributeValueIds: number[] = [];
+    Object.values(this.selectedVariantAttributes).forEach(valueId => {
+      if (valueId) {
+        attributeValueIds.push(valueId);
+      }
+    });
+    
+    if (this.editingSkuVariant) {
+      // Update existing variant
+      const updates: any = {
+        name: this.variantForm.name,
+        price: this.variantForm.price,
+        stock: this.variantForm.stock,
+        low_stock_threshold: this.variantForm.low_stock_threshold,
+        available: this.variantForm.available,
+        attribute_values: attributeValueIds
+      };
+
+      this.apiService.updateVariant(this.editingSkuVariant.id, updates).subscribe({
+        next: () => {
+          alert('Wariant zaktualizowany pomyślnie!');
+          this.closeVariantModal();
+          // Refresh product to get updated variants
+          if (this.editingProduct?.numericId) {
+            this.apiService.getProduct(this.editingProduct.numericId.toString()).subscribe({
+              next: (product) => {
+                this.editingProduct = product;
+                this.products$ = this.apiService.getProducts();
+              },
+              error: (err) => console.error('Błąd odświeżania produktu:', err)
+            });
+          }
+        },
+        error: (err) => {
+          console.error('Błąd aktualizacji wariantu:', err);
+          alert('Błąd podczas aktualizacji wariantu');
+        }
+      });
+    } else {
+      // Create new variant
+      if (!this.editingProduct?.numericId) {
+        alert('Brak ID produktu');
+        return;
+      }
+
+      const variantData: any = {
+        sku: this.variantForm.sku,
+        name: this.variantForm.name,
+        price: this.variantForm.price,
+        stock: this.variantForm.stock,
+        low_stock_threshold: this.variantForm.low_stock_threshold,
+        available: this.variantForm.available,
+        attribute_values: attributeValueIds
+      };
+
+      this.apiService.createVariant(this.editingProduct.numericId, variantData).subscribe({
+        next: () => {
+          alert('Wariant utworzony pomyślnie!');
+          this.closeVariantModal();
+          // Refresh product to get new variant
+          if (this.editingProduct?.numericId) {
+            this.apiService.getProduct(this.editingProduct.numericId.toString()).subscribe({
+              next: (product) => {
+                this.editingProduct = product;
+                this.products$ = this.apiService.getProducts();
+              },
+              error: (err) => console.error('Błąd odświeżania produktu:', err)
+            });
+          }
+        },
+        error: (err) => {
+          console.error('Błąd tworzenia wariantu:', err);
+          alert('Błąd podczas tworzenia wariantu');
+        }
+      });
     }
   }
 
-  addVariant(attributeIndex: number): void {
-    if (!this.currentVariant.name) {
-      alert('Nazwa wariantu jest wymagana');
+  deleteSkuVariant(variant: ProductSkuVariant): void {
+    if (!confirm(`Czy na pewno chcesz usunąć wariant ${variant.sku}?`)) {
       return;
     }
 
-    const newVariant: ProductVariant = {
-      id: `variant-${Date.now()}`,
-      name: this.currentVariant.name,
-      value: this.currentVariant.name, // używamy tej samej wartości co nazwa
-      priceModifier: this.currentVariant.priceModifier || 0
-    };
-
-    if (this.editingVariantIndex >= 0) {
-      this.productForm.attributes![attributeIndex].variants[this.editingVariantIndex] = newVariant;
-      this.editingVariantIndex = -1;
-    } else {
-      this.productForm.attributes![attributeIndex].variants.push(newVariant);
-    }
-
-    this.currentVariant = {};
-  }
-
-  editVariant(attributeIndex: number, variantIndex: number): void {
-    const variant = this.productForm.attributes![attributeIndex].variants[variantIndex];
-    this.currentVariant = { ...variant };
-    this.editingVariantIndex = variantIndex;
-  }
-
-  deleteVariant(attributeIndex: number, variantIndex: number): void {
-    if (confirm('Czy na pewno chcesz usunąć ten wariant?')) {
-      this.productForm.attributes![attributeIndex].variants.splice(variantIndex, 1);
-    }
-  }
-
-  cancelAttributeEdit(): void {
-    this.currentAttribute = {};
-    this.editingAttributeIndex = -1;
-    this.showAttributeSection = false;
-  }
-
-  cancelVariantEdit(): void {
-    this.currentVariant = {};
-    this.editingVariantIndex = -1;
+    this.apiService.deleteVariant(variant.id).subscribe({
+      next: () => {
+        alert('Wariant usunięty pomyślnie!');
+        // Refresh product to remove deleted variant
+        if (this.editingProduct?.numericId) {
+          this.apiService.getProduct(this.editingProduct.numericId.toString()).subscribe({
+            next: (product) => {
+              this.editingProduct = product;
+              this.products$ = this.apiService.getProducts();
+            },
+            error: (err) => console.error('Błąd odświeżania produktu:', err)
+          });
+        }
+      },
+      error: (err) => {
+        console.error('Błąd usuwania wariantu:', err);
+        alert('Błąd podczas usuwania wariantu');
+      }
+    });
   }
 
   // Category methods

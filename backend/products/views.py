@@ -79,6 +79,14 @@ class ProductAttributeViewSet(viewsets.ModelViewSet):
     queryset = ProductAttribute.objects.all()
     serializer_class = ProductAttributeSerializer
     permission_classes = [IsAdminUserOrReadOnly]
+    
+    @action(detail=True, methods=['get'], url_path='values')
+    def values(self, request, pk=None):
+        """Get all values for this attribute"""
+        attribute = self.get_object()
+        values = attribute.values.all()
+        serializer = AttributeValueSerializer(values, many=True, context={'request': request})
+        return Response(serializer.data)
 
 
 class AttributeValueViewSet(viewsets.ModelViewSet):

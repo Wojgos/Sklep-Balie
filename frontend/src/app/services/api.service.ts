@@ -292,7 +292,6 @@ export class ApiService {
       stock: primaryVariant?.stock ?? 0,
       variantId: primaryVariant?.id, // ID wariantu potrzebne do zamówienia
       createdAt: product.created_at ? new Date(product.created_at) : new Date(),
-      attributes: (product as any).attributes_config || undefined,
       available_attributes: product.available_attributes,
       variants: product.variants,
       variantSummary,
@@ -548,7 +547,6 @@ export class ApiService {
       formData.append('name', product.name);
       formData.append('description', product.description || '');
       formData.append('category_write', product.categoryId);
-      formData.append('attributes_config', JSON.stringify(product.attributes || []));
       formData.append('price', product.price);
       formData.append('stock', product.stock || 0);
       formData.append('image', product.imageFile);
@@ -568,7 +566,6 @@ export class ApiService {
         name: product.name,
         description: product.description || '',
         category_write: product.categoryId,
-        attributes_config: product.attributes || [],
         price: product.price,
         stock: product.stock || 0,
         image: product.image || ''
@@ -593,7 +590,6 @@ export class ApiService {
       if (product.name) formData.append('name', product.name);
       if (product.description !== undefined) formData.append('description', product.description);
       if (product.categoryId) formData.append('category_write', product.categoryId);
-      if (product.attributes !== undefined) formData.append('attributes_config', JSON.stringify(product.attributes));
       if (product.price !== undefined) formData.append('price', product.price);
       if (product.stock !== undefined) formData.append('stock', product.stock.toString());
       formData.append('image', product.imageFile);
@@ -613,7 +609,6 @@ export class ApiService {
       if (product.name) payload.name = product.name;
       if (product.description !== undefined) payload.description = product.description;
       if (product.categoryId) payload.category_write = product.categoryId;
-      if (product.attributes !== undefined) payload.attributes_config = product.attributes;
       if (product.price !== undefined) payload.price = product.price;
       if (product.stock !== undefined) payload.stock = product.stock;
       if (product.image !== undefined) payload.image = product.image;
@@ -635,6 +630,110 @@ export class ApiService {
       catchError(error => {
         console.error('Backend deleteProduct failed, using mock', error);
         return this.mockDataService.deleteProduct(id);
+      })
+    );
+  }
+
+  // Product Variants
+  deleteVariant(variantId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/shop/variants/${variantId}/`).pipe(
+      catchError(error => {
+        console.error('Backend deleteVariant failed:', error);
+        throw error;
+      })
+    );
+  }
+
+  createVariant(productId: number, variantData: any): Observable<any> {
+    const payload: any = {
+      product: productId,
+      sku: variantData.sku || `SKU-${productId}-${Date.now()}`,
+      name: variantData.name || 'Nowy wariant',
+      price: variantData.price || '0.00',
+      stock: variantData.stock || 0,
+      available: variantData.available !== undefined ? variantData.available : true,
+      low_stock_threshold: variantData.low_stock_threshold || 5
+    };
+
+    console.log('Creating variant:', payload);
+    
+    return this.http.post<BackendProductVariantResponse>(`${this.apiUrl}/shop/variants/`, payload).pipe(
+      catchError(error => {
+        console.error('Backend createVariant failed:', error);
+        throw error;
+      })
+    );
+  }
+
+  // Product Attributes
+  getAttributes(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/shop/attributes/`).pipe(
+      catchError(error => {
+        console.error('Backend getAttributes failed:', error);
+        return of([]);
+      })
+    );
+  }
+
+  getAttribute(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/shop/attributes/${id}/`).pipe(
+      catchError(error => {
+        console.error('Backend getAttribute failed:', error);
+        throw error;
+      })
+    );
+  }
+
+  createAttribute(data: { name: string; description?: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/shop/attributes/`, data).pipe(
+      catchError(error => {
+        console.error('Backend createAttribute failed:', error);
+        throw error;
+      })
+    );
+  }
+
+  updateAttribute(id: number, data: { name: string; description?: string }): Observable<any> {
+    return this.http.patch<any>(`${this.apiUrl}/shop/attributes/${id}/`, data).pipe(
+      catchError(error => {
+        console.error('Backend updateAttribute failed:', error);
+        throw error;
+      })
+    );
+  }
+
+  deleteAttribute(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/shop/attributes/${id}/`).pipe(
+      catchError(error => {
+        console.error('Backend deleteAttribute failed:', error);
+        throw error;
+      })
+    );
+  }
+
+  getAttributeValues(attributeId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/shop/attributes/${attributeId}/values/`).pipe(
+      catchError(error => {
+        console.error('Backend getAttributeValues failed:', error);
+        return of([]);
+      })
+    );
+  }
+
+  createAttributeValue(data: { attribute: number; value: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/shop/attribute-values/`, data).pipe(
+      catchError(error => {
+        console.error('Backend createAttributeValue failed:', error);
+        throw error;
+      })
+    );
+  }
+
+  deleteAttributeValue(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/shop/attribute-values/${id}/`).pipe(
+      catchError(error => {
+        console.error('Backend deleteAttributeValue failed:', error);
+        throw error;
       })
     );
   }

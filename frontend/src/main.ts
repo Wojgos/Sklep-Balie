@@ -1,22 +1,28 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
-import { importProvidersFrom } from '@angular/core';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { importProvidersFrom, APP_INITIALIZER } from '@angular/core';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { AppComponent } from './app/app.component';
 import { routes } from './app/app.routes';
-import { AuthInterceptor } from './app/interceptors/auth.interceptor';
+import { authInterceptor } from './app/interceptors/auth.interceptor';
+import { AuthService } from './app/services/auth.service';
+
+function initializeApp(authService: AuthService) {
+  return () => authService.initializeSession();
+}
 
 bootstrapApplication(AppComponent, {
   providers: [
     provideRouter(routes),
-    provideHttpClient(withInterceptorsFromDi()),
+    provideHttpClient(withInterceptors([authInterceptor])),
+    importProvidersFrom(BrowserAnimationsModule),
     {
-      provide: HTTP_INTERCEPTORS,
-      useClass: AuthInterceptor,
+      provide: APP_INITIALIZER,
+      useFactory: initializeApp,
+      deps: [AuthService],
       multi: true
-    },
-    importProvidersFrom(BrowserAnimationsModule)
+    }
   ]
 }).catch(err => console.error(err));

@@ -34,18 +34,29 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                 <h1 class="font-heading font-bold text-3xl sm:text-4xl">
                   {{ product.name }}
                 </h1>
-                <div class="flex items-center gap-1">
-                  <ng-container *ngFor="let star of [1,2,3,4,5]; let i = index">
-                    <svg 
-                      class="h-5 w-5"
-                      [class]="i < product.rating ? 'fill-yellow-500 text-yellow-500' : 'text-muted-foreground'"
-                      fill="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                <div class="flex items-center gap-4 mt-2">
+                  <div class="flex items-center gap-1">
+                    <ng-container *ngFor="let star of [1,2,3,4,5]; let i = index">
+                      <svg 
+                        class="h-5 w-5"
+                        [class]="i < product.rating ? 'fill-yellow-500 text-yellow-500' : 'text-muted-foreground'"
+                        fill="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    </ng-container>
+                    <span class="text-muted-foreground ml-2">({{ product.rating }})</span>
+                  </div>
+                  <div *ngIf="product.variants && product.variants.length > 0" class="flex items-center gap-2 text-sm text-muted-foreground">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
                     </svg>
-                  </ng-container>
-                  <span class="text-muted-foreground ml-2">({{ product.rating }})</span>
+                    <span>
+                      Dostępne w {{ product.variants.length }} 
+                      {{ product.variants.length === 1 ? 'wersji' : (product.variants.length < 5 ? 'wersjach' : 'wersjach') }}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -67,16 +78,124 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                     <div class="grid grid-cols-3 gap-2">
                       <button
                         *ngFor="let value of product.available_attributes![attrKey]"
-                        (click)="selectAttribute(attrKey, value)"
+                        (click)="isAttributeValueAvailable(attrKey, value) && selectAttribute(attrKey, value)"
+                        [disabled]="!isAttributeValueAvailable(attrKey, value)"
                         [class]="getAttributeButtonClass(attrKey, value)"
-                        class="px-4 py-2 text-sm font-medium rounded-lg border transition-colors flex flex-col items-center"
+                        [title]="!isAttributeValueAvailable(attrKey, value) ? 'Ta kombinacja nie jest dostępna' : ''"
+                        class="px-4 py-2 text-sm font-medium rounded-lg border transition-colors flex flex-col items-center relative"
                       >
-                        <span>{{ value }}</span>
-                        <span *ngIf="getPriceModifier(attrKey, value) !== 0" class="text-xs mt-1">
+                        <span [class.line-through]="!isAttributeValueAvailable(attrKey, value)">{{ value }}</span>
+                        <span *ngIf="!isAttributeValueAvailable(attrKey, value)" class="text-xs text-red-500 mt-1">Niedostępne</span>
+                        <span *ngIf="getPriceModifier(attrKey, value) !== 0 && isAttributeValueAvailable(attrKey, value)" class="text-xs mt-1">
                           {{ getPriceModifier(attrKey, value) > 0 ? '+' : '' }}{{ getPriceModifier(attrKey, value) | number:'1.2-2' }} PLN
                         </span>
                       </button>
                     </div>
+                  </div>
+                </div>
+
+                <!-- Current Variant Info -->
+                <div *ngIf="currentVariant" class="mt-4 p-4 bg-muted rounded-lg border border-border">
+                  <div class="flex items-start gap-3">
+                    <svg class="h-5 w-5 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <div class="flex-1">
+                      <p class="font-medium text-sm">Wybrana konfiguracja:</p>
+                      <p class="text-sm text-muted-foreground mt-1">{{ currentVariant.name }}</p>
+                      <div class="flex items-center gap-4 mt-2 text-xs">
+                        <span class="text-muted-foreground">SKU: {{ currentVariant.sku }}</span>
+                        <span *ngIf="currentVariant.stock > 0" class="text-green-600 font-medium">
+                          Dostępne: {{ currentVariant.stock }} szt.
+                        </span>
+                        <span *ngIf="currentVariant.stock === 0" class="text-red-600 font-medium">
+                          Brak w magazynie
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- All Variants List -->
+                <div *ngIf="product.variants && product.variants.length > 1" class="mt-4">
+                  <button 
+                    (click)="showAllVariants = !showAllVariants"
+                    class="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full justify-between p-3 rounded-lg hover:bg-muted border border-transparent hover:border-border"
+                  >
+                    <span>Zobacz wszystkie dostępne wersje ({{ product.variants.length }})</span>
+                    <svg 
+                      class="h-4 w-4 transition-transform"
+                      [class.rotate-180]="showAllVariants"
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                  
+                  <div *ngIf="showAllVariants" class="mt-3 space-y-2">
+                    <button 
+                      *ngFor="let variant of product.variants"
+                      (click)="selectVariant(variant)"
+                      class="w-full text-left p-3 rounded-lg border transition-all duration-200 hover:shadow-md"
+                      [class.border-primary]="variant.id === currentVariant?.id"
+                      [class.bg-primary]="variant.id === currentVariant?.id"
+                      [class.ring-2]="variant.id === currentVariant?.id"
+                      [class.ring-primary]="variant.id === currentVariant?.id"
+                      [class.border-border]="variant.id !== currentVariant?.id"
+                      [class.hover:border-primary]="variant.id !== currentVariant?.id"
+                      [class.hover:bg-muted]="variant.id !== currentVariant?.id"
+                      [disabled]="variant.stock === 0"
+                      [class.opacity-60]="variant.stock === 0"
+                      [class.cursor-not-allowed]="variant.stock === 0"
+                    >
+                      <div class="flex items-start justify-between gap-3">
+                        <div class="flex-1">
+                          <p class="font-medium text-sm flex items-center gap-2">
+                            {{ variant.name }}
+                            <span *ngIf="variant.id === currentVariant?.id" class="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded">
+                              ✓ Wybrane
+                            </span>
+                          </p>
+                          <p class="text-xs text-muted-foreground mt-1">SKU: {{ variant.sku }}</p>
+                          <div class="flex items-center gap-2 mt-2">
+                            <span class="text-sm font-semibold">{{ parseFloat(variant.price) | number:'1.2-2' }} PLN</span>
+                            <span 
+                              *ngIf="variant.stock > 0" 
+                              class="text-xs px-2 py-0.5 rounded"
+                              [class.bg-green-100]="variant.stock > variant.low_stock_threshold"
+                              [class.text-green-700]="variant.stock > variant.low_stock_threshold"
+                              [class.bg-yellow-100]="variant.stock <= variant.low_stock_threshold && variant.stock > 0"
+                              [class.text-yellow-700]="variant.stock <= variant.low_stock_threshold && variant.stock > 0"
+                            >
+                              {{ variant.stock }} szt.
+                            </span>
+                            <span *ngIf="variant.stock === 0" class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
+                              Brak w magazynie
+                            </span>
+                          </div>
+                        </div>
+                        <svg 
+                          *ngIf="variant.id === currentVariant?.id"
+                          class="h-5 w-5 text-primary flex-shrink-0" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <svg 
+                          *ngIf="variant.id !== currentVariant?.id && variant.stock > 0"
+                          class="h-5 w-5 text-muted-foreground flex-shrink-0" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                      </div>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -217,6 +336,7 @@ export class ProductDetailsComponent implements OnInit {
   // New state for attributes and variants
   selectedAttributes: { [key: string]: string } = {};
   currentVariant: ProductSkuVariant | null = null;
+  showAllVariants = false;
 
   similarProducts: Product[] = [];
   boughtTogetherProducts: Product[] = [];
@@ -308,6 +428,50 @@ export class ProductDetailsComponent implements OnInit {
     }
   }
 
+  /**
+   * Select a variant from the list and update all attribute selections
+   */
+  selectVariant(variant: ProductSkuVariant): void {
+    // Clear current selections
+    this.selectedAttributes = {};
+    
+    // Set all attributes from the selected variant
+    if (variant.attributes_details) {
+      variant.attributes_details.forEach(attr => {
+        this.selectedAttributes[attr.attribute] = attr.value;
+      });
+    }
+    
+    // Update the current variant
+    this.currentVariant = variant;
+    
+    // Scroll to configuration section
+    const configSection = document.querySelector('.border-t.pt-6');
+    if (configSection) {
+      configSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  /**
+   * Check if a specific attribute value is available given the current selection
+   */
+  isAttributeValueAvailable(attributeKey: string, value: string): boolean {
+    if (!this.product?.variants || this.product.variants.length === 0) {
+      return true;
+    }
+
+    // Create a temporary selection with this value
+    const testSelection = { ...this.selectedAttributes, [attributeKey]: value };
+
+    // Check if any variant matches this partial selection
+    return this.product.variants.some(variant => {
+      return Object.keys(testSelection).every(key => {
+        const variantAttr = variant.attributes_details.find(a => a.attribute === key);
+        return variantAttr && variantAttr.value === testSelection[key];
+      });
+    });
+  }
+
   updateCurrentVariant(product: Product): void {
     if (!product.variants || product.variants.length === 0) {
       this.currentVariant = null;
@@ -365,6 +529,12 @@ export class ProductDetailsComponent implements OnInit {
 
   getAttributeButtonClass(attribute: string, value: string): string {
     const isSelected = this.selectedAttributes[attribute] === value;
+    const isAvailable = this.isAttributeValueAvailable(attribute, value);
+    
+    if (!isAvailable) {
+      return 'bg-muted text-muted-foreground border-border opacity-50 cursor-not-allowed';
+    }
+    
     return isSelected 
       ? 'bg-primary text-primary-foreground border-primary' 
       : 'bg-background hover:bg-muted border-border';
