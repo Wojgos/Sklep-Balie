@@ -13,14 +13,11 @@ class StoreChatbot:
     CONFIG = {
         'pl': {
             'keywords': {
-                # Istniejące
                 'status': ['status', 'zamówien', 'paczk', 'przesyłk', 'gdzie jest'],
                 'returns': ['zwrot', 'reklamacj', 'oddać', 'zwrócić', 'gwarancj'],
                 'products': ['szukam', 'cena', 'ile kosztuje', 'macie', 'oferta'],
                 'contact': ['kontakt', 'telefon', 'email', 'adres', 'siedziba'],
                 'hello': ['cześć', 'hej', 'dzień dobry', 'witaj'],
-
-                # NOWE KATEGORIE
                 'delivery': ['dostaw', 'wysyłk', 'transport', 'czas', 'ile się czeka', 'kurier'],
                 'payment': ['płatnośc', 'płatności', 'raty', 'leasing', 'faktur', 'kart', 'przelew'],
                 'loyalty': ['punkt', 'lojaln', 'nagrod', 'program', 'bonus'],

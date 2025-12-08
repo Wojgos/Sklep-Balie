@@ -6,6 +6,7 @@ from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count, F
 from elasticsearch_dsl.query import MultiMatch
+from django.shortcuts import get_object_or_404
 
 from EStore.permissions import IsAdminUserOrReadOnly
 from .documents import ProductDocument
@@ -25,38 +26,54 @@ class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().annotate(product_count=Count('products'))
     serializer_class = CategorySerializer
     permission_classes = [IsAdminUserOrReadOnly]
+    lookup_field = 'slug'
 
     def get_object(self):
         """
-        Obsługa zarówno ID jak i slug dla elastyczności.
+        Wyszukiwanie kategorii po slugu (z obsługą tłumaczeń).
         """
-        lookup_value = self.kwargs.get(self.lookup_field)
-        if lookup_value.isdigit():
-            # Jeśli to liczba, szukaj po ID
-            return Category.objects.annotate(product_count=Count('products')).get(id=lookup_value)
-        else:
-            # Jeśli nie, szukaj po slug
-            return Category.objects.annotate(product_count=Count('products')).get(slug=lookup_value)
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs[lookup_url_kwarg]
 
+        # Jeśli przekazano ID (cyfry), szukaj po ID
+        if lookup_value.isdigit():
+            obj = get_object_or_404(self.get_queryset(), id=lookup_value)
+        else:
+            # Jeśli przekazano tekst, szukaj w tłumaczeniach (translations__slug)
+            obj = get_object_or_404(self.get_queryset(), translations__slug=lookup_value)
+
+        self.check_object_permissions(self.request, obj)
+        return obj
 
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all().filter(available=True).distinct()
+    # Dodajemy prefetch_related('translations'), żeby nie zarzynać bazy
+    queryset = Product.objects.all().filter(available=True).distinct().prefetch_related('translations', 'variants')
     serializer_class = ProductSerializer
     lookup_field = 'slug'
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = ProductFilter
-    ordering_fields = ['name', 'created_at', 'variants__price']
+    # Sortowanie też musi być po polu tłumaczenia!
+    ordering_fields = ['translations__name', 'created_at', 'variants__price']
     ordering = ['-created_at']
     permission_classes = [IsAdminUserOrReadOnly]
 
-    def get_queryset(self):
+    def get_object(self):
         """
-        Override get_queryset to allow admin users to see all products
+        Wyszukiwanie produktu po slugu w tabeli tłumaczeń.
         """
-        if self.request.user and self.request.user.is_staff:
-            return Product.objects.all().distinct()
-        return Product.objects.all().filter(available=True).distinct()
+        # Pobieramy wartość sluga z URL-a
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs[lookup_url_kwarg]
 
+        # Budujemy zapytanie do bazy: szukamy w translations__slug
+        filter_kwargs = {f'translations__slug': lookup_value}
+
+        # Pobieramy obiekt (lub 404)
+        obj = get_object_or_404(self.get_queryset(), **filter_kwargs)
+
+        # Sprawdzamy uprawnienia
+        self.check_object_permissions(self.request, obj)
+        return obj
 
 class ProductAttributeViewSet(viewsets.ModelViewSet):
     queryset = ProductAttribute.objects.all()

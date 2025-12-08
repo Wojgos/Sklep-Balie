@@ -1,14 +1,17 @@
-# backend/products/management/commands/seed_db.py
 import random
 from decimal import Decimal
+from io import BytesIO
+from PIL import Image, ImageDraw
+
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from faker import Faker
+from django.core.files.base import ContentFile
 from django.contrib.sites.models import Site
 from django.conf import settings
 from django.utils import translation
-from django.utils.text import slugify  # <--- KLUCZOWY IMPORT
-from promotions.models import LoyaltyReward
+from django.utils.text import slugify
+
+from faker import Faker
 
 from products.models import (
     Category,
@@ -21,12 +24,13 @@ from products.models import (
 from orders.models import Order, OrderItem
 from users.models import CustomUser
 from allauth.account.models import EmailAddress
+from promotions.models import LoyaltyReward
 
 User = CustomUser
 
 
 class Command(BaseCommand):
-    help = 'Wypełnia bazę danych danymi testowymi (PL i EN)'
+    help = 'Wypełnia bazę danych danymi testowymi (PL i EN) wraz ze zdjęciami i cenami'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -40,6 +44,18 @@ class Command(BaseCommand):
             help='Ilość produktów (matek) do stworzenia',
             default=20
         )
+
+    def _generate_dummy_image(self, text):
+        """Generuje prosty obrazek z tekstem w pamięci (nie wymaga plików na dysku)."""
+        color = (random.randint(50, 200), random.randint(50, 200), random.randint(50, 200))
+        img = Image.new('RGB', (800, 600), color=color)
+        d = ImageDraw.Draw(img)
+        # Rysujemy tekst na środku (uproszczone pozycjonowanie)
+        d.text((50, 280), text, fill=(255, 255, 255))
+
+        blob = BytesIO()
+        img.save(blob, 'JPEG')
+        return ContentFile(blob.getvalue(), name=f'{slugify(text)}.jpg')
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -56,29 +72,24 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f'  Nie udało się ustawić domeny: {e}'))
 
         # 2. Czyszczenie danych
-        self.stdout.write(self.style.WARNING(
-            'Rozpoczynanie czyszczenia starych danych (Użytkownicy ZOSTANĄ)...'
-        ))
+        self.stdout.write(self.style.WARNING('Rozpoczynanie czyszczenia starych danych...'))
         self._clear_data()
 
         self.stdout.write(self.style.NOTICE('Tworzenie nowych danych...'))
 
         # 3. Użytkownicy
         users = self._get_or_create_users()
-        if not users:
-            self.stdout.write(self.style.ERROR("Błąd użytkowników."))
-            return
 
-        # 4. Atrybuty (PL + EN)
+        # 4. Atrybuty
         attributes = self._create_attributes_and_values()
 
-        # 5. Kategorie (PL + EN)
+        # 5. Kategorie
         categories = self._create_categories()
 
-        # 6. Produkty (PL + EN)
+        # 6. Produkty (Matki)
         products = self._create_products(categories, amount)
 
-        # 7. Warianty (PL + EN)
+        # 7. Warianty (To tutaj są ceny i zdjęcia!)
         variants = self._create_variants(products, attributes)
 
         # 8. Zamówienia
@@ -88,11 +99,10 @@ class Command(BaseCommand):
         self._create_loyalty_rewards()
 
         self.stdout.write(self.style.SUCCESS(
-            f'Baza danych została pomyślnie wypełniona {amount} produktami (w 2 językach)!'
+            f'✅ Baza danych gotowa! Utworzono {amount} produktów w 2 językach ze zdjęciami i cenami.'
         ))
 
     def _clear_data(self):
-        """Usuwa dane transakcyjne i produktowe."""
         OrderItem.objects.all().delete()
         Order.objects.all().delete()
         ProductImage.objects.all().delete()
@@ -104,6 +114,7 @@ class Command(BaseCommand):
         LoyaltyReward.objects.all().delete()
 
     def _get_or_create_users(self):
+        self.stdout.write('  Tworzenie użytkowników...')
         # Admin
         admin_user, created = User.objects.get_or_create(
             username='rafal',
@@ -124,30 +135,29 @@ class Command(BaseCommand):
             defaults={
                 'email': 'nowy_uzytkownik@przyklad.pl',
                 'first_name': 'Anna', 'last_name': 'Nowak',
-                'is_active': True, 'loyalty_points': 10000
+                'is_active': True
             }
         )
+        # Zawsze ustawiamy punkty, nawet jak user istniał
+        tester.loyalty_points = 10000
         if created:
             tester.set_password('BardzoSilneHaslo123!')
-            tester.save()
             EmailAddress.objects.create(user=tester, email=tester.email, primary=True, verified=True)
-        else:
-            tester.loyalty_points = 10000
-            tester.save()
+        tester.save()
 
         return {'admin': admin_user, 'anna_nowak': tester}
 
     def _create_categories(self):
         self.stdout.write('  Tworzenie kategorii (i18n)...')
 
-        # Helper do tworzenia kategorii (BEZ parenta)
-        def make_cat(name_pl, name_en):  # Usunięto parent=None
-            # Tworzymy kategorię bez żadnych argumentów
+        def make_cat(name_pl, name_en):
             cat = Category.objects.create()
 
             cat.set_current_language('pl')
             cat.name = name_pl
             cat.slug = slugify(name_pl)
+            # Generujemy zdjęcie kategorii
+            cat.image = self._generate_dummy_image(name_pl)
             cat.save()
 
             cat.set_current_language('en')
@@ -156,20 +166,15 @@ class Command(BaseCommand):
             cat.save()
             return cat
 
-        balie = make_cat('Balie Ogrodowe', 'Garden Hot Tubs')
-        jacuzzi = make_cat('Jacuzzi Ogrodowe', 'Garden Jacuzzis')
-        drewniane = make_cat('Balie Drewniane', 'Wooden Hot Tubs')
-        akcesoria = make_cat('Akcesoria', 'Accessories')
-        # Pokrywy teraz są samodzielną kategorią, nie dzieckiem
-        pokrywy = make_cat('Pokrywy Termiczne', 'Thermal Covers')
-
         return {
-            'jacuzzi': jacuzzi, 'drewniane': drewniane,
-            'akcesoria': akcesoria, 'pokrywy': pokrywy
+            'balie': make_cat('Balie Ogrodowe', 'Garden Hot Tubs'),
+            'jacuzzi': make_cat('Jacuzzi Ogrodowe', 'Garden Jacuzzis'),
+            'akcesoria': make_cat('Akcesoria', 'Accessories'),
+            'pokrywy': make_cat('Pokrywy Termiczne', 'Thermal Covers')
         }
 
     def _create_attributes_and_values(self):
-        self.stdout.write('  Tworzenie atrybutów (i18n)...')
+        self.stdout.write('  Tworzenie atrybutów...')
 
         def make_attr(name_pl, name_en):
             attr = ProductAttribute.objects.create()
@@ -183,11 +188,11 @@ class Command(BaseCommand):
 
         def make_val(attr, val_pl, val_en):
             val = AttributeValue.objects.create(attribute=attr)
-            val.set_current_language('pl')
-            val.value = val_pl
+            val.set_current_language('pl');
+            val.value = val_pl;
             val.save()
-            val.set_current_language('en')
-            val.value = val_en
+            val.set_current_language('en');
+            val.value = val_en;
             val.save()
             return val
 
@@ -195,21 +200,17 @@ class Command(BaseCommand):
         p_drewno = make_val(piec, 'Na drewno', 'Wood-fired')
         p_elektr = make_val(piec, 'Elektryczny', 'Electric')
 
-        kolor = make_attr('Kolor', 'Color')
+        kolor = make_attr('Kolor wkładu', 'Insert Color')
         k_bialy = make_val(kolor, 'Biały', 'White')
         k_szary = make_val(kolor, 'Szary', 'Grey')
 
-        return {
-            'piece': [p_drewno, p_elektr],
-            'kolory': [k_bialy, k_szary]
-        }
+        return {'piece': [p_drewno, p_elektr], 'kolory': [k_bialy, k_szary]}
 
     def _create_products(self, categories, amount):
         self.stdout.write(f'  Tworzenie {amount} produktów...')
         products_list = []
         cats = list(categories.values())
 
-        # GŁÓWNA PĘTLA PRODUKTÓW
         for i in range(amount):
             cat = random.choice(cats)
             product = Product.objects.create(category=cat, available=True)
@@ -218,7 +219,7 @@ class Command(BaseCommand):
             product.set_current_language('pl')
             name_pl = f"Balia Model {self.faker_pl.word().capitalize()} {i}"
             product.name = name_pl
-            product.slug = slugify(name_pl)  # Jawny slug
+            product.slug = slugify(name_pl)
             product.description = self.faker_pl.paragraph()
             product.save()
 
@@ -226,79 +227,74 @@ class Command(BaseCommand):
             product.set_current_language('en')
             name_en = f"Hot Tub Model {self.faker_en.word().capitalize()} {i}"
             product.name = name_en
-            product.slug = slugify(name_en)  # Jawny slug
+            product.slug = slugify(name_en)
             product.description = self.faker_en.paragraph()
             product.save()
 
             products_list.append(product)
-
-        # DODATKOWE AKCESORIA
-        self.stdout.write('  Tworzenie dodatkowych 10 akcesoriów...')
-        for i in range(10):
-            is_cover = random.choice([True, False])
-            category = categories['pokrywy'] if is_cover else categories['akcesoria']
-
-            product = Product.objects.create(category=category, available=True)
-
-            # PL
-            product.set_current_language('pl')
-            base_name_pl = 'Pokrywa Termiczna' if is_cover else 'Akcesorium'
-            name_pl = f'{base_name_pl} {self.faker_pl.word().capitalize()} {i + 1}'
-            product.name = name_pl
-            product.slug = slugify(name_pl)  # Jawny slug
-            product.description = self.faker_pl.paragraph(nb_sentences=5)
-            product.save()
-
-            # EN
-            product.set_current_language('en')
-            base_name_en = 'Thermal Cover' if is_cover else 'Accessory'
-            name_en = f'{base_name_en} {self.faker_en.word().capitalize()} {i + 1}'
-            product.name = name_en
-            product.slug = slugify(name_en)  # Jawny slug
-            product.description = self.faker_en.paragraph(nb_sentences=5)
-            product.save()
-
-            products_list.append(product)
-
         return products_list
 
     def _create_variants(self, products, attributes):
-        self.stdout.write('  Tworzenie wariantów...')
+        self.stdout.write('  Tworzenie wariantów, cen i zdjęć...')
         variants_list = []
 
         for product in products:
+            # Tworzymy 1-3 warianty dla każdego produktu
             for i in range(random.randint(1, 3)):
+
+                # 1. Losowanie cech
                 piec = random.choice(attributes['piece'])
                 kolor = random.choice(attributes['kolory'])
 
-                price = Decimal(random.uniform(10000, 20000))
+                # 2. Obliczanie Ceny (Dynamiczne)
+                base_price = Decimal("10000.00")
+                if "lektrycz" in piec.safe_translation_getter('value', language_code='pl'):
+                    base_price += Decimal("2500.00")
+                if "Biały" in kolor.safe_translation_getter('value', language_code='pl'):
+                    base_price += Decimal("500.00")
+
+                # Dodajemy losową końcówkę, żeby nie było nudno
+                final_price = base_price + Decimal(random.randint(0, 99))
+
                 sku = f"SKU-{product.id}-{i}"
 
+                # 3. Tworzenie Wariantu (Z CENĄ I STOCKIEM!)
                 variant = ProductVariant.objects.create(
-                    product=product, sku=sku, price=price, stock=5
+                    product=product,
+                    sku=sku,
+                    price=final_price,  # <--- TO JEST KLUCZOWE
+                    stock=random.randint(2, 20),  # <--- TO TEŻ
+                    available=True
                 )
                 variant.attributes.add(piec, kolor)
 
-                # PL
+                # Tłumaczenie nazwy wariantu
                 variant.set_current_language('pl')
-                variant.name = "Standard"
+                variant.name = f"Wariant {i + 1}"
                 variant.save()
 
-                # EN
                 variant.set_current_language('en')
-                variant.name = "Standard"
+                variant.name = f"Variant {i + 1}"
                 variant.save()
 
-                # Zdjęcie
+                # 4. Generowanie Zdjęcia (Pillow)
+                # Używamy nazwy produktu, żeby na zdjęciu był napis
+                product_name = product.safe_translation_getter('name', language_code='pl')
+                img_file = self._generate_dummy_image(f"{product_name}\n{sku}")
+
                 img = ProductImage.objects.create(
-                    product=product, variant=variant,
-                    image="product_images/placeholder.jpg", is_main=True
+                    product=product,
+                    variant=variant,
+                    image=img_file,
+                    is_main=True
                 )
-                img.set_current_language('pl')
-                img.alt_text = "Zdjęcie"
+
+                # Tłumaczenie Alt Text zdjęcia
+                img.set_current_language('pl');
+                img.alt_text = "Zdjęcie produktu";
                 img.save()
-                img.set_current_language('en')
-                img.alt_text = "Image"
+                img.set_current_language('en');
+                img.alt_text = "Product Image";
                 img.save()
 
                 variants_list.append(variant)
@@ -306,26 +302,25 @@ class Command(BaseCommand):
 
     def _create_orders(self, user, variants):
         if not variants: return
-
-        # Tworzymy zamówienia (bez zmian w logice, bo Order nie jest tłumaczony)
-        for _ in range(5):
+        for _ in range(3):
             order = Order.objects.create(
                 user=user,
                 first_name=user.first_name, last_name=user.last_name,
-                email=user.email, address="Ulica 1", postal_code="00-000", city="Miasto",
+                email=user.email, address="Ulica Testowa 1", postal_code="00-000", city="Warszawa",
                 total_price=0
             )
+            # Dodajemy losowy wariant do zamówienia
+            v = random.choice(variants)
             item = OrderItem.objects.create(
-                order=order, variant=variants[0],
-                product_name="Produkt", price=variants[0].price, quantity=1
+                order=order, variant=v,
+                product_name="Produkt Testowy", price=v.price, quantity=1
             )
             order.total_price = item.price
             order.save()
 
     def _create_loyalty_rewards(self):
-        self.stdout.write('  Tworzenie nagród lojalnościowych (i18n)...')
-        if LoyaltyReward.objects.exists():
-            return
+        self.stdout.write('  Tworzenie nagród lojalnościowych...')
+        if LoyaltyReward.objects.exists(): return
 
         def create_reward(points, value, is_percent, desc_pl, desc_en):
             reward = LoyaltyReward.objects.create(
@@ -334,11 +329,11 @@ class Command(BaseCommand):
                 is_percentage=is_percent,
                 active=True
             )
-            reward.set_current_language('pl')
-            reward.description = desc_pl
+            reward.set_current_language('pl');
+            reward.description = desc_pl;
             reward.save()
-            reward.set_current_language('en')
-            reward.description = desc_en
+            reward.set_current_language('en');
+            reward.description = desc_en;
             reward.save()
 
         create_reward(500, 20.00, False, "Rabat 20 PLN", "Discount 20 PLN")
