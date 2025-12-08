@@ -23,8 +23,8 @@ class Order(models.Model):
     city = models.CharField(max_length=100, verbose_name="Miasto")
     notes = models.TextField(blank=True, null=True, verbose_name="Uwagi")
 
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Utworzono")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Zaktualizowano")
+    created_at = models.DateTimeField(auto_now_add=False, default=None, null=True, verbose_name="Utworzono")
+    updated_at = models.DateTimeField(auto_now=False, null=True, verbose_name="Zaktualizowano")
 
     total_price = models.DecimalField(
         max_digits=10,

@@ -4,13 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { Observable, of } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { Product, Category, Order, InsertProduct, InsertCategory, SalesStatistics, LowStockAlert, LowStockVariantAlert, LowStockStatistics, GroupedLowStockAlert, ProductSkuVariant, OrderItem, ProductAttribute, ProductVariant, Ticket, TicketReply, TicketStatusUpdate, LoyaltyProgram, LoyaltyReward, InsertLoyaltyProgram, InsertLoyaltyReward } from '../../models';
+import { AdvancedStatisticsComponent } from './advanced-statistics.component';
 
 type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' | 'support' | 'loyalty';
 
 @Component({
   selector: 'bg-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AdvancedStatisticsComponent],
   template: `
     <div class="flex-1 bg-background py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -502,137 +503,8 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
           </div>
 
           <!-- Statistics Tab -->
-          <div *ngIf="activeTab === 'statistics'" class="space-y-6">
-            <div class="flex justify-between items-center">
-              <h2 class="text-2xl font-semibold">Statystyki Sprzedażowe</h2>
-              <div class="flex items-center gap-2">
-                <input 
-                  type="date" 
-                  [(ngModel)]="statsStartDate"
-                  class="px-3 py-2 border border-border rounded text-sm bg-background"
-                />
-                <span class="text-muted-foreground">-</span>
-                <input 
-                  type="date" 
-                  [(ngModel)]="statsEndDate"
-                  class="px-3 py-2 border border-border rounded text-sm bg-background"
-                />
-                <button
-                  (click)="loadStatistics()"
-                  class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg font-semibold transition-colors"
-                >
-                  Generuj
-                </button>
-                <button
-                  (click)="downloadStatisticsPDF()"
-                  class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
-                  title="Pobierz raport PDF"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                  </svg>
-                  Pobierz PDF
-                </button>
-              </div>
-            </div>
-
-            <div *ngIf="statistics$ | async as stats">
-              <!-- Summary Cards -->
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div class="bg-card border border-card-border rounded-lg p-6">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <p class="text-sm text-muted-foreground">Całkowity przychód</p>
-                      <p class="text-2xl font-bold mt-1">{{ stats.totalRevenue | number:'1.2-2' }} PLN</p>
-                      <p class="text-xs text-muted-foreground mt-1">Tylko opłacone zamówienia</p>
-                    </div>
-                    <div class="p-3 bg-green-100 rounded-full">
-                      <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="bg-card border border-card-border rounded-lg p-6">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <p class="text-sm text-muted-foreground">Liczba zamówień</p>
-                      <p class="text-2xl font-bold mt-1">{{ stats.totalOrders }}</p>
-                      <p class="text-xs text-muted-foreground mt-1">Opłacone w okresie</p>
-                    </div>
-                    <div class="p-3 bg-blue-100 rounded-full">
-                      <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="bg-card border border-card-border rounded-lg p-6">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <p class="text-sm text-muted-foreground">Średnia wartość</p>
-                      <p class="text-2xl font-bold mt-1">{{ stats.averageOrderValue | number:'1.2-2' }} PLN</p>
-                      <p class="text-xs text-muted-foreground mt-1">Na zamówienie</p>
-                    </div>
-                    <div class="p-3 bg-purple-100 rounded-full">
-                      <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Top Products -->
-              <div *ngIf="stats.topProducts && stats.topProducts.length > 0" class="bg-card border border-card-border rounded-lg p-6">
-                <h3 class="text-lg font-semibold mb-4">Najlepiej sprzedające się produkty</h3>
-                <div class="space-y-3">
-                  <div *ngFor="let item of stats.topProducts; let i = index" 
-                       class="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div class="flex items-center gap-3">
-                      <span class="font-bold text-lg text-muted-foreground">{{ i + 1 }}.</span>
-                      <img [src]="item.product.image" [alt]="item.product.name" 
-                           class="w-12 h-12 object-cover rounded" />
-                      <div>
-                        <p class="font-medium">{{ item.product.name }}</p>
-                        <p class="text-sm text-muted-foreground">Sprzedano: {{ item.quantity }} szt.</p>
-                      </div>
-                    </div>
-                    <span class="font-semibold text-lg">{{ item.revenue | number:'1.2-2' }} PLN</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Revenue by Category -->
-              <div *ngIf="stats.revenueByCategory && stats.revenueByCategory.length > 0" class="bg-card border border-card-border rounded-lg p-6">
-                <h3 class="text-lg font-semibold mb-4">Przychód według kategorii</h3>
-                <div class="space-y-3">
-                  <div *ngFor="let item of stats.revenueByCategory" 
-                       class="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div class="flex items-center gap-3">
-                      <img [src]="item.category.image" [alt]="item.category.name" 
-                           class="w-12 h-12 object-cover rounded" />
-                      <span class="font-medium">{{ item.category.name }}</span>
-                    </div>
-                    <span class="font-semibold text-lg">{{ item.revenue | number:'1.2-2' }} PLN</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Orders by Status -->
-              <div *ngIf="stats.ordersByStatus && stats.ordersByStatus.length > 0" class="bg-card border border-card-border rounded-lg p-6">
-                <h3 class="text-lg font-semibold mb-4">Zamówienia według statusu</h3>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <div *ngFor="let item of stats.ordersByStatus" 
-                       class="text-center p-4 bg-muted/50 rounded-lg">
-                    <p class="text-2xl font-bold">{{ item.count }}</p>
-                    <p class="text-sm text-muted-foreground mt-1">{{ getStatusText(item.status) }}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div *ngIf="activeTab === 'statistics'">
+            <app-advanced-statistics></app-advanced-statistics>
           </div>
 
           <!-- Support Tab -->

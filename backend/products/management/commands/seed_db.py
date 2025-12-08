@@ -1,8 +1,6 @@
+# backend/products/management/commands/seed_db.py
 import random
 from decimal import Decimal
-from io import BytesIO
-from PIL import Image, ImageDraw
-
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.core.files.base import ContentFile
@@ -103,6 +101,7 @@ class Command(BaseCommand):
         ))
 
     def _clear_data(self):
+        """Usuwa dane transakcyjne i produktowe."""
         OrderItem.objects.all().delete()
         Order.objects.all().delete()
         ProductImage.objects.all().delete()
@@ -150,7 +149,11 @@ class Command(BaseCommand):
     def _create_categories(self):
         self.stdout.write('  Tworzenie kategorii (i18n)...')
 
-        def make_cat(name_pl, name_en):
+
+        # Helper do tworzenia kategorii (BEZ parenta)
+        def make_cat(name_pl, name_en):  # Usunięto parent=None
+            # Tworzymy kategorię bez żadnych argumentów
+>>>>>>> af11c8844559522613158326f9c5ec6e9c4d1f83
             cat = Category.objects.create()
 
             cat.set_current_language('pl')
@@ -165,6 +168,16 @@ class Command(BaseCommand):
             cat.slug = slugify(name_en)
             cat.save()
             return cat
+
+        balie = make_cat('Balie Ogrodowe', 'Garden Hot Tubs')
+        jacuzzi = make_cat('Jacuzzi Ogrodowe', 'Garden Jacuzzis')
+        drewniane = make_cat('Balie Drewniane', 'Wooden Hot Tubs')
+        akcesoria = make_cat('Akcesoria', 'Accessories')
+<<<<<<< HEAD
+=======
+        # Pokrywy teraz są samodzielną kategorią, nie dzieckiem
+>>>>>>> af11c8844559522613158326f9c5ec6e9c4d1f83
+        pokrywy = make_cat('Pokrywy Termiczne', 'Thermal Covers')
 
         return {
             'balie': make_cat('Balie Ogrodowe', 'Garden Hot Tubs'),
