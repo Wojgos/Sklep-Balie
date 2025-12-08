@@ -271,6 +271,144 @@ export interface SalesStatistics {
   }[];
 }
 
+// Advanced Analytics models
+export interface MonthlyData {
+  month: string; // YYYY-MM
+  month_name: string; // "January 2025"
+  revenue: number;
+  orders_count: number;
+  avg_order_value: number;
+  growth_rate: number | null; // % wzrost względem poprzedniego miesiąca
+  growth_amount: number | null; // kwota wzrostu/spadku
+}
+
+export interface MonthlyStatistics {
+  period: {
+    start_date: string;
+    end_date: string;
+  };
+  summary: {
+    total_revenue: number;
+    total_orders: number;
+    avg_monthly_revenue: number;
+    months_count: number;
+  };
+  best_month: MonthlyData | null;
+  worst_month: MonthlyData | null;
+  monthly_data: MonthlyData[];
+}
+
+export interface QuarterlyData {
+  quarter: string; // "2025-Q1"
+  quarter_name: string; // "Q1"
+  year: number;
+  revenue: number;
+  orders_count: number;
+  avg_order_value: number;
+  growth_rate: number | null;
+}
+
+export interface QuarterlyStatistics {
+  year: number;
+  quarterly_data: QuarterlyData[];
+}
+
+export interface YearlyData {
+  year: number;
+  revenue: number;
+  orders_count: number;
+  avg_order_value: number;
+  growth_rate: number | null;
+  growth_amount: number | null;
+}
+
+export interface YearlyStatistics {
+  yearly_data: YearlyData[];
+}
+
+export interface PeriodComparison {
+  period1: {
+    start_date: string;
+    end_date: string;
+    stats: {
+      revenue: number;
+      orders_count: number;
+      avg_order_value: number;
+    };
+  };
+  period2: {
+    start_date: string;
+    end_date: string;
+    stats: {
+      revenue: number;
+      orders_count: number;
+      avg_order_value: number;
+    };
+  };
+  comparison: {
+    revenue_difference: number;
+    revenue_growth_rate: number;
+    orders_difference: number;
+    orders_growth_rate: number;
+  };
+}
+
+export interface TopProduct {
+  product_id: string;
+  product_name: string;
+  product_slug: string;
+  quantity_sold: number;
+  revenue: number;
+  orders_count: number;
+  avg_price: number;
+}
+
+export interface TopProductsReport {
+  period: {
+    start_date: string;
+    end_date: string;
+  };
+  top_products: TopProduct[];
+}
+
+export interface CategoryPerformance {
+  category_id: string;
+  category_name: string;
+  quantity_sold: number;
+  revenue: number;
+  orders_count: number;
+  revenue_percentage: number;
+}
+
+export interface CategoryPerformanceReport {
+  period: {
+    start_date: string;
+    end_date: string;
+  };
+  total_revenue: number;
+  categories: CategoryPerformance[];
+}
+
+export interface DashboardOverview {
+  today: {
+    revenue: number;
+    orders_count: number;
+  };
+  current_month: {
+    revenue: number;
+    orders_count: number;
+    growth_rate: number;
+  };
+  current_year: {
+    revenue: number;
+    orders_count: number;
+  };
+  previous_month: {
+    revenue: number;
+    orders_count: number;
+  };
+}
+
 // Low Stock Alert models
 export interface LowStockAlert {
   product: Product;

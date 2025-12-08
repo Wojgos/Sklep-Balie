@@ -25,7 +25,14 @@ import {
   UserLoyaltyPoints,
   RedeemedReward,
   InsertLoyaltyProgram,
-  InsertLoyaltyReward
+  InsertLoyaltyReward,
+  MonthlyStatistics,
+  QuarterlyStatistics,
+  YearlyStatistics,
+  PeriodComparison,
+  TopProductsReport,
+  CategoryPerformanceReport,
+  DashboardOverview
 } from '../models';
 import { MockDataService } from './mock-data.service';
 import { AuthService } from './auth.service';
@@ -482,7 +489,7 @@ export class ApiService {
         }),
         catchError(error => {
           console.error('Nie udało się wyszukać produktów, używam danych mock.', error);
-          // Fallback to filtering local mock products if backend fails
+          // Fallback na mocka
           return this.mockDataService.getProducts().pipe(
             map(products => 
               products.filter(product => 
@@ -1007,6 +1014,176 @@ export class ApiService {
         alert('Wystąpił błąd podczas pobierania raportu PDF.');
       }
     });
+  }
+
+  // Advanced Analytics Methods
+  
+  // Get monthly statistics
+  getMonthlyStatistics(startDate?: Date, endDate?: Date): Observable<MonthlyStatistics> {
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const end = endDate || new Date();
+    const start = startDate || new Date(end.getTime() - 365 * 24 * 60 * 60 * 1000); // 12 months
+
+    const startDateStr = formatDate(start);
+    const endDateStr = formatDate(end);
+
+    const url = `${this.apiUrl}/reports/monthly/?start_date=${startDateStr}&end_date=${endDateStr}`;
+    
+    return this.http.get<MonthlyStatistics>(url).pipe(
+      catchError((error) => {
+        console.error('Błąd pobierania statystyk miesięcznych:', error);
+        return of({
+          period: { start_date: startDateStr, end_date: endDateStr },
+          summary: { total_revenue: 0, total_orders: 0, avg_monthly_revenue: 0, months_count: 0 },
+          best_month: null,
+          worst_month: null,
+          monthly_data: []
+        });
+      })
+    );
+  }
+
+  // Get quarterly statistics
+  getQuarterlyStatistics(year?: number): Observable<QuarterlyStatistics> {
+    const selectedYear = year || new Date().getFullYear();
+    const url = `${this.apiUrl}/reports/quarterly/?year=${selectedYear}`;
+    
+    return this.http.get<QuarterlyStatistics>(url).pipe(
+      catchError((error) => {
+        console.error('Błąd pobierania statystyk kwartalnych:', error);
+        return of({
+          year: selectedYear,
+          quarterly_data: []
+        });
+      })
+    );
+  }
+
+  // Get yearly statistics (last 5 years)
+  getYearlyStatistics(): Observable<YearlyStatistics> {
+    const url = `${this.apiUrl}/reports/yearly/`;
+    
+    return this.http.get<YearlyStatistics>(url).pipe(
+      catchError((error) => {
+        console.error('Błąd pobierania statystyk rocznych:', error);
+        return of({
+          yearly_data: []
+        });
+      })
+    );
+  }
+
+  // Compare two periods
+  comparePeriods(
+    period1Start: Date, 
+    period1End: Date, 
+    period2Start: Date, 
+    period2End: Date
+  ): Observable<PeriodComparison> {
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const url = `${this.apiUrl}/reports/comparison/?` +
+      `period1_start=${formatDate(period1Start)}&` +
+      `period1_end=${formatDate(period1End)}&` +
+      `period2_start=${formatDate(period2Start)}&` +
+      `period2_end=${formatDate(period2End)}`;
+    
+    return this.http.get<PeriodComparison>(url).pipe(
+      catchError((error) => {
+        console.error('Błąd porównywania okresów:', error);
+        throw error;
+      })
+    );
+  }
+
+  // Get top products for a period
+  getTopProducts(startDate?: Date, endDate?: Date, limit: number = 10): Observable<TopProductsReport> {
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const end = endDate || new Date();
+    const start = startDate || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const url = `${this.apiUrl}/reports/top-products/?` +
+      `start_date=${formatDate(start)}&` +
+      `end_date=${formatDate(end)}&` +
+      `limit=${limit}`;
+    
+    return this.http.get<TopProductsReport>(url).pipe(
+      catchError((error) => {
+        console.error('Błąd pobierania top produktów:', error);
+        return of({
+          period: {
+            start_date: formatDate(start),
+            end_date: formatDate(end)
+          },
+          top_products: []
+        });
+      })
+    );
+  }
+
+  // Get category performance
+  getCategoryPerformance(startDate?: Date, endDate?: Date): Observable<CategoryPerformanceReport> {
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const end = endDate || new Date();
+    const start = startDate || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const url = `${this.apiUrl}/reports/categories/?` +
+      `start_date=${formatDate(start)}&` +
+      `end_date=${formatDate(end)}`;
+    
+    return this.http.get<CategoryPerformanceReport>(url).pipe(
+      catchError((error) => {
+        console.error('Błąd pobierania wydajności kategorii:', error);
+        return of({
+          period: {
+            start_date: formatDate(start),
+            end_date: formatDate(end)
+          },
+          total_revenue: 0,
+          categories: []
+        });
+      })
+    );
+  }
+
+  // Get dashboard overview
+  getDashboardOverview(): Observable<DashboardOverview> {
+    const url = `${this.apiUrl}/reports/dashboard/`;
+    
+    return this.http.get<DashboardOverview>(url).pipe(
+      catchError((error) => {
+        console.error('Błąd pobierania przeglądu dashboard:', error);
+        return of({
+          today: { revenue: 0, orders_count: 0 },
+          current_month: { revenue: 0, orders_count: 0, growth_rate: 0 },
+          current_year: { revenue: 0, orders_count: 0 },
+          previous_month: { revenue: 0, orders_count: 0 }
+        });
+      })
+    );
   }
 
   // Low stock alerts (legacy - simple product-based)

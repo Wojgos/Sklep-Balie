@@ -141,8 +141,8 @@ class Command(BaseCommand):
         self.stdout.write('  Tworzenie kategorii (i18n)...')
 
         # Helper do tworzenia kategorii
-        def make_cat(name_pl, name_en, parent=None):
-            cat = Category.objects.create(parent=parent)
+        def make_cat(name_pl, name_en):
+            cat = Category.objects.create()
 
             cat.set_current_language('pl')
             cat.name = name_pl
@@ -159,7 +159,7 @@ class Command(BaseCommand):
         jacuzzi = make_cat('Jacuzzi Ogrodowe', 'Garden Jacuzzis')
         drewniane = make_cat('Balie Drewniane', 'Wooden Hot Tubs')
         akcesoria = make_cat('Akcesoria', 'Accessories')
-        pokrywy = make_cat('Pokrywy Termiczne', 'Thermal Covers', parent=akcesoria)
+        pokrywy = make_cat('Pokrywy Termiczne', 'Thermal Covers')
 
         return {
             'jacuzzi': jacuzzi, 'drewniane': drewniane,
