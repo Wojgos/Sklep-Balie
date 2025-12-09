@@ -74,6 +74,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('language_code', models.CharField(db_index=True, max_length=15, verbose_name='Language')),
+                ('name', models.CharField(max_length=255, verbose_name='Nazwa nagrody')),
                 ('description', models.CharField(max_length=255, verbose_name='Opis (dla klienta)')),
                 ('master', parler.fields.TranslationsForeignKey(editable=False, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='translations', to='promotions.loyaltyreward')),
             ],

@@ -16,6 +16,7 @@ class LoyaltyReward(TranslatableModel):
 
     # Pola tłumaczone (zamiast w głównej klasie)
     translations = TranslatedFields(
+        name=models.CharField(max_length=255, verbose_name="Nazwa nagrody"),
         description=models.CharField(max_length=255, verbose_name="Opis (dla klienta)")
     )
 

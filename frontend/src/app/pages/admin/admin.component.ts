@@ -1,9 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, Injector } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Observable, of, forkJoin } from 'rxjs';
+import { Observable, of, forkJoin, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../services/api.service';
 import { ModalService } from '../../services/modal.service';
+import { LanguageService } from '../../services/language.service';
 import { Product, Category, Order, InsertProduct, InsertCategory, SalesStatistics, LowStockAlert, LowStockVariantAlert, LowStockStatistics, GroupedLowStockAlert, ProductSkuVariant, OrderItem, ProductAttribute, ProductVariant, Ticket, TicketReply, TicketStatusUpdate, LoyaltyProgram, LoyaltyReward, InsertLoyaltyProgram, InsertLoyaltyReward } from '../../models';
 import { AdvancedStatisticsComponent } from './advanced-statistics.component';
 
@@ -12,16 +15,16 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 @Component({
   selector: 'bg-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdvancedStatisticsComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, AdvancedStatisticsComponent],
   template: `
     <div class="flex-1 bg-background py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <!-- Header -->
           <div class="mb-8">
             <h1 class="font-heading font-bold text-3xl sm:text-4xl mb-2" data-testid="text-admin-title">
-              Panel Administratora
+              {{ 'ADMIN.TITLE' | translate }}
             </h1>
-            <p class="text-muted-foreground">Zarządzaj produktami, kategoriami i zamówieniami</p>
+            <p class="text-muted-foreground">{{ 'ADMIN.SUBTITLE' | translate }}</p>
           </div>
 
           <!-- Tabs -->
@@ -42,13 +45,13 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
           <!-- Products Tab -->
           <div *ngIf="activeTab === 'products'" class="space-y-6">
             <div class="flex justify-between items-center">
-              <h2 class="text-2xl font-semibold">Zarządzanie Produktami</h2>
+              <h2 class="text-2xl font-semibold">{{ 'ADMIN.PRODUCT_MANAGEMENT' | translate }}</h2>
               <button 
                 (click)="openProductModal()"
                 class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg font-semibold transition-colors"
                 data-testid="button-add-product"
               >
-                + Dodaj Produkt
+                + {{ 'ADMIN.ADD_PRODUCT' | translate }}
               </button>
             </div>
 
@@ -57,12 +60,12 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 <table class="w-full">
                   <thead class="bg-muted">
                     <tr>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Zdjęcie</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Nazwa</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Kategoria</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Zakres cen</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Warianty</th>
-                      <th class="px-4 py-3 text-right text-sm font-semibold">Akcje</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.IMAGE' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.NAME' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.CATEGORY' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.PRICE_RANGE' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.VARIANTS' | translate }}</th>
+                      <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'ADMIN.ACTIONS' | translate }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -85,7 +88,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                             {{ parseFloat(product.minPrice) | number:'1.2-2' }} PLN
                           </div>
                           <div *ngIf="!product.minPrice" class="text-muted-foreground">
-                            Brak wariantów
+                            {{ 'ADMIN.NO_VARIANTS' | translate }}
                           </div>
                         </div>
                       </td>
@@ -93,7 +96,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                         <div class="text-sm">
                           <span class="font-medium">{{ product.variantCount || 0 }}</span>
                           <span class="text-muted-foreground ml-1">
-                            {{ (product.variantCount || 0) === 1 ? 'wariant' : 'warianty' }}
+                            {{ (product.variantCount || 0) === 1 ? ('ADMIN.VARIANT' | translate) : ('ADMIN.VARIANTS_PLURAL' | translate) }}
                           </span>
                         </div>
                       </td>
@@ -103,7 +106,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                             (click)="openProductModal(product)"
                             class="p-2 hover:bg-muted rounded-md transition-colors"
                             data-testid="button-edit-product"
-                            title="Edytuj"
+                            [title]="'ADMIN.EDIT' | translate"
                           >
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -113,7 +116,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                             (click)="deleteProduct(product.id)"
                             class="p-2 hover:bg-destructive/10 text-destructive rounded-md transition-colors"
                             data-testid="button-delete-product"
-                            title="Usuń"
+                            [title]="'ADMIN.DELETE' | translate"
                           >
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -131,12 +134,12 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
           <!-- Categories Tab -->
           <div *ngIf="activeTab === 'categories'" class="space-y-6">
             <div class="flex justify-between items-center">
-              <h2 class="text-2xl font-semibold">Zarządzanie Kategoriami</h2>
+              <h2 class="text-2xl font-semibold">{{ 'ADMIN.CATEGORY_MANAGEMENT' | translate }}</h2>
               <button 
                 (click)="openCategoryModal()"
                 class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg font-semibold transition-colors"
               >
-                + Dodaj Kategorię
+                + {{ 'ADMIN.ADD_CATEGORY' | translate }}
               </button>
             </div>
 
@@ -148,12 +151,12 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                   <h3 class="font-semibold text-lg mb-2">{{ category.name }}</h3>
                   <p class="text-sm text-muted-foreground mb-4">{{ category.description }}</p>
                   <div class="flex items-center justify-between">
-                    <span class="text-sm text-muted-foreground">{{ category.productCount }} produktów</span>
+                    <span class="text-sm text-muted-foreground">{{ category.productCount }} {{ 'ADMIN.PRODUCTS_COUNT' | translate }}</span>
                     <div class="flex gap-2">
                       <button
                         (click)="openCategoryModal(category)"
                         class="p-2 hover:bg-muted rounded-md transition-colors"
-                        title="Edytuj"
+                        [title]="'ADMIN.EDIT' | translate"
                       >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -162,7 +165,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                       <button
                         (click)="deleteCategory(category.id)"
                         class="p-2 hover:bg-destructive/10 text-destructive rounded-md transition-colors"
-                        title="Usuń"
+                        [title]="'ADMIN.DELETE' | translate"
                       >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -178,12 +181,12 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
           <!-- Attributes Tab -->
           <div *ngIf="activeTab === 'attributes'" class="space-y-6">
             <div class="flex justify-between items-center">
-              <h2 class="text-2xl font-semibold">Zarządzanie Atrybutami</h2>
+              <h2 class="text-2xl font-semibold">{{ 'ADMIN.ATTRIBUTES_MANAGEMENT' | translate }}</h2>
               <button
                 (click)="openAttributeModal(null)"
                 class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
               >
-                + Dodaj Atrybut
+                + {{ 'ADMIN.ADD_ATTRIBUTE' | translate }}
               </button>
             </div>
 
@@ -192,9 +195,9 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 <table class="w-full">
                   <thead class="bg-muted">
                     <tr>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Nazwa atrybutu</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Liczba wartości</th>
-                      <th class="px-4 py-3 text-right text-sm font-semibold">Akcje</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.ATTRIBUTE_NAME' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.VALUES' | translate }}</th>
+                      <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'ADMIN.ACTIONS' | translate }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -202,7 +205,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                       <td class="px-4 py-3 font-medium">{{ attribute.name }}</td>
                       <td class="px-4 py-3">
                         <span class="text-sm text-muted-foreground">
-                          {{ attribute.values?.length || 0 }} wartości
+                          {{ attribute.values?.length || 0 }} {{ 'ADMIN.VALUES_COUNT' | translate }}
                         </span>
                       </td>
                       <td class="px-4 py-3 text-right">
@@ -210,7 +213,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                           <button
                             (click)="manageAttributeValues(attribute)"
                             class="p-2 hover:bg-muted rounded-md transition-colors"
-                            title="Zarządzaj wartościami"
+                            [title]="'ADMIN.MANAGE_VALUES' | translate"
                           >
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -219,7 +222,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                           <button
                             (click)="openAttributeModal(attribute)"
                             class="p-2 hover:bg-muted rounded-md transition-colors"
-                            title="Edytuj"
+                            [title]="'ADMIN.EDIT' | translate"
                           >
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -228,7 +231,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                           <button
                             (click)="deleteAttribute(attribute.id)"
                             class="p-2 hover:bg-red-50 text-red-600 rounded-md transition-colors"
-                            title="Usuń"
+                            [title]="'ADMIN.DELETE' | translate"
                           >
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -245,21 +248,21 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
           <!-- Orders Tab -->
           <div *ngIf="activeTab === 'orders'" class="space-y-6">
-            <h2 class="text-2xl font-semibold">Przegląd Zamówień</h2>
+            <h2 class="text-2xl font-semibold">{{ 'ADMIN.ORDERS_OVERVIEW' | translate }}</h2>
 
             <div class="bg-card border border-card-border rounded-lg overflow-hidden">
               <div class="overflow-x-auto">
                 <table class="w-full">
                   <thead class="bg-muted">
                     <tr>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Nr zamówienia</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Klient</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Email</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Wartość</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Opłacone</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Status</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Data</th>
-                      <th class="px-4 py-3 text-right text-sm font-semibold">Akcje</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.ORDER_NUMBER' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.CUSTOMER' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.EMAIL' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.VALUE' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.PAID' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.STATUS' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.DATE' | translate }}</th>
+                      <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'ADMIN.ACTIONS' | translate }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -276,7 +279,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                             ? 'bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium'
                             : 'bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium'"
                         >
-                          {{ order.paid ? 'Tak' : 'Nie' }}
+                          {{ order.paid ? ('ADMIN.YES' | translate) : ('ADMIN.NO' | translate) }}
                         </span>
                       </td>
                       <td class="px-4 py-3">
@@ -286,11 +289,11 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                           class="px-2 py-1 border border-border rounded text-sm bg-background"
                           data-testid="select-order-status"
                         >
-                          <option value="pending">Oczekujące</option>
-                          <option value="processing">Przetwarzane</option>
-                          <option value="shipped">Wysłane</option>
-                          <option value="completed">Dostarczone</option>
-                          <option value="cancelled">Anulowane</option>
+                          <option value="pending">{{ 'ADMIN.STATUS_PENDING' | translate }}</option>
+                          <option value="processing">{{ 'ADMIN.STATUS_PROCESSING' | translate }}</option>
+                          <option value="shipped">{{ 'ADMIN.STATUS_SHIPPED' | translate }}</option>
+                          <option value="completed">{{ 'ADMIN.STATUS_COMPLETED' | translate }}</option>
+                          <option value="cancelled">{{ 'ADMIN.STATUS_CANCELLED' | translate }}</option>
                         </select>
                       </td>
                       <td class="px-4 py-3 text-sm">
@@ -301,7 +304,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                           (click)="viewOrderDetails(order.id)"
                           class="px-3 py-1 text-sm border border-border rounded hover:bg-muted transition-colors"
                         >
-                          Szczegóły
+                          {{ 'ADMIN.DETAILS' | translate }}
                         </button>
                       </td>
                     </tr>
@@ -317,30 +320,30 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             <!-- Header with Actions -->
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h2 class="text-2xl font-semibold">Niskie Stany Magazynowe</h2>
-                <p class="text-sm text-muted-foreground mt-1">Warianty produktów wymagające uzupełnienia</p>
+                <h2 class="text-2xl font-semibold">{{ 'ADMIN.LOW_STOCK_TITLE' | translate }}</h2>
+                <p class="text-sm text-muted-foreground mt-1">{{ 'ADMIN.LOW_STOCK_DESC' | translate }}</p>
               </div>
               <div class="flex items-center gap-2">
                 <button
                   (click)="triggerLowStockAlert()"
                   [disabled]="sendingAlert"
                   class="bg-orange-500 text-white hover:bg-orange-600 disabled:bg-gray-400 px-4 py-2 rounded-lg font-semibold transition-colors text-sm flex items-center gap-2"
-                  title="Wyślij email z alertem do administratora"
+                  [title]="'ADMIN.SEND_EMAIL_ALERT' | translate"
                 >
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                   </svg>
-                  {{ sendingAlert ? 'Wysyłanie...' : 'Wyślij Alert' }}
+                  {{ sendingAlert ? ('ADMIN.SENDING' | translate) : ('ADMIN.SEND_ALERT' | translate) }}
                 </button>
                 <button
                   (click)="exportLowStockToCSV()"
                   class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg font-semibold transition-colors text-sm flex items-center gap-2"
-                  title="Eksportuj do CSV"
+                  [title]="'ADMIN.EXPORT_TO_CSV' | translate"
                 >
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                   </svg>
-                  Export CSV
+                  {{ 'ADMIN.EXPORT_CSV' | translate }}
                 </button>
               </div>
             </div>
@@ -350,7 +353,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               <div class="bg-card border border-card-border rounded-lg p-4">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-xs text-muted-foreground">Wszystkie warianty</p>
+                    <p class="text-xs text-muted-foreground">{{ 'ADMIN.ALL_VARIANTS' | translate }}</p>
                     <p class="text-2xl font-bold mt-1">{{ stats.total_variants }}</p>
                   </div>
                   <div class="p-2 bg-blue-100 rounded-full">
@@ -364,7 +367,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               <div class="bg-card border border-card-border rounded-lg p-4">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-xs text-muted-foreground">OK</p>
+                    <p class="text-xs text-muted-foreground">{{ 'ADMIN.OK_STATUS' | translate }}</p>
                     <p class="text-2xl font-bold mt-1 text-green-600">{{ stats.ok_count }}</p>
                   </div>
                   <div class="p-2 bg-green-100 rounded-full">
@@ -378,7 +381,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               <div class="bg-card border border-card-border rounded-lg p-4">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-xs text-muted-foreground">Niski stan</p>
+                    <p class="text-xs text-muted-foreground">{{ 'ADMIN.LOW_STOCK' | translate }}</p>
                     <p class="text-2xl font-bold mt-1 text-yellow-600">{{ stats.low_stock_count }}</p>
                   </div>
                   <div class="p-2 bg-yellow-100 rounded-full">
@@ -392,7 +395,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               <div class="bg-card border border-card-border rounded-lg p-4">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-xs text-muted-foreground">Ostrzeżenie</p>
+                    <p class="text-xs text-muted-foreground">{{ 'ADMIN.WARNINGS' | translate }}</p>
                     <p class="text-2xl font-bold mt-1 text-orange-600">{{ stats.warning_count }}</p>
                   </div>
                   <div class="p-2 bg-orange-100 rounded-full">
@@ -406,7 +409,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               <div class="bg-card border border-card-border rounded-lg p-4">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-xs text-muted-foreground">Krytyczne</p>
+                    <p class="text-xs text-muted-foreground">{{ 'ADMIN.CRITICAL' | translate }}</p>
                     <p class="text-2xl font-bold mt-1 text-red-600">{{ stats.critical_count }}</p>
                   </div>
                   <div class="p-2 bg-red-100 rounded-full">
@@ -420,7 +423,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
             <!-- Filters -->
             <div class="flex items-center gap-2">
-              <label class="text-sm font-medium">Filtruj:</label>
+              <label class="text-sm font-medium">{{ 'ADMIN.FILTER_LABEL' | translate }}</label>
               <button
                 *ngFor="let filter of lowStockFilters"
                 (click)="selectedLowStockFilter = filter.value; loadLowStockAlerts()"
@@ -444,11 +447,11 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 <svg class="mx-auto h-12 w-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                <h3 class="mt-2 text-lg font-medium">Brak alertów</h3>
+                <h3 class="mt-2 text-lg font-medium">{{ 'ADMIN.NO_ALERTS' | translate }}</h3>
                 <p class="mt-1 text-sm text-muted-foreground">
-                  {{ selectedLowStockFilter === 'all' ? 'Wszystkie warianty mają wystarczający stan magazynowy' : 
-                     selectedLowStockFilter === 'critical' ? 'Brak wariantów w stanie krytycznym' :
-                     'Brak wariantów w ostrzeżeniu' }}
+                  {{ selectedLowStockFilter === 'all' ? ('ADMIN.NO_ALERTS_ALL' | translate) : 
+                     selectedLowStockFilter === 'critical' ? ('ADMIN.NO_ALERTS_CRITICAL' | translate) :
+                     ('ADMIN.NO_ALERTS_WARNING' | translate) }}
                 </p>
               </div>
 
@@ -473,7 +476,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                       <div>
                         <h3 class="font-semibold text-base">{{ group.productName }}</h3>
                         <p class="text-xs text-muted-foreground">
-                          {{ group.totalVariantsAffected }} {{ group.totalVariantsAffected === 1 ? 'wariant' : 'warianty' }} 
+                          {{ group.totalVariantsAffected }} {{ group.totalVariantsAffected === 1 ? ('ADMIN.VARIANT_AFFECTED' | translate) : ('ADMIN.VARIANTS_AFFECTED' | translate) }} 
                           • {{ group.categoryName }}
                         </p>
                       </div>
@@ -482,13 +485,13 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                       <span 
                         *ngIf="group.hasCritical"
                         class="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium">
-                        KRYTYCZNE
+                        {{ 'ADMIN.CRITICAL_STATUS' | translate }}
                       </span>
                       <button
                         (click)="bulkOrderGroup(group); $event.stopPropagation()"
                         class="bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
                       >
-                        Zamów wszystkie
+                        {{ 'ADMIN.ORDER_ALL' | translate }}
                       </button>
                     </div>
                   </div>
@@ -512,7 +515,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                             
                             <div class="flex-1">
                               <div class="flex items-center gap-2">
-                                <span class="font-medium">{{ alert.variant.name || 'Wariant domyślny' }}</span>
+                                <span class="font-medium">{{ alert.variant.name || ('ADMIN.DEFAULT_VARIANT' | translate) }}</span>
                                 <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-mono">
                                   SKU: {{ alert.variant.sku }}
                                 </span>
@@ -533,32 +536,32 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                               <!-- Stock Info -->
                               <div class="flex items-center gap-4 mt-2 text-sm">
                                 <div>
-                                  <span class="text-muted-foreground">Stan:</span>
+                                  <span class="text-muted-foreground">{{ 'ADMIN.STOCK_STATUS' | translate }}:</span>
                                   <span 
                                     class="font-semibold ml-1"
                                     [class.text-red-600]="alert.severity === 'critical'"
                                     [class.text-orange-600]="alert.severity === 'warning'"
                                     [class.text-yellow-600]="alert.severity === 'info'">
-                                    {{ alert.currentStock }} szt.
+                                    {{ alert.currentStock }} {{ 'ADMIN.PIECES' | translate }}
                                   </span>
                                 </div>
                                 <div>
-                                  <span class="text-muted-foreground">Próg:</span>
-                                  <span class="font-medium ml-1">{{ alert.threshold }} szt.</span>
+                                  <span class="text-muted-foreground">{{ 'ADMIN.THRESHOLD' | translate }}:</span>
+                                  <span class="font-medium ml-1">{{ alert.threshold }} {{ 'ADMIN.PIECES' | translate }}</span>
                                   <button
                                     (click)="editVariantThreshold(alert)"
                                     class="ml-2 text-primary hover:underline text-xs"
-                                    title="Edytuj próg">
+                                    [title]="'ADMIN.EDIT_THRESHOLD' | translate">
                                     ✏️
                                   </button>
                                 </div>
                                 <div>
-                                  <span class="text-muted-foreground">Brakuje:</span>
-                                  <span class="font-medium ml-1 text-red-600">{{ alert.difference }} szt.</span>
+                                  <span class="text-muted-foreground">{{ 'ADMIN.MISSING' | translate }}:</span>
+                                  <span class="font-medium ml-1 text-red-600">{{ alert.difference }} {{ 'ADMIN.PIECES' | translate }}</span>
                                 </div>
                                 <div>
-                                  <span class="text-muted-foreground">Sugerowane:</span>
-                                  <span class="font-medium ml-1 text-green-600">{{ alert.suggestedOrder }} szt.</span>
+                                  <span class="text-muted-foreground">{{ 'ADMIN.SUGGESTED' | translate }}:</span>
+                                  <span class="font-medium ml-1 text-green-600">{{ alert.suggestedOrder }} {{ 'ADMIN.PIECES' | translate }}</span>
                                 </div>
                               </div>
                             </div>
@@ -571,7 +574,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                             (click)="autoOrderVariant(alert)"
                             class="bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
                           >
-                            Zamów {{ alert.suggestedOrder }} szt.
+                            {{ 'ADMIN.ORDER_ALL' | translate }} {{ alert.suggestedOrder }} {{ 'ADMIN.PIECES' | translate }}
                           </button>
                         </div>
                       </div>
@@ -590,7 +593,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
           <!-- Support Tab -->
           <div *ngIf="activeTab === 'support'" class="space-y-6">
             <div class="flex justify-between items-center">
-              <h2 class="text-2xl font-semibold">Zarządzanie Zgłoszeniami</h2>
+              <h2 class="text-2xl font-semibold">{{ 'ADMIN.SUPPORT_MANAGEMENT' | translate }}</h2>
               <div class="flex gap-2">
                 <button
                   *ngFor="let status of supportStatusFilters"
@@ -622,9 +625,9 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               <svg class="w-24 h-24 mx-auto text-muted-foreground/50 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
               </svg>
-              <h3 class="text-xl font-semibold text-foreground mb-2">Brak zgłoszeń</h3>
+              <h3 class="text-xl font-semibold text-foreground mb-2">{{ 'ADMIN.NO_TICKETS' | translate }}</h3>
               <p class="text-muted-foreground">
-                {{ selectedSupportStatus === 'all' ? 'Nie ma jeszcze żadnych zgłoszeń od klientów' : 'Nie ma zgłoszeń z tym statusem' }}
+                {{ selectedSupportStatus === 'all' ? ('ADMIN.NO_TICKETS_DESC' | translate) : ('ADMIN.NO_TICKETS_STATUS' | translate) }}
               </p>
             </div>
 
@@ -635,12 +638,12 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                   <thead class="bg-muted">
                     <tr>
                       <th class="px-4 py-3 text-left text-sm font-semibold">ID</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Temat</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Użytkownik</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Status</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Wiadomości</th>
-                      <th class="px-4 py-3 text-left text-sm font-semibold">Ostatnia aktualizacja</th>
-                      <th class="px-4 py-3 text-right text-sm font-semibold">Akcje</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.SUBJECT' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.USER' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.STATUS' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.MESSAGES' | translate }}</th>
+                      <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'ADMIN.LAST_UPDATE' | translate }}</th>
+                      <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'ADMIN.ACTIONS' | translate }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -668,7 +671,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                           (click)="viewSupportTicket(ticket)"
                           class="text-primary hover:underline text-sm font-medium"
                         >
-                          Szczegóły
+                          {{ 'ADMIN.DETAILS' | translate }}
                         </button>
                       </td>
                     </tr>
@@ -682,23 +685,23 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
           <div *ngIf="activeTab === 'loyalty'" class="space-y-6">
             <!-- Program Configuration -->
             <div class="bg-card border border-card-border rounded-lg p-6">
-              <h2 class="text-2xl font-semibold mb-6">Konfiguracja Programu Lojalnościowego</h2>
+              <h2 class="text-2xl font-semibold mb-6">{{ 'ADMIN.LOYALTY_CONFIG' | translate }}</h2>
               
               <div class="space-y-3">
                 <p class="text-foreground">
-                  <span class="font-semibold">Nazwa programu:</span> Program Lojalnościowy BarrelGarden
+                  <span class="font-semibold">{{ 'ADMIN.PROGRAM_NAME' | translate }}:</span> Program Lojalnościowy BarrelGarden
                 </p>
                 
                 <p class="text-foreground">
-                  <span class="font-semibold">Opis:</span> Zbieraj punkty za każde zamówienie i wymieniaj je na atrakcyjne nagrody!
+                  <span class="font-semibold">{{ 'ADMIN.PROGRAM_DESC' | translate }}:</span> Zbieraj punkty za każde zamówienie i wymieniaj je na atrakcyjne nagrody!
                 </p>
                 
                 <p class="text-foreground">
-                  <span class="font-semibold">Punkty za 1 PLN:</span> 1
+                  <span class="font-semibold">{{ 'ADMIN.POINTS_PER_PLN' | translate }}:</span> 1
                 </p>
                 
                 <p class="text-foreground">
-                  <span class="font-semibold">Status:</span> <span class="text-green-600">✓ Program aktywny</span>
+                  <span class="font-semibold">{{ 'ADMIN.PROGRAM_STATUS' | translate }}:</span> <span class="text-green-600">✓ {{ 'ADMIN.PROGRAM_ACTIVE' | translate }}</span>
                 </p>
               </div>
             </div>
@@ -706,12 +709,12 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             <!-- Rewards Management -->
             <div>
               <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-semibold">Nagrody</h2>
+                <h2 class="text-2xl font-semibold">{{ 'ADMIN.REWARDS' | translate }}</h2>
                 <button 
                   (click)="openRewardModal()"
                   class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg font-semibold transition-colors"
                 >
-                  + Dodaj Nagrodę
+                  + {{ 'ADMIN.ADD_REWARD' | translate }}
                 </button>
               </div>
 
@@ -724,7 +727,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                       class="px-2 py-1 rounded text-xs font-medium"
                       [ngClass]="reward.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
                     >
-                      {{ reward.isActive ? 'Aktywna' : 'Nieaktywna' }}
+                      {{ reward.isActive ? ('ADMIN.ACTIVE_STATUS' | translate) : ('ADMIN.INACTIVE_STATUS' | translate) }}
                     </span>
                   </div>
                   
@@ -732,23 +735,23 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                   
                   <div class="space-y-2 mb-4">
                     <div class="flex justify-between text-sm">
-                      <span class="text-muted-foreground">Koszt:</span>
-                      <span class="font-semibold">{{ reward.pointsCost }} punktów</span>
+                      <span class="text-muted-foreground">{{ 'ADMIN.REWARD_COST' | translate }}:</span>
+                      <span class="font-semibold">{{ reward.pointsCost }} {{ 'ADMIN.POINTS' | translate }}</span>
                     </div>
                     <div class="flex justify-between text-sm">
-                      <span class="text-muted-foreground">Typ:</span>
+                      <span class="text-muted-foreground">{{ 'ADMIN.REWARD_TYPE' | translate }}:</span>
                       <span class="font-medium">{{ getRewardTypeLabel(reward.rewardType || 'discount_fixed') }}</span>
                     </div>
                     <div class="flex justify-between text-sm">
-                      <span class="text-muted-foreground">Wartość:</span>
+                      <span class="text-muted-foreground">{{ 'ADMIN.REWARD_VALUE' | translate }}:</span>
                       <span class="font-medium">{{ formatRewardValue(reward) }}</span>
                     </div>
                     <div *ngIf="reward.usageLimit" class="flex justify-between text-sm">
-                      <span class="text-muted-foreground">Limit użyć:</span>
+                      <span class="text-muted-foreground">{{ 'ADMIN.USAGE_LIMIT' | translate }}:</span>
                       <span class="font-medium">{{ reward.usageLimit }}</span>
                     </div>
                     <div *ngIf="reward.validUntil" class="flex justify-between text-sm">
-                      <span class="text-muted-foreground">Ważna do:</span>
+                      <span class="text-muted-foreground">{{ 'ADMIN.VALID_UNTIL' | translate }}:</span>
                       <span class="font-medium">{{ reward.validUntil | date:'dd.MM.yyyy' }}</span>
                     </div>
                   </div>
@@ -758,13 +761,13 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                       (click)="openRewardModal(reward)"
                       class="flex-1 px-3 py-2 text-sm bg-muted hover:bg-muted/80 rounded-lg transition-colors"
                     >
-                      Edytuj
+                      {{ 'ADMIN.EDIT' | translate }}
                     </button>
                     <button
                       (click)="deleteReward(reward.id)"
                       class="flex-1 px-3 py-2 text-sm bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors"
                     >
-                      Usuń
+                      {{ 'ADMIN.DELETE' | translate }}
                     </button>
                   </div>
                 </div>
@@ -1650,21 +1653,21 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
           <!-- Status Change -->
           <div class="mb-6 p-4 bg-muted/50 rounded-lg">
-            <label class="block text-sm font-medium mb-2">Zmień status zgłoszenia</label>
+            <label class="block text-sm font-medium mb-2">{{ 'ADMIN.CHANGE_TICKET_STATUS' | translate }}</label>
             <div class="flex gap-2">
               <select
                 [(ngModel)]="ticketStatusForm"
                 class="flex-1 px-3 py-2 border border-border rounded-lg bg-background"
               >
-                <option value="new">Nowe</option>
-                <option value="in_progress">W trakcie</option>
-                <option value="closed">Zamknięte</option>
+                <option value="new">{{ 'ADMIN.TICKET_STATUS_NEW' | translate }}</option>
+                <option value="in_progress">{{ 'ADMIN.TICKET_STATUS_IN_PROGRESS' | translate }}</option>
+                <option value="closed">{{ 'ADMIN.TICKET_STATUS_CLOSED' | translate }}</option>
               </select>
               <button
                 (click)="updateTicketStatus()"
                 class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
               >
-                Zapisz status
+                {{ 'ADMIN.SAVE_STATUS' | translate }}
               </button>
             </div>
           </div>
@@ -1879,17 +1882,10 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 })
 export class AdminComponent implements OnInit {
   activeTab: TabType = 'products';
+  translate!: TranslateService;
+  private destroy$ = new Subject<void>();
   
-  tabs = [
-    { id: 'products' as TabType, label: 'Produkty' },
-    { id: 'categories' as TabType, label: 'Kategorie' },
-    { id: 'attributes' as TabType, label: 'Atrybuty' },
-    { id: 'orders' as TabType, label: 'Zamówienia' },
-    { id: 'lowStock' as TabType, label: 'Niski stan' },
-    { id: 'statistics' as TabType, label: 'Statystyki' },
-    { id: 'support' as TabType, label: 'Zgłoszenia' },
-    { id: 'loyalty' as TabType, label: 'System Lojalnościowy' }
-  ];
+  tabs: { id: TabType; label: string }[] = [];
 
   products$: Observable<Product[]>;
   categories$: Observable<Category[]>;
@@ -1955,11 +1951,7 @@ export class AdminComponent implements OnInit {
   loadingLowStock: boolean = false;
   sendingAlert: boolean = false;
   expandedProducts: Set<number> = new Set();
-  lowStockFilters = [
-    { label: 'Wszystkie', value: 'all' as const },
-    { label: 'Krytyczne (0 szt.)', value: 'critical' as const },
-    { label: 'Ostrzeżenia', value: 'warning' as const }
-  ];
+  lowStockFilters: { label: string; value: 'all' | 'critical' | 'warning' }[] = [];
 
   // Support tickets
   allTickets: Ticket[] = [];
@@ -1969,12 +1961,7 @@ export class AdminComponent implements OnInit {
   selectedSupportStatus: string = 'all';
   ticketStatusForm: string = 'new';
   ticketReplyText: string = '';
-  supportStatusFilters = [
-    { label: 'Wszystkie', value: 'all' },
-    { label: 'Nowe', value: 'new' },
-    { label: 'W trakcie', value: 'in_progress' },
-    { label: 'Zamknięte', value: 'closed' }
-  ];
+  supportStatusFilters: { label: string; value: string }[] = [];
 
   // Loyalty Program variables
   loyaltyProgram: LoyaltyProgram | null = null;
@@ -2005,8 +1992,15 @@ export class AdminComponent implements OnInit {
 
   constructor(
     private apiService: ApiService,
-    private modalService: ModalService
+    private modalService: ModalService,
+    private injector: Injector,
+    private languageService: LanguageService
   ) {
+    this.translate = this.injector.get(TranslateService);
+    this.initializeTabs();
+    this.initializeSupportFilters();
+    this.initializeLowStockFilters();
+    
     this.products$ = this.apiService.getProducts();
     this.categories$ = this.apiService.getCategories();
     this.orders$ = this.apiService.getOrders();
@@ -2016,6 +2010,36 @@ export class AdminComponent implements OnInit {
     this.statistics$ = this.apiService.getSalesStatistics();
     this.loyaltyRewards$ = this.apiService.getLoyaltyRewards();
   }
+  
+  private initializeTabs(): void {
+    this.tabs = [
+      { id: 'products' as TabType, label: this.translate.instant('ADMIN.TAB_PRODUCTS') },
+      { id: 'categories' as TabType, label: this.translate.instant('ADMIN.TAB_CATEGORIES') },
+      { id: 'attributes' as TabType, label: this.translate.instant('ADMIN.TAB_ATTRIBUTES') },
+      { id: 'orders' as TabType, label: this.translate.instant('ADMIN.TAB_ORDERS') },
+      { id: 'lowStock' as TabType, label: this.translate.instant('ADMIN.TAB_LOW_STOCK') },
+      { id: 'statistics' as TabType, label: this.translate.instant('ADMIN.TAB_STATISTICS') },
+      { id: 'support' as TabType, label: this.translate.instant('ADMIN.TAB_SUPPORT') },
+      { id: 'loyalty' as TabType, label: this.translate.instant('ADMIN.TAB_LOYALTY') }
+    ];
+  }
+  
+  private initializeSupportFilters(): void {
+    this.supportStatusFilters = [
+      { label: this.translate.instant('ADMIN.ALL'), value: 'all' },
+      { label: this.translate.instant('ADMIN.TICKET_STATUS_NEW'), value: 'new' },
+      { label: this.translate.instant('ADMIN.TICKET_STATUS_IN_PROGRESS'), value: 'in_progress' },
+      { label: this.translate.instant('ADMIN.TICKET_STATUS_CLOSED'), value: 'closed' }
+    ];
+  }
+  
+  private initializeLowStockFilters(): void {
+    this.lowStockFilters = [
+      { label: this.translate.instant('ADMIN.ALL'), value: 'all' as const },
+      { label: this.translate.instant('ADMIN.CRITICAL_ZERO'), value: 'critical' as const },
+      { label: this.translate.instant('ADMIN.WARNINGS'), value: 'warning' as const }
+    ];
+  }
 
   ngOnInit(): void {
     this.categories$.subscribe(cats => this.allCategories = cats);
@@ -2023,6 +2047,20 @@ export class AdminComponent implements OnInit {
     this.loadLoyaltyProgram();
     this.loadLowStockAlerts();
     this.loadAttributes();
+    
+    // Re-initialize tabs and filters on language change
+    this.languageService.currentLanguage$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.initializeTabs();
+        this.initializeSupportFilters();
+        this.initializeLowStockFilters();
+      });
+  }
+  
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   // Attributes management methods
@@ -3025,9 +3063,9 @@ export class AdminComponent implements OnInit {
 
   getSupportStatusLabel(status: string): string {
     const labels: Record<string, string> = {
-      'new': 'Nowe',
-      'in_progress': 'W trakcie',
-      'closed': 'Zamknięte'
+      'new': this.translate.instant('ADMIN.TICKET_STATUS_NEW'),
+      'in_progress': this.translate.instant('ADMIN.TICKET_STATUS_IN_PROGRESS'),
+      'closed': this.translate.instant('ADMIN.TICKET_STATUS_CLOSED')
     };
     return labels[status] || status;
   }

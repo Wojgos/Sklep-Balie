@@ -15,7 +15,7 @@ class LoyaltyRewardSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name', 'description',  # Pola tłumaczone
-            'points_required', 'reward_value', 'is_percentage', 'active', 'created_at'  # Pola zwykłe
+            'points_required', 'reward_value', 'is_percentage', 'active'  # Pola zwykłe
         ]
 
     def create(self, validated_data):
