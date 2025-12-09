@@ -97,8 +97,8 @@ interface BackendProductResponse {
 
 interface BackendOrderItemResponse {
   id: number;
-  product: number;
-  product_name: string;
+  product?: number | null;
+  product_name?: string;
   quantity: number;
   price: string;
 }
@@ -115,7 +115,7 @@ interface BackendOrderResponse {
   city: string;
   postal_code: string;
   total_price: string;
-  status: string;
+  status?: string;
   paid: boolean;
   tracking_number?: string | null;
   notes?: string | null;
@@ -362,7 +362,7 @@ export class ApiService {
       city: order.city,
       postalCode: order.postal_code,
       totalPrice: order.total_price,
-      status: order.status,
+      status: order.status || 'pending',
       paid: order.paid ?? false,
       trackingNumber: order.tracking_number || null,
       notes: order.notes || null,
@@ -373,12 +373,12 @@ export class ApiService {
     // Map items if they exist in the response (from list endpoint)
     if (order.items && order.items.length > 0) {
       mappedOrder.items = order.items.map(item => ({
-        id: item.id.toString(),
-        orderId: order.id.toString(),
-        productId: item.product.toString(),
-        productName: item.product_name,
-        quantity: item.quantity,
-        price: item.price
+        id: item.id ? item.id.toString() : '',
+        orderId: order.id ? order.id.toString() : '',
+        productId: item.product ? item.product.toString() : '',
+        productName: item.product_name || '',
+        quantity: item.quantity || 0,
+        price: item.price || '0.00'
       }));
     }
 
@@ -755,12 +755,12 @@ export class ApiService {
       map(order => {
         const mappedOrder = this.mapOrderFromApi(order);
         const items = (order.items || []).map(item => ({
-          id: item.id.toString(),
-          orderId: order.id.toString(),
-          productId: item.product.toString(),
-          productName: item.product_name,
-          quantity: item.quantity,
-          price: item.price
+          id: item.id ? item.id.toString() : '',
+          orderId: order.id ? order.id.toString() : '',
+          productId: item.product ? item.product.toString() : '',
+          productName: item.product_name || '',
+          quantity: item.quantity || 0,
+          price: item.price || '0.00'
         }));
         return { ...mappedOrder, items };
       }),
