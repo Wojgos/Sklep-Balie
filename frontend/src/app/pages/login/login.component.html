@@ -3,8 +3,8 @@
     <div class="login-card">
       <!-- Logo/Header -->
       <div class="login-header">
-        <h1 class="login-title">Zaloguj się</h1>
-        <p class="login-subtitle">Witaj ponownie!</p>
+        <h1 class="login-title">{{ 'AUTH.LOGIN' | translate }}</h1>
+        <p class="login-subtitle">{{ 'AUTH.WELCOME_BACK_SHORT' | translate }}</p>
       </div>
 
       <!-- Login Form -->
@@ -12,7 +12,7 @@
         <!-- Username Field -->
         <div class="form-group">
           <label for="username" class="form-label">
-            E-mail
+            {{ 'FORM.EMAIL' | translate }}
           </label>
           <input
             type="text"
@@ -20,7 +20,7 @@
             name="username"
             [(ngModel)]="credentials.username"
             class="form-input"
-            placeholder="Wprowadź adres E-mail"
+            [placeholder]="'FORM.EMAIL_PLACEHOLDER' | translate"
             [disabled]="isLoading"
             required
             autocomplete="username"
@@ -30,7 +30,7 @@
         <!-- Password Field -->
         <div class="form-group">
           <label for="password" class="form-label">
-            Hasło
+            {{ 'FORM.PASSWORD' | translate }}
           </label>
           <div class="password-input-wrapper">
             <input
@@ -39,7 +39,7 @@
               name="password"
               [(ngModel)]="credentials.password"
               class="form-input"
-              placeholder="Wprowadź hasło"
+              [placeholder]="'FORM.PASSWORD_PLACEHOLDER' | translate"
               [disabled]="isLoading"
               required
               autocomplete="current-password"
@@ -62,10 +62,10 @@
           class="btn-submit"
           [disabled]="isLoading"
         >
-          <span *ngIf="!isLoading">Zaloguj się</span>
+          <span *ngIf="!isLoading">{{ 'AUTH.LOGIN' | translate }}</span>
           <span *ngIf="isLoading" class="loading-spinner">
             <span class="spinner"></span>
-            Logowanie...
+            {{ 'AUTH.LOGGING_IN' | translate }}
           </span>
         </button>
       </form>
@@ -73,15 +73,15 @@
       <!-- Register Link -->
       <div class="register-link">
         <p>
-          Nie masz konta?
-          <a [routerLink]="['/register']" class="link">Zarejestruj się</a>
+          {{ 'AUTH.NO_ACCOUNT' | translate }}
+          <a [routerLink]="['/register']" class="link">{{ 'AUTH.REGISTER' | translate }}</a>
         </p>
       </div>
 
       <!-- Back to Home -->
       <div class="back-home">
         <a [routerLink]="['/']" class="link-back">
-          ← Powrót do strony głównej
+          ← {{ 'COMMON.BACK_TO_HOME' | translate }}
         </a>
       </div>
     </div>

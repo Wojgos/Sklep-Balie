@@ -1,6 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Product } from '../../models';
 import { CartService } from '../../services/cart.service';
 import { NotificationService } from '../../services/notification.service';
@@ -9,7 +10,7 @@ import { ProductQuickViewComponent } from '../product-quick-view/product-quick-v
 @Component({
   selector: 'bg-product-card',
   standalone: true,
-  imports: [CommonModule, RouterModule, ProductQuickViewComponent],
+  imports: [CommonModule, RouterModule, ProductQuickViewComponent, TranslateModule],
   template: `
     <a [routerLink]="['/product', product.slug || product.id]" class="block h-full">
       <div 
@@ -28,7 +29,7 @@ import { ProductQuickViewComponent } from '../product-quick-view/product-quick-v
             (click)="openQuickView($event)"
             class="absolute top-3 left-3 w-9 h-9 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
             data-testid="button-quick-view"
-            title="Szybki podgląd"
+            [title]="'PRODUCT.QUICK_VIEW' | translate"
           >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -101,7 +102,7 @@ import { ProductQuickViewComponent } from '../product-quick-view/product-quick-v
             (click)="addToCart($event)"
             data-testid="button-add-to-cart"
           >
-            Dodaj do koszyka
+            {{ 'CART.ADD_TO_CART' | translate }}
           </button>
         </div>
       </div>
@@ -124,7 +125,8 @@ export class ProductCardComponent {
 
   constructor(
     private cartService: CartService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private translate: TranslateService
   ) {}
 
   toggleWishlist(event: Event): void {
@@ -149,7 +151,8 @@ export class ProductCardComponent {
     this.cartService.addItem(this.product);
     
     // Show success notification
-    this.notificationService.showSuccess(`${this.product.name} został dodany do koszyka!`);
+    const message = this.translate.instant('CART.ADDED_TO_CART', { productName: this.product.name });
+    this.notificationService.showSuccess(message);
     
     // Reset button state after animation
     setTimeout(() => {

@@ -3,8 +3,8 @@
     <div class="register-card">
       <!-- Header -->
       <div class="register-header">
-        <h1 class="register-title">Utwórz konto</h1>
-        <p class="register-subtitle">Dołącz do nas już dziś!</p>
+        <h1 class="register-title">{{ 'AUTH.CREATE_ACCOUNT' | translate }}</h1>
+        <p class="register-subtitle">{{ 'AUTH.JOIN_US' | translate }}</p>
       </div>
 
       <!-- Registration Form -->
@@ -12,14 +12,14 @@
         
         <!-- Username -->
         <div class="form-group">
-          <label for="username" class="form-label">Nazwa użytkownika *</label>
+          <label for="username" class="form-label">{{ 'FORM.USERNAME' | translate }} *</label>
           <input
             type="text"
             id="username"
             name="username"
             [(ngModel)]="userData.username"
             class="form-input"
-            placeholder="Wybierz nazwę użytkownika"
+            [placeholder]="'FORM.USERNAME_PLACEHOLDER' | translate"
             [disabled]="isLoading"
             required
             autocomplete="username"
@@ -28,14 +28,14 @@
 
         <!-- Email -->
         <div class="form-group">
-          <label for="email" class="form-label">Email *</label>
+          <label for="email" class="form-label">{{ 'FORM.EMAIL' | translate }} *</label>
           <input
             type="email"
             id="email"
             name="email"
             [(ngModel)]="userData.email"
             class="form-input"
-            placeholder="twoj@email.com"
+            [placeholder]="'FORM.EMAIL_EXAMPLE' | translate"
             [disabled]="isLoading"
             required
             autocomplete="email"
@@ -45,14 +45,14 @@
         <!-- First and Last Name -->
         <div class="form-row">
           <div class="form-group">
-            <label for="firstName" class="form-label">Imię *</label>
+            <label for="firstName" class="form-label">{{ 'FORM.FIRST_NAME' | translate }} *</label>
             <input
               type="text"
               id="firstName"
               name="firstName"
               [(ngModel)]="userData.firstName"
               class="form-input"
-              placeholder="Twoje imię"
+              [placeholder]="'FORM.FIRST_NAME_PLACEHOLDER' | translate"
               [disabled]="isLoading"
               required
               autocomplete="given-name"
@@ -60,14 +60,14 @@
           </div>
 
           <div class="form-group">
-            <label for="lastName" class="form-label">Nazwisko *</label>
+            <label for="lastName" class="form-label">{{ 'FORM.LAST_NAME' | translate }} *</label>
             <input
               type="text"
               id="lastName"
               name="lastName"
               [(ngModel)]="userData.lastName"
               class="form-input"
-              placeholder="Twoje nazwisko"
+              [placeholder]="'FORM.LAST_NAME_PLACEHOLDER' | translate"
               [disabled]="isLoading"
               required
               autocomplete="family-name"
@@ -77,7 +77,7 @@
 
         <!-- Password -->
         <div class="form-group">
-          <label for="password" class="form-label">Hasło *</label>
+          <label for="password" class="form-label">{{ 'FORM.PASSWORD' | translate }} *</label>
           <div class="password-input-wrapper">
             <input
               [type]="showPassword ? 'text' : 'password'"
@@ -85,7 +85,7 @@
               name="password"
               [(ngModel)]="userData.password"
               class="form-input"
-              placeholder="Co najmniej 6 znaków"
+              [placeholder]="'FORM.PASSWORD_MIN' | translate"
               [disabled]="isLoading"
               required
               autocomplete="new-password"
@@ -104,7 +104,7 @@
 
         <!-- Confirm Password -->
         <div class="form-group">
-          <label for="confirmPassword" class="form-label">Potwierdź hasło *</label>
+          <label for="confirmPassword" class="form-label">{{ 'FORM.CONFIRM_PASSWORD' | translate }} *</label>
           <div class="password-input-wrapper">
             <input
               [type]="showConfirmPassword ? 'text' : 'password'"
@@ -112,7 +112,7 @@
               name="confirmPassword"
               [(ngModel)]="userData.confirmPassword"
               class="form-input"
-              placeholder="Wprowadź hasło ponownie"
+              [placeholder]="'FORM.CONFIRM_PASSWORD_PLACEHOLDER' | translate"
               [disabled]="isLoading"
               required
               autocomplete="new-password"
@@ -135,10 +135,10 @@
           class="btn-submit"
           [disabled]="isLoading"
         >
-          <span *ngIf="!isLoading">Utwórz konto</span>
+          <span *ngIf="!isLoading">{{ 'AUTH.CREATE_ACCOUNT' | translate }}</span>
           <span *ngIf="isLoading" class="loading-spinner">
             <span class="spinner"></span>
-            Tworzenie...
+            {{ 'AUTH.CREATING' | translate }}
           </span>
         </button>
       </form>
@@ -146,15 +146,15 @@
       <!-- Login Link -->
       <div class="login-link">
         <p>
-          Masz już konto?
-          <a [routerLink]="['/login']" class="link">Zaloguj się</a>
+          {{ 'AUTH.ALREADY_HAVE_ACCOUNT' | translate }}
+          <a [routerLink]="['/login']" class="link">{{ 'AUTH.LOGIN' | translate }}</a>
         </p>
       </div>
 
       <!-- Back to Home -->
       <div class="back-home">
         <a [routerLink]="['/']" class="link-back">
-          ← Powrót do strony głównej
+          ← {{ 'COMMON.BACK_TO_HOME' | translate }}
         </a>
       </div>
     </div>

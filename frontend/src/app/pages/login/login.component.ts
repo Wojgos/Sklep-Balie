@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../services/notification.service';
 import { LoginRequest, NotificationType } from '../../models';
@@ -9,7 +10,7 @@ import { LoginRequest, NotificationType } from '../../models';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, TranslateModule],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
@@ -27,7 +28,8 @@ export class LoginComponent implements OnInit {
     private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private translate: TranslateService
   ) {}
 
   ngOnInit(): void {
@@ -43,7 +45,10 @@ export class LoginComponent implements OnInit {
 
   onSubmit(): void {
     if (!this.credentials.username || !this.credentials.password) {
-      this.notificationService.show('Proszę wypełnić wszystkie pola', NotificationType.WARNING);
+      this.notificationService.show(
+        this.translate.instant('AUTH.FILL_ALL_FIELDS'), 
+        NotificationType.WARNING
+      );
       return;
     }
 
@@ -52,18 +57,17 @@ export class LoginComponent implements OnInit {
     this.authService.login(this.credentials).subscribe({
       next: (response) => {
         const user = response.user;
-        // Fallback to username or 'Użytkownik' if firstName is missing
-        const name = user?.firstName || user?.username || 'Użytkowniku';
+        const name = user?.firstName || user?.username || this.translate.instant('AUTH.USER');
         
         this.notificationService.show(
-          `Witaj ponownie, ${name}!`,
+          this.translate.instant('AUTH.WELCOME_BACK', { name }),
           NotificationType.SUCCESS
         );
         this.router.navigate([this.returnUrl]);
       },
       error: (error) => {
         this.isLoading = false;
-        let message = 'Wystąpił błąd podczas logowania';
+        let message = this.translate.instant('AUTH.LOGIN_ERROR');
         if (error.message) {
           message = error.message;
         }

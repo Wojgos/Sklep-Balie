@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Observable, combineLatest, map } from 'rxjs';
+import { Observable, combineLatest, map, Subject, takeUntil, switchMap } from 'rxjs';
+import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../services/api.service';
+import { LanguageService } from '../../services/language.service';
 import { Product, Category } from '../../models';
 import { ProductCardComponent } from '../../components/product-card/product-card.component';
 
@@ -15,15 +17,16 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
   imports: [
     CommonModule, 
     FormsModule,
-    ProductCardComponent
+    ProductCardComponent,
+    TranslateModule
   ],
   template: `
     <div class="flex-1 bg-background">
         <!-- Page Header -->
         <section class="bg-primary text-primary-foreground py-12">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 class="font-heading font-bold text-4xl mb-2">Wszystkie Produkty</h1>
-            <p class="text-primary-foreground/80">Odkryj naszą pełną kolekcję drewnianych produktów ogrodowych</p>
+            <h1 class="font-heading font-bold text-4xl mb-2">{{ 'PRODUCTS.TITLE' | translate }}</h1>
+            <p class="text-primary-foreground/80">{{ 'PRODUCTS.SUBTITLE' | translate }}</p>
           </div>
         </section>
 
@@ -33,13 +36,13 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
             <div class="flex flex-col lg:flex-row gap-4">
               <!-- Search -->
               <div class="flex-1">
-                <label class="block text-sm font-medium mb-2">Szukaj</label>
+                <label class="block text-sm font-medium mb-2">{{ 'PRODUCTS.SEARCH' | translate }}</label>
                 <div class="relative">
                   <input
                     type="text"
                     [(ngModel)]="searchTerm"
                     (ngModelChange)="applyFilters()"
-                    placeholder="Szukaj produktów..."
+                    [placeholder]="'PRODUCTS.SEARCH_PLACEHOLDER' | translate"
                     class="w-full px-4 py-2 pl-10 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                   />
                   <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,13 +53,13 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
 
               <!-- Category Filter -->
               <div class="lg:w-56">
-                <label class="block text-sm font-medium mb-2">Kategoria</label>
+                <label class="block text-sm font-medium mb-2">{{ 'PRODUCTS.CATEGORY' | translate }}</label>
                 <select
                   [(ngModel)]="selectedCategory"
                   (ngModelChange)="applyFilters()"
                   class="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                 >
-                  <option value="">Wszystkie kategorie</option>
+                  <option value="">{{ 'PRODUCTS.ALL_CATEGORIES' | translate }}</option>
                   <option *ngFor="let category of categories" [value]="category.id">
                     {{ category.name }}
                   </option>
@@ -65,32 +68,32 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
 
               <!-- Sort -->
               <div class="lg:w-56">
-                <label class="block text-sm font-medium mb-2">Sortuj</label>
+                <label class="block text-sm font-medium mb-2">{{ 'PRODUCTS.SORT' | translate }}</label>
                 <select
                   [(ngModel)]="sortOption"
                   (ngModelChange)="applyFilters()"
                   class="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                 >
-                  <option value="newest">Najnowsze</option>
-                  <option value="name-asc">Nazwa (A-Z)</option>
-                  <option value="name-desc">Nazwa (Z-A)</option>
-                  <option value="price-asc">Cena (rosnąco)</option>
-                  <option value="price-desc">Cena (malejąco)</option>
-                  <option value="rating-desc">Ocena (najwyższe)</option>
+                  <option value="newest">{{ 'PRODUCTS.SORT_NEWEST' | translate }}</option>
+                  <option value="name-asc">{{ 'PRODUCTS.SORT_NAME_ASC' | translate }}</option>
+                  <option value="name-desc">{{ 'PRODUCTS.SORT_NAME_DESC' | translate }}</option>
+                  <option value="price-asc">{{ 'PRODUCTS.SORT_PRICE_ASC' | translate }}</option>
+                  <option value="price-desc">{{ 'PRODUCTS.SORT_PRICE_DESC' | translate }}</option>
+                  <option value="rating-desc">{{ 'PRODUCTS.SORT_RATING' | translate }}</option>
                 </select>
               </div>
             </div>
 
             <!-- Price Range Filter -->
             <div class="mt-4 pt-4 border-t border-border">
-              <label class="block text-sm font-medium mb-2">Zakres cenowy</label>
+              <label class="block text-sm font-medium mb-2">{{ 'PRODUCTS.PRICE_RANGE' | translate }}</label>
               <div class="flex items-center gap-4">
                 <div class="flex-1">
                   <input
                     type="number"
                     [(ngModel)]="minPrice"
                     (ngModelChange)="applyFilters()"
-                    placeholder="Min"
+                    [placeholder]="'PRODUCTS.MIN' | translate"
                     min="0"
                     class="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                   />
@@ -101,7 +104,7 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
                     type="number"
                     [(ngModel)]="maxPrice"
                     (ngModelChange)="applyFilters()"
-                    placeholder="Max"
+                    [placeholder]="'PRODUCTS.MAX' | translate"
                     min="0"
                     class="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                   />
@@ -110,7 +113,7 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
                   (click)="clearFilters()"
                   class="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
                 >
-                  Wyczyść
+                  {{ 'PRODUCTS.CLEAR' | translate }}
                 </button>
               </div>
             </div>
@@ -118,7 +121,7 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
             <!-- Active Filters -->
             <div *ngIf="hasActiveFilters()" class="mt-4 pt-4 border-t border-border">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="text-sm font-medium">Aktywne filtry:</span>
+                <span class="text-sm font-medium">{{ 'PRODUCTS.ACTIVE_FILTERS' | translate }}:</span>
                 <button
                   *ngIf="selectedCategory"
                   (click)="selectedCategory = ''; applyFilters()"
@@ -156,15 +159,15 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
           <!-- Results Info -->
           <div class="flex items-center justify-between mb-6">
             <p class="text-muted-foreground">
-              Znaleziono <span class="font-semibold text-foreground">{{ filteredProducts.length }}</span> 
-              {{ filteredProducts.length === 1 ? 'produkt' : filteredProducts.length < 5 ? 'produkty' : 'produktów' }}
+              {{ 'PRODUCTS.FOUND' | translate }} <span class="font-semibold text-foreground">{{ filteredProducts.length }}</span> 
+              {{ filteredProducts.length === 1 ? ('PRODUCTS.PRODUCT_SINGULAR' | translate) : ('PRODUCTS.PRODUCT_PLURAL' | translate) }}
             </p>
             <div class="flex items-center gap-2">
               <button
                 (click)="viewMode = 'grid'"
                 [class]="viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'"
                 class="p-2 rounded-lg transition-colors border border-border"
-                title="Widok siatki"
+                [title]="'PRODUCTS.GRID_VIEW' | translate"
               >
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
@@ -174,7 +177,7 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
                 (click)="viewMode = 'list'"
                 [class]="viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted'"
                 class="p-2 rounded-lg transition-colors border border-border"
-                title="Widok listy"
+                [title]="'PRODUCTS.LIST_VIEW' | translate"
               >
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -237,10 +240,10 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
                         class="text-sm"
                         [class]="product.stock < 5 ? 'text-orange-600' : 'text-green-600'"
                       >
-                        {{ product.stock < 5 ? 'Ostatnie sztuki!' : 'Dostępny' }}
+                        {{ product.stock < 5 ? ('PRODUCTS.LIMITED_STOCK' | translate) : ('PRODUCTS.AVAILABLE' | translate) }}
                       </span>
                       <span *ngIf="product.stock === 0" class="text-sm text-red-600">
-                        Brak w magazynie
+                        {{ 'PRODUCTS.OUT_OF_STOCK' | translate }}
                       </span>
                     </div>
                   </div>
@@ -255,15 +258,15 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
               <svg class="mx-auto h-24 w-24 text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
-              <h3 class="text-xl font-semibold mb-2">Nie znaleziono produktów</h3>
+              <h3 class="text-xl font-semibold mb-2">{{ 'PRODUCTS.NO_RESULTS' | translate }}</h3>
               <p class="text-muted-foreground mb-4">
-                Spróbuj zmienić kryteria wyszukiwania lub filtry
+                {{ 'PRODUCTS.TRY_DIFFERENT_FILTERS' | translate }}
               </p>
               <button
                 (click)="clearFilters()"
                 class="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
               >
-                Wyczyść wszystkie filtry
+                {{ 'PRODUCTS.CLEAR_ALL_FILTERS' | translate }}
               </button>
             </div>
           </ng-template>
@@ -283,7 +286,7 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
     }
   `]
 })
-export class ProductsComponent implements OnInit {
+export class ProductsComponent implements OnInit, OnDestroy {
   allProducts: Product[] = [];
   filteredProducts: Product[] = [];
   categories: Category[] = [];
@@ -296,29 +299,42 @@ export class ProductsComponent implements OnInit {
   sortOption: SortOption = 'newest';
   viewMode: 'grid' | 'list' = 'grid';
 
+  private destroy$ = new Subject<void>();
+
   constructor(
     private apiService: ApiService,
+    private languageService: LanguageService,
     private router: Router,
     private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
-    // Load products and categories
-    combineLatest([
-      this.apiService.getProducts(),
-      this.apiService.getCategories()
-    ]).subscribe(([products, categories]) => {
+    // Load products and categories with auto-reload on language change
+    this.languageService.currentLanguage$.pipe(
+      takeUntil(this.destroy$),
+      switchMap(() => combineLatest([
+        this.apiService.getProducts(),
+        this.apiService.getCategories()
+      ]))
+    ).subscribe(([products, categories]) => {
       this.allProducts = products;
       this.categories = categories;
       
       // Check for category filter in query params
-      this.route.queryParams.subscribe(params => {
+      this.route.queryParams.pipe(
+        takeUntil(this.destroy$)
+      ).subscribe(params => {
         if (params['category']) {
           this.selectedCategory = params['category'];
         }
         this.applyFilters();
       });
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   applyFilters(): void {

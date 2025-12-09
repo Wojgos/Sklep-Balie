@@ -27,10 +27,22 @@ export function createTranslateLoader(http: HttpClient) {
 
 // Initialize TranslateService
 export function initializeTranslate(translate: TranslateService) {
-  return () => {
+  return (): Promise<any> => {
     translate.setDefaultLang('pl');
     const savedLang = localStorage.getItem('language') || 'pl';
-    return translate.use(savedLang).toPromise();
+    console.log('[i18n] Initializing translations with language:', savedLang);
+    return new Promise((resolve) => {
+      translate.use(savedLang).subscribe({
+        next: (translations) => {
+          console.log('[i18n] Translations loaded successfully:', Object.keys(translations));
+          resolve(true);
+        },
+        error: (err) => {
+          console.error('[i18n] Failed to load translations:', err);
+          resolve(true);
+        }
+      });
+    });
   };
 }
 

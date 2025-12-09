@@ -2,21 +2,24 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked }
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ChatbotService } from '../../services/chatbot.service';
+import { LanguageService } from '../../services/language.service';
 import { ChatMessage, ChatResponse, ChatAction } from '../../models';
 
 @Component({
   selector: 'bg-chatbot',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslateModule],
   template: `
     <!-- Chat Toggle Button -->
     <button 
       *ngIf="!isOpen"
       (click)="toggleChat()"
       class="fixed bottom-6 right-6 z-50 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full p-4 shadow-lg transition-all duration-300 hover:scale-110"
-      aria-label="Otwórz chat"
+      [attr.aria-label]="'CHATBOT.OPEN_CHAT' | translate"
     >
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
@@ -38,8 +41,8 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
             </svg>
           </div>
           <div>
-            <h3 class="font-semibold text-sm">Wirtualny Asystent</h3>
-            <p class="text-xs text-primary-foreground/80">Odpowiadam natychmiast</p>
+            <h3 class="font-semibold text-sm">{{ 'CHATBOT.VIRTUAL_ASSISTANT' | translate }}</h3>
+            <p class="text-xs text-primary-foreground/80">{{ 'CHATBOT.INSTANT_RESPONSE' | translate }}</p>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -47,7 +50,7 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
             (click)="toggleSupport()"
             class="p-1 hover:bg-primary-foreground/20 rounded"
             [class.bg-primary-foreground]="showSupport"
-            title="Menu wsparcia"
+            [title]="'CHATBOT.SUPPORT_MENU' | translate"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -56,7 +59,7 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
           <button 
             (click)="clearChat()"
             class="p-1 hover:bg-primary-foreground/20 rounded"
-            title="Wyczyść chat"
+            [title]="'CHATBOT.CLEAR_CHAT' | translate"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -65,7 +68,7 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
           <button 
             (click)="toggleChat()"
             class="p-1 hover:bg-primary-foreground/20 rounded"
-            title="Zamknij chat"
+            [title]="'CHATBOT.CLOSE_CHAT' | translate"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -79,7 +82,7 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
         *ngIf="showSupport"
         class="bg-background border-b border-border p-4 shadow-sm"
       >
-        <h4 class="text-sm font-semibold text-foreground mb-3">Menu wsparcia</h4>
+        <h4 class="text-sm font-semibold text-foreground mb-3">{{ 'CHATBOT.SUPPORT_MENU' | translate }}</h4>
         <div class="space-y-2">
           <button
             (click)="navigateAndClose('/support')"
@@ -91,8 +94,8 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
               </svg>
             </div>
             <div class="flex-1">
-              <p class="text-sm font-medium text-foreground">Zgłoszenia</p>
-              <p class="text-xs text-muted-foreground">Utwórz nowe zgłoszenie lub sprawdź status</p>
+              <p class="text-sm font-medium text-foreground">{{ 'CHATBOT.TICKETS' | translate }}</p>
+              <p class="text-xs text-muted-foreground">{{ 'CHATBOT.TICKETS_DESC' | translate }}</p>
             </div>
           </button>
           
@@ -106,8 +109,8 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
               </svg>
             </div>
             <div class="flex-1">
-              <p class="text-sm font-medium text-foreground">Kontakt</p>
-              <p class="text-xs text-muted-foreground">Dane kontaktowe i formularz</p>
+              <p class="text-sm font-medium text-foreground">{{ 'CHATBOT.CONTACT' | translate }}</p>
+              <p class="text-xs text-muted-foreground">{{ 'CHATBOT.CONTACT_DESC' | translate }}</p>
             </div>
           </button>
 
@@ -121,8 +124,8 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
               </svg>
             </div>
             <div class="flex-1">
-              <p class="text-sm font-medium text-foreground">FAQ</p>
-              <p class="text-xs text-muted-foreground">Najczęściej zadawane pytania</p>
+              <p class="text-sm font-medium text-foreground">{{ 'CHATBOT.FAQ' | translate }}</p>
+              <p class="text-xs text-muted-foreground">{{ 'CHATBOT.FAQ_DESC' | translate }}</p>
             </div>
           </button>
         </div>
@@ -166,7 +169,7 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
                     <div class="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style="animation-delay: 150ms"></div>
                     <div class="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style="animation-delay: 300ms"></div>
                   </div>
-                  <span class="text-xs text-muted-foreground ml-2">Pisze...</span>
+                  <span class="text-xs text-muted-foreground ml-2">{{ 'CHATBOT.TYPING' | translate }}</span>
                 </div>
               </div>
               <p class="text-xs text-muted-foreground mt-1">{{ message.timestamp | date:'HH:mm' }}</p>
@@ -198,7 +201,7 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
         *ngIf="quickActions.length > 0"
         class="px-4 py-2 border-t border-border bg-background"
       >
-        <p class="text-xs text-muted-foreground mb-2">Sugestie:</p>
+        <p class="text-xs text-muted-foreground mb-2">{{ 'CHATBOT.SUGGESTIONS' | translate }}:</p>
         <div class="flex flex-wrap gap-2">
           <button
             *ngFor="let action of quickActions"
@@ -218,7 +221,7 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
             [(ngModel)]="currentMessage"
             (keydown.enter)="sendMessage()"
             (keydown)="handleKeyDown($event)"
-            placeholder="Wpisz swoją wiadomość..."
+            [placeholder]="'CHATBOT.INPUT_PLACEHOLDER' | translate"
             class="flex-1 px-4 py-3 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-background"
             [disabled]="isLoading"
           />
@@ -226,7 +229,7 @@ import { ChatMessage, ChatResponse, ChatAction } from '../../models';
             (click)="sendMessage()"
             [disabled]="!currentMessage.trim() || isLoading"
             class="bg-primary hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground text-primary-foreground px-5 py-3 rounded-lg transition-colors flex-shrink-0"
-            title="Wyślij wiadomość"
+            [title]="'CHATBOT.SEND_MESSAGE' | translate"
           >
             <svg 
               *ngIf="!isLoading"

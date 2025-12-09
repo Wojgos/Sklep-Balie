@@ -1,129 +1,132 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+import { takeUntil, switchMap } from 'rxjs/operators';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CartService } from '../../services/cart.service';
 import { ApiService } from '../../services/api.service';
+import { LanguageService } from '../../services/language.service';
 import { CartItem } from '../../models';
 
 @Component({
   selector: 'bg-checkout',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, TranslateModule],
   template: `
     <div class="flex-1">
       <div class="py-12 bg-muted/30" *ngIf="!orderSuccess && (cart$ | async)!.length > 0">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 class="font-heading font-bold text-3xl sm:text-4xl mb-8" data-testid="text-checkout-title">
-            Finalizacja zamówienia
+            {{ 'CHECKOUT.TITLE' | translate }}
           </h1>
 
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Checkout Form -->
             <div class="lg:col-span-2">
               <div class="bg-card border border-card-border rounded-lg p-6">
-                <h2 class="text-xl font-semibold mb-6">Dane do wysyłki</h2>
+                <h2 class="text-xl font-semibold mb-6">{{ 'CHECKOUT.SHIPPING_DATA' | translate }}</h2>
                 <form [formGroup]="checkoutForm" (ngSubmit)="onSubmit()" class="space-y-6">
                   <div>
-                    <label class="block text-sm font-medium mb-2">Imię i nazwisko *</label>
+                    <label class="block text-sm font-medium mb-2">{{ 'CHECKOUT.FULL_NAME' | translate }} *</label>
                     <input
                       type="text"
                       formControlName="customerName"
-                      placeholder="Jan Kowalski"
+                      [placeholder]="'CHECKOUT.FULL_NAME_PLACEHOLDER' | translate"
                       class="w-full px-3 py-2 border border-border rounded-md bg-background"
                       data-testid="input-customer-name"
                     />
                     <div *ngIf="checkoutForm.get('customerName')?.invalid && checkoutForm.get('customerName')?.touched" 
                          class="text-destructive text-sm mt-1">
-                      Imię i nazwisko jest wymagane
+                      {{ 'CHECKOUT.FULL_NAME_REQUIRED' | translate }}
                     </div>
                   </div>
 
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label class="block text-sm font-medium mb-2">Email *</label>
+                      <label class="block text-sm font-medium mb-2">{{ 'FORM.EMAIL' | translate }} *</label>
                       <input
                         type="email"
                         formControlName="email"
-                        placeholder="jan@example.com"
+                        [placeholder]="'FORM.EMAIL_EXAMPLE' | translate"
                         class="w-full px-3 py-2 border border-border rounded-md bg-background"
                         data-testid="input-email"
                       />
                       <div *ngIf="checkoutForm.get('email')?.invalid && checkoutForm.get('email')?.touched" 
                            class="text-destructive text-sm mt-1">
-                        Podaj prawidłowy adres email
+                        {{ 'AUTH.INVALID_EMAIL' | translate }}
                       </div>
                     </div>
 
                     <div>
-                      <label class="block text-sm font-medium mb-2">Telefon *</label>
+                      <label class="block text-sm font-medium mb-2">{{ 'CHECKOUT.PHONE' | translate }} *</label>
                       <input
                         type="tel"
                         formControlName="phone"
-                        placeholder="123456789"
+                        [placeholder]="'CHECKOUT.PHONE_PLACEHOLDER' | translate"
                         class="w-full px-3 py-2 border border-border rounded-md bg-background"
                         data-testid="input-phone"
                       />
                       <div *ngIf="checkoutForm.get('phone')?.invalid && checkoutForm.get('phone')?.touched" 
                            class="text-destructive text-sm mt-1">
-                        Numer telefonu jest wymagany
+                        {{ 'CHECKOUT.PHONE_REQUIRED' | translate }}
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium mb-2">Adres *</label>
+                    <label class="block text-sm font-medium mb-2">{{ 'CHECKOUT.ADDRESS' | translate }} *</label>
                     <input
                       type="text"
                       formControlName="address"
-                      placeholder="ul. Przykładowa 123"
+                      [placeholder]="'CHECKOUT.ADDRESS_PLACEHOLDER' | translate"
                       class="w-full px-3 py-2 border border-border rounded-md bg-background"
                       data-testid="input-address"
                     />
                     <div *ngIf="checkoutForm.get('address')?.invalid && checkoutForm.get('address')?.touched" 
                          class="text-destructive text-sm mt-1">
-                      Adres jest wymagany
+                      {{ 'CHECKOUT.ADDRESS_REQUIRED' | translate }}
                     </div>
                   </div>
 
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label class="block text-sm font-medium mb-2">Miasto *</label>
+                      <label class="block text-sm font-medium mb-2">{{ 'CHECKOUT.CITY' | translate }} *</label>
                       <input
                         type="text"
                         formControlName="city"
-                        placeholder="Warszawa"
+                        [placeholder]="'CHECKOUT.CITY_PLACEHOLDER' | translate"
                         class="w-full px-3 py-2 border border-border rounded-md bg-background"
                         data-testid="input-city"
                       />
                       <div *ngIf="checkoutForm.get('city')?.invalid && checkoutForm.get('city')?.touched" 
                            class="text-destructive text-sm mt-1">
-                        Miasto jest wymagane
+                        {{ 'CHECKOUT.CITY_REQUIRED' | translate }}
                       </div>
                     </div>
 
                     <div>
-                      <label class="block text-sm font-medium mb-2">Kod pocztowy *</label>
+                      <label class="block text-sm font-medium mb-2">{{ 'CHECKOUT.POSTAL_CODE' | translate }} *</label>
                       <input
                         type="text"
                         formControlName="postalCode"
-                        placeholder="00-000"
+                        [placeholder]="'CHECKOUT.POSTAL_CODE_PLACEHOLDER' | translate"
                         class="w-full px-3 py-2 border border-border rounded-md bg-background"
                         data-testid="input-postal-code"
                       />
                       <div *ngIf="checkoutForm.get('postalCode')?.invalid && checkoutForm.get('postalCode')?.touched" 
                            class="text-destructive text-sm mt-1">
-                        Kod pocztowy musi być w formacie XX-XXX
+                        {{ 'CHECKOUT.POSTAL_CODE_FORMAT' | translate }}
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium mb-2">Uwagi do zamówienia (opcjonalne)</label>
+                    <label class="block text-sm font-medium mb-2">{{ 'CHECKOUT.NOTES' | translate }}</label>
                     <textarea
                       formControlName="notes"
-                      placeholder="Dodatkowe informacje..."
+                      [placeholder]="'CHECKOUT.NOTES_PLACEHOLDER' | translate"
                       rows="3"
                       class="w-full px-3 py-2 border border-border rounded-md bg-background"
                       data-testid="textarea-notes"
@@ -136,8 +139,8 @@ import { CartItem } from '../../models';
                     [disabled]="checkoutForm.invalid || isSubmitting"
                     data-testid="button-place-order"
                   >
-                    <span *ngIf="isSubmitting">Przetwarzanie...</span>
-                    <span *ngIf="!isSubmitting">Złóż zamówienie</span>
+                    <span *ngIf="isSubmitting">{{ 'CHECKOUT.PROCESSING' | translate }}</span>
+                    <span *ngIf="!isSubmitting">{{ 'CHECKOUT.PLACE_ORDER' | translate }}</span>
                   </button>
                 </form>
               </div>
@@ -146,7 +149,7 @@ import { CartItem } from '../../models';
             <!-- Order Summary -->
             <div>
               <div class="bg-card border border-card-border rounded-lg p-6 sticky top-24">
-                <h2 class="text-xl font-semibold mb-6">Podsumowanie</h2>
+                <h2 class="text-xl font-semibold mb-6">{{ 'CHECKOUT.SUMMARY' | translate }}</h2>
 
                 <div class="space-y-4 mb-6">
                   <div *ngFor="let item of (cart$ | async)" class="flex gap-3" [attr.data-testid]="'summary-item-' + item.product.id">
@@ -160,7 +163,7 @@ import { CartItem } from '../../models';
                         {{ item.product.name }}
                       </h3>
                       <p class="text-sm text-muted-foreground">
-                        Ilość: {{ item.quantity }}
+                        {{ 'CART.QUANTITY' | translate }}: {{ item.quantity }}
                       </p>
                       <p class="text-sm font-semibold" data-testid="text-summary-product-price">
                         {{ (parseFloat(item.product.price) * item.quantity) | number:'1.2-2' }} PLN
@@ -171,13 +174,13 @@ import { CartItem } from '../../models';
 
                 <div class="border-t pt-4 space-y-2">
                   <div class="flex justify-between text-sm">
-                    <span class="text-muted-foreground">Wartość produktów:</span>
+                    <span class="text-muted-foreground">{{ 'CHECKOUT.PRODUCTS_VALUE' | translate }}:</span>
                     <span data-testid="text-subtotal">{{ (totalPrice$ | async) | number:'1.2-2' }} PLN</span>
                   </div>
                   <div class="flex justify-between text-sm">
-                    <span class="text-muted-foreground">Dostawa:</span>
+                    <span class="text-muted-foreground">{{ 'CHECKOUT.DELIVERY' | translate }}:</span>
                     <span class="text-primary" data-testid="text-shipping">
-                      {{ getShippingCost() === 0 ? 'Darmowa' : (getShippingCost() | number:'1.2-2') + ' PLN' }}
+                      {{ getShippingCost() === 0 ? ('CHECKOUT.FREE_DELIVERY' | translate) : (getShippingCost() | number:'1.2-2') + ' PLN' }}
                     </span>
                   </div>
                 </div>
@@ -185,12 +188,12 @@ import { CartItem } from '../../models';
                 <!-- Coupon Section -->
                 <div class="border-t pt-4 mt-4">
                   <div *ngIf="!appliedCoupon" class="space-y-2">
-                    <label class="block text-sm font-medium">Kod kuponu</label>
+                    <label class="block text-sm font-medium">{{ 'CHECKOUT.COUPON_CODE' | translate }}</label>
                     <div class="flex gap-2">
                       <input
                         type="text"
                         [(ngModel)]="couponCode"
-                        placeholder="Wpisz kod"
+                        [placeholder]="'CHECKOUT.COUPON_PLACEHOLDER' | translate"
                         class="flex-1 px-3 py-2 border border-border rounded-md bg-background text-sm"
                         [disabled]="isValidatingCoupon"
                       />
@@ -199,7 +202,7 @@ import { CartItem } from '../../models';
                         [disabled]="isValidatingCoupon || !couponCode.trim()"
                         class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
                       >
-                        {{ isValidatingCoupon ? 'Sprawdzanie...' : 'Zastosuj' }}
+                        {{ isValidatingCoupon ? ('CHECKOUT.VALIDATING' | translate) : ('CHECKOUT.APPLY' | translate) }}
                       </button>
                     </div>
                     <p *ngIf="couponError" class="text-destructive text-sm">{{ couponError }}</p>
@@ -211,13 +214,13 @@ import { CartItem } from '../../models';
                         <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        <span class="text-sm font-medium text-green-800 dark:text-green-200">Kupon zastosowany</span>
+                        <span class="text-sm font-medium text-green-800 dark:text-green-200">{{ 'CHECKOUT.COUPON_APPLIED' | translate }}</span>
                       </div>
                       <button
                         (click)="removeCoupon()"
                         class="text-sm text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100 underline"
                       >
-                        Usuń
+                        {{ 'CHECKOUT.REMOVE' | translate }}
                       </button>
                     </div>
                     <div class="flex justify-between text-sm">
@@ -231,7 +234,7 @@ import { CartItem } from '../../models';
 
                 <div class="border-t pt-4 mt-4">
                   <div class="flex justify-between text-lg font-bold">
-                    <span>Suma:</span>
+                    <span>{{ 'CART.TOTAL' | translate }}:</span>
                     <span data-testid="text-total">
                       {{ getFinalTotal() | number:'1.2-2' }} PLN
                     </span>
@@ -239,8 +242,7 @@ import { CartItem } from '../../models';
                 </div>
 
                 <div *ngIf="(totalPrice$ | async)! < 500" class="text-sm text-muted-foreground mt-4">
-                  Dodaj produkty za {{ (500 - (totalPrice$ | async)!) | number:'1.2-2' }} PLN, aby otrzymać
-                  darmową dostawę
+                  {{ 'CHECKOUT.FREE_DELIVERY_INFO' | translate:{ amount: (500 - (totalPrice$ | async)!) | number:'1.2-2' } }}
                 </div>
               </div>
             </div>
@@ -254,12 +256,12 @@ import { CartItem } from '../../models';
           <svg class="h-24 w-24 text-muted-foreground mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
           </svg>
-          <h1 class="text-2xl font-bold mb-2">Twój koszyk jest pusty</h1>
+          <h1 class="text-2xl font-bold mb-2">{{ 'CART.EMPTY' | translate }}</h1>
           <p class="text-muted-foreground mb-6">
-            Dodaj produkty do koszyka, aby kontynuować zakupy
+            {{ 'CART.EMPTY_MESSAGE' | translate }}
           </p>
           <button (click)="goHome()" class="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-semibold transition-colors">
-            Wróć do strony głównej
+            {{ 'COMMON.BACK_TO_HOME' | translate }}
           </button>
         </div>
       </div>
@@ -275,14 +277,13 @@ import { CartItem } from '../../models';
             </div>
           </div>
           <h1 class="text-3xl font-bold mb-2" data-testid="text-success-title">
-            Dziękujemy za zamówienie!
+            {{ 'CHECKOUT.SUCCESS_TITLE' | translate }}
           </h1>
           <p class="text-muted-foreground mb-6" data-testid="text-success-message">
-            Twoje zamówienie zostało przyjęte. Wkrótce skontaktujemy się z Tobą w celu
-            potwierdzenia szczegółów.
+            {{ 'CHECKOUT.SUCCESS_MESSAGE' | translate }}
           </p>
           <p class="text-sm text-muted-foreground">
-            Za chwilę zostaniesz przekierowany na stronę główną...
+            {{ 'CHECKOUT.REDIRECT_MESSAGE' | translate }}
           </p>
         </div>
       </div>
@@ -290,7 +291,8 @@ import { CartItem } from '../../models';
   `,
   styleUrls: ['./checkout.component.scss']
 })
-export class CheckoutComponent implements OnInit {
+export class CheckoutComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   checkoutForm: FormGroup;
   cart$: Observable<CartItem[]>;
   totalPrice$: Observable<number>;
@@ -307,7 +309,9 @@ export class CheckoutComponent implements OnInit {
     private fb: FormBuilder,
     private cartService: CartService,
     private apiService: ApiService,
-    private router: Router
+    private router: Router,
+    private translate: TranslateService,
+    private languageService: LanguageService
   ) {
     this.cart$ = this.cartService.cart$;
     this.totalPrice$ = this.cartService.totalPrice$;
@@ -324,10 +328,15 @@ export class CheckoutComponent implements OnInit {
   }
 
   ngOnInit(): void {}
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
   
   applyCoupon(): void {
     if (!this.couponCode.trim()) {
-      this.couponError = 'Wprowadź kod kuponu';
+      this.couponError = this.translate.instant('CHECKOUT.ENTER_COUPON');
       return;
     }
 
@@ -347,7 +356,7 @@ export class CheckoutComponent implements OnInit {
           this.isValidatingCoupon = false;
         },
         error: (err) => {
-          this.couponError = err.error?.error || 'Nieprawidłowy kod kuponu';
+          this.couponError = err.error?.error || this.translate.instant('CHECKOUT.INVALID_COUPON');
           this.appliedCoupon = null;
           this.isValidatingCoupon = false;
         }
@@ -406,17 +415,17 @@ export class CheckoutComponent implements OnInit {
           this.isSubmitting = false;
           
           // Show user-friendly error message
-          let errorMessage = 'Wystąpił błąd podczas składania zamówienia. ';
+          let errorMessage = this.translate.instant('CHECKOUT.ORDER_ERROR') + ' ';
           
           if (error.error?.error) {
             errorMessage += error.error.error;
             
             // If it's a product not found error, suggest clearing cart
             if (error.error.error.includes('nie istnieje') || error.error.error.includes('niedostępny')) {
-              errorMessage += '\n\nMożliwe, że w koszyku znajdują się nieaktualne produkty. Spróbuj wyczyścić koszyk i dodać produkty ponownie.';
+              errorMessage += '\n\n' + this.translate.instant('CHECKOUT.CART_ERROR_SUGGESTION');
             }
           } else {
-            errorMessage += 'Sprawdź dane i spróbuj ponownie.';
+            errorMessage += this.translate.instant('CHECKOUT.CHECK_DATA');
           }
           
           alert(errorMessage);

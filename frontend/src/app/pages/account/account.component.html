@@ -3,12 +3,12 @@
     <!-- Header -->
     <div class="account-header">
       <div class="user-welcome">
-        <h1 class="welcome-title">Witaj, {{ currentUser?.firstName }}! 👋</h1>
-        <p class="welcome-subtitle">Zarządzaj swoim kontem i zamówieniami</p>
+        <h1 class="welcome-title">{{ 'ACCOUNT.WELCOME' | translate:{ name: currentUser?.firstName } }} 👋</h1>
+        <p class="welcome-subtitle">{{ 'ACCOUNT.SUBTITLE' | translate }}</p>
       </div>
       <button class="btn-logout" (click)="logout()">
         <span class="logout-icon">🚪</span>
-        Wyloguj się
+        {{ 'ACCOUNT.LOGOUT' | translate }}
       </button>
     </div>
 
@@ -20,7 +20,7 @@
         (click)="setActiveTab('profile')"
       >
         <span class="tab-icon">👤</span>
-        <span class="tab-label">Profil</span>
+        <span class="tab-label">{{ 'ACCOUNT.TAB_PROFILE' | translate }}</span>
       </button>
       <button 
         class="tab-button" 
@@ -28,7 +28,7 @@
         (click)="setActiveTab('orders')"
       >
         <span class="tab-icon">📦</span>
-        <span class="tab-label">Zamówienia</span>
+        <span class="tab-label">{{ 'ACCOUNT.TAB_ORDERS' | translate }}</span>
       </button>
       <button 
         class="tab-button" 
@@ -36,7 +36,7 @@
         (click)="setActiveTab('settings')"
       >
         <span class="tab-icon">⚙️</span>
-        <span class="tab-label">Ustawienia</span>
+        <span class="tab-label">{{ 'ACCOUNT.TAB_SETTINGS' | translate }}</span>
       </button>
     </div>
 
@@ -46,10 +46,10 @@
       <!-- Profile Tab -->
       <div *ngIf="activeTab === 'profile'" class="profile-tab">
         <div class="section-header">
-          <h2 class="section-title">Informacje o profilu</h2>
+          <h2 class="section-title">{{ 'ACCOUNT.PROFILE_INFO' | translate }}</h2>
           <button class="btn-edit" (click)="toggleEditProfile()">
-            <span *ngIf="!isEditingProfile">Edytuj</span>
-            <span *ngIf="isEditingProfile">Anuluj</span>
+            <span *ngIf="!isEditingProfile">{{ 'COMMON.EDIT' | translate }}</span>
+            <span *ngIf="isEditingProfile">{{ 'COMMON.CANCEL' | translate }}</span>
           </button>
         </div>
 
@@ -57,42 +57,42 @@
           <div class="profile-info" *ngIf="!isEditingProfile">
             <div class="info-row">
               <div class="info-group">
-                <label class="info-label">Nazwa użytkownika</label>
+                <label class="info-label">{{ 'ACCOUNT.USERNAME' | translate }}</label>
                 <p class="info-value">{{ currentUser?.username }}</p>
               </div>
               <div class="info-group">
-                <label class="info-label">Email</label>
+                <label class="info-label">{{ 'FORM.EMAIL' | translate }}</label>
                 <p class="info-value">{{ currentUser?.email }}</p>
               </div>
             </div>
 
             <div class="info-row">
               <div class="info-group">
-                <label class="info-label">Imię</label>
+                <label class="info-label">{{ 'ACCOUNT.FIRST_NAME' | translate }}</label>
                 <p class="info-value">{{ currentUser?.firstName }}</p>
               </div>
               <div class="info-group">
-                <label class="info-label">Nazwisko</label>
+                <label class="info-label">{{ 'ACCOUNT.LAST_NAME' | translate }}</label>
                 <p class="info-value">{{ currentUser?.lastName }}</p>
               </div>
             </div>
 
             <div class="info-group">
-              <label class="info-label">Telefon</label>
-              <p class="info-value">{{ currentUser?.phone || 'Nie podano' }}</p>
+              <label class="info-label">{{ 'ACCOUNT.PHONE' | translate }}</label>
+              <p class="info-value">{{ currentUser?.phone || ('ACCOUNT.NOT_PROVIDED' | translate) }}</p>
             </div>
 
             <div class="info-group">
-              <label class="info-label">Adres</label>
+              <label class="info-label">{{ 'ACCOUNT.ADDRESS' | translate }}</label>
               <p class="info-value" *ngIf="currentUser?.address">
                 {{ currentUser?.address }}<br>
                 {{ currentUser?.postalCode }} {{ currentUser?.city }}
               </p>
-              <p class="info-value" *ngIf="!currentUser?.address">Nie podano</p>
+              <p class="info-value" *ngIf="!currentUser?.address">{{ 'ACCOUNT.NOT_PROVIDED' | translate }}</p>
             </div>
 
             <div class="info-group">
-              <label class="info-label">Data rejestracji</label>
+              <label class="info-label">{{ 'ACCOUNT.REGISTRATION_DATE' | translate }}</label>
               <p class="info-value">{{ formatDate(currentUser?.createdAt) }}</p>
             </div>
           </div>
@@ -101,7 +101,7 @@
           <form *ngIf="isEditingProfile" (ngSubmit)="saveProfile()" class="edit-form">
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Imię *</label>
+                <label class="form-label">{{ 'ACCOUNT.FIRST_NAME' | translate }} *</label>
                 <input
                   type="text"
                   [(ngModel)]="editedUser.firstName"
@@ -112,7 +112,7 @@
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">Nazwisko *</label>
+                <label class="form-label">{{ 'ACCOUNT.LAST_NAME' | translate }} *</label>
                 <input
                   type="text"
                   [(ngModel)]="editedUser.lastName"
@@ -125,7 +125,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Email *</label>
+              <label class="form-label">{{ 'FORM.EMAIL' | translate }} *</label>
               <input
                 type="email"
                 [(ngModel)]="editedUser.email"
@@ -137,7 +137,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Telefon</label>
+              <label class="form-label">{{ 'ACCOUNT.PHONE' | translate }}</label>
               <input
                 type="tel"
                 [(ngModel)]="editedUser.phone"
@@ -148,45 +148,45 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Adres</label>
+              <label class="form-label">{{ 'ACCOUNT.ADDRESS' | translate }}</label>
               <input
                 type="text"
                 [(ngModel)]="editedUser.address"
                 name="address"
                 class="form-input"
-                placeholder="ul. Przykładowa 10"
+                [placeholder]="'ACCOUNT.ADDRESS_PLACEHOLDER' | translate"
                 [disabled]="isSavingProfile"
               />
             </div>
 
             <div class="form-row">
               <div class="form-group flex-2">
-                <label class="form-label">Miasto</label>
+                <label class="form-label">{{ 'ACCOUNT.CITY' | translate }}</label>
                 <input
                   type="text"
                   [(ngModel)]="editedUser.city"
                   name="city"
                   class="form-input"
-                  placeholder="Warszawa"
+                  [placeholder]="'ACCOUNT.CITY_PLACEHOLDER' | translate"
                   [disabled]="isSavingProfile"
                 />
               </div>
               <div class="form-group flex-1">
-                <label class="form-label">Kod pocztowy</label>
+                <label class="form-label">{{ 'ACCOUNT.POSTAL_CODE' | translate }}</label>
                 <input
                   type="text"
                   [(ngModel)]="editedUser.postalCode"
                   name="postalCode"
                   class="form-input"
-                  placeholder="00-001"
+                  [placeholder]="'ACCOUNT.POSTAL_CODE_PLACEHOLDER' | translate"
                   [disabled]="isSavingProfile"
                 />
               </div>
             </div>
 
             <button type="submit" class="btn-save" [disabled]="isSavingProfile">
-              <span *ngIf="!isSavingProfile">Zapisz zmiany</span>
-              <span *ngIf="isSavingProfile">Zapisywanie...</span>
+              <span *ngIf="!isSavingProfile">{{ 'ACCOUNT.SAVE_CHANGES' | translate }}</span>
+              <span *ngIf="isSavingProfile">{{ 'ACCOUNT.SAVING' | translate }}</span>
             </button>
           </form>
         </div>
@@ -195,26 +195,26 @@
       <!-- Orders Tab -->
       <div *ngIf="activeTab === 'orders'" class="orders-tab">
         <div class="section-header">
-          <h2 class="section-title">Moje zamówienia</h2>
+          <h2 class="section-title">{{ 'ACCOUNT.MY_ORDERS' | translate }}</h2>
         </div>
 
         <div *ngIf="isLoadingOrders" class="loading-state">
           <div class="spinner-large"></div>
-          <p>Ładowanie zamówień...</p>
+          <p>{{ 'ACCOUNT.LOADING_ORDERS' | translate }}</p>
         </div>
 
         <div *ngIf="!isLoadingOrders && orders.length === 0" class="empty-state">
           <div class="empty-icon">📭</div>
-          <h3>Brak zamówień</h3>
-          <p>Nie masz jeszcze żadnych zamówień</p>
-          <a href="/" class="btn-primary">Rozpocznij zakupy</a>
+          <h3>{{ 'ACCOUNT.NO_ORDERS' | translate }}</h3>
+          <p>{{ 'ACCOUNT.NO_ORDERS_MESSAGE' | translate }}</p>
+          <a href="/" class="btn-primary">{{ 'ACCOUNT.START_SHOPPING' | translate }}</a>
         </div>
 
         <div *ngIf="!isLoadingOrders && orders.length > 0" class="orders-list">
           <div *ngFor="let order of orders" class="order-card">
             <div class="order-header">
               <div class="order-info">
-                <h3 class="order-number">Zamówienie #{{ order.id }}</h3>
+                <h3 class="order-number">{{ 'ACCOUNT.ORDER_NUMBER' | translate }} #{{ order.id }}</h3>
                 <p class="order-date">{{ formatDate(order.createdAt) }}</p>
               </div>
               <div class="order-status" [ngClass]="getOrderStatusClass(order.status)">
@@ -223,11 +223,11 @@
             </div>
             <div class="order-details">
               <div class="order-detail-item">
-                <span class="detail-label">Adres dostawy:</span>
+                <span class="detail-label">{{ 'ACCOUNT.DELIVERY_ADDRESS' | translate }}:</span>
                 <span class="detail-value">{{ order.address }}, {{ order.postalCode }} {{ order.city }}</span>
               </div>
               <div class="order-detail-item">
-                <span class="detail-label">Suma:</span>
+                <span class="detail-label">{{ 'ACCOUNT.TOTAL' | translate }}:</span>
                 <span class="detail-value price">{{ order.totalPrice }} zł</span>
               </div>
             </div>
@@ -238,24 +238,24 @@
       <!-- Settings Tab -->
       <div *ngIf="activeTab === 'settings'" class="settings-tab">
         <div class="section-header">
-          <h2 class="section-title">Ustawienia konta</h2>
+          <h2 class="section-title">{{ 'ACCOUNT.ACCOUNT_SETTINGS' | translate }}</h2>
         </div>
 
         <div class="settings-card">
           <div class="setting-item">
             <div class="setting-info">
-              <h3 class="setting-title">Zmiana hasła</h3>
-              <p class="setting-description">Zaktualizuj hasło do swojego konta</p>
+              <h3 class="setting-title">{{ 'ACCOUNT.CHANGE_PASSWORD' | translate }}</h3>
+              <p class="setting-description">{{ 'ACCOUNT.CHANGE_PASSWORD_DESC' | translate }}</p>
             </div>
             <button class="btn-secondary" (click)="togglePasswordChange()">
-              <span *ngIf="!isChangingPassword">Zmień hasło</span>
-              <span *ngIf="isChangingPassword">Anuluj</span>
+              <span *ngIf="!isChangingPassword">{{ 'ACCOUNT.CHANGE_PASSWORD' | translate }}</span>
+              <span *ngIf="isChangingPassword">{{ 'COMMON.CANCEL' | translate }}</span>
             </button>
           </div>
 
           <form *ngIf="isChangingPassword" (ngSubmit)="changePassword()" class="password-form">
             <div class="form-group">
-              <label class="form-label">Obecne hasło</label>
+              <label class="form-label">{{ 'ACCOUNT.CURRENT_PASSWORD' | translate }}</label>
               <div class="password-input-wrapper">
                 <input
                   [type]="showCurrentPassword ? 'text' : 'password'"
@@ -276,7 +276,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Nowe hasło</label>
+              <label class="form-label">{{ 'ACCOUNT.NEW_PASSWORD' | translate }}</label>
               <div class="password-input-wrapper">
                 <input
                   [type]="showNewPassword ? 'text' : 'password'"
@@ -297,7 +297,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Potwierdź nowe hasło</label>
+              <label class="form-label">{{ 'ACCOUNT.CONFIRM_NEW_PASSWORD' | translate }}</label>
               <div class="password-input-wrapper">
                 <input
                   [type]="showConfirmPassword ? 'text' : 'password'"
@@ -318,7 +318,7 @@
             </div>
 
             <button type="submit" class="btn-save">
-              Zmień hasło
+              {{ 'ACCOUNT.CHANGE_PASSWORD' | translate }}
             </button>
           </form>
         </div>

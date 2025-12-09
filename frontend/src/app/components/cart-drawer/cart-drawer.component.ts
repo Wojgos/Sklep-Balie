@@ -1,6 +1,7 @@
 import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
 import { CartItem } from '../../models';
 import { CartService } from '../../services/cart.service';
@@ -8,7 +9,7 @@ import { CartService } from '../../services/cart.service';
 @Component({
   selector: 'bg-cart-drawer',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslateModule],
   template: `
     <!-- Overlay -->
     <div class="fixed inset-0 z-40 bg-black/50" (click)="close.emit()"></div>
@@ -16,7 +17,7 @@ import { CartService } from '../../services/cart.service';
     <!-- Drawer -->
     <aside class="fixed inset-y-0 right-0 z-50 w-full sm:w-[440px] bg-background border-l shadow-xl flex flex-col">
       <div class="flex items-center justify-between px-6 py-5 border-b">
-        <h2 class="font-heading font-bold text-2xl">Koszyk<span class="text-muted-foreground" *ngIf="(cart$ | async) as items"> ({{ items.length }} produktów)</span></h2>
+        <h2 class="font-heading font-bold text-2xl">{{ 'CART.TITLE' | translate }}<span class="text-muted-foreground" *ngIf="(cart$ | async) as items"> ({{ items.length }} {{ 'CART.ITEMS' | translate }})</span></h2>
         <button (click)="close.emit()" class="p-2 hover:bg-muted rounded-md">
           <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -30,9 +31,9 @@ import { CartService } from '../../services/cart.service';
           <svg class="h-16 w-16 text-muted-foreground mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
           </svg>
-          <h3 class="text-lg font-semibold mb-2">Twój koszyk jest pusty</h3>
-          <p class="text-sm text-muted-foreground mb-6">Dodaj produkty, aby kontynuować zakupy</p>
-          <button (click)="close.emit()" class="bg-primary text-primary-foreground hover:bg-primary/90 px-5 py-2 rounded-md">Kontynuuj zakupy</button>
+          <h3 class="text-lg font-semibold mb-2">{{ 'CART.EMPTY' | translate }}</h3>
+          <p class="text-sm text-muted-foreground mb-6">{{ 'CART.EMPTY_MESSAGE' | translate }}</p>
+          <button (click)="close.emit()" class="bg-primary text-primary-foreground hover:bg-primary/90 px-5 py-2 rounded-md">{{ 'CART.CONTINUE_SHOPPING' | translate }}</button>
         </div>
       </div>
 
@@ -70,10 +71,10 @@ import { CartService } from '../../services/cart.service';
       <!-- Footer summary -->
       <div *ngIf="(cart$ | async)!.length > 0" class="border-t p-6">
         <div class="flex items-center justify-between mb-4">
-          <span class="text-lg font-semibold">Suma:</span>
+          <span class="text-lg font-semibold">{{ 'CART.TOTAL' | translate }}:</span>
           <span class="text-xl font-bold">{{ (totalPrice$ | async) | number:'1.2-2' }} PLN</span>
         </div>
-        <button (click)="goToCheckout()" class="w-full bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-semibold">Przejdź do kasy</button>
+        <button (click)="goToCheckout()" class="w-full bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-semibold">{{ 'CART.CHECKOUT' | translate }}</button>
       </div>
     </aside>
   `,

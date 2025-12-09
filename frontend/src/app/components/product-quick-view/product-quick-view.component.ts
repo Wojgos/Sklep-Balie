@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Product } from '../../models';
 import { CartService } from '../../services/cart.service';
 import { NotificationService } from '../../services/notification.service';
@@ -8,7 +9,7 @@ import { NotificationService } from '../../services/notification.service';
 @Component({
   selector: 'bg-product-quick-view',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, TranslateModule],
   template: `
     <!-- Overlay -->
     <div 
@@ -69,7 +70,7 @@ import { NotificationService } from '../../services/notification.service';
 
               <!-- Product Variants Configuration -->
               <div *ngIf="product.attributes && product.attributes.length > 0" class="mb-6">
-                <h4 class="font-semibold mb-3">Konfiguracja</h4>
+                <h4 class="font-semibold mb-3">{{ 'PRODUCT.CONFIGURATION' | translate }}</h4>
                 <div class="space-y-3">
                   <div *ngFor="let attribute of product.attributes" class="space-y-2">
                     <label class="block text-xs font-medium text-muted-foreground">
@@ -101,9 +102,9 @@ import { NotificationService } from '../../services/notification.service';
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                   </svg>
                   <span class="text-sm">
-                    <span class="text-muted-foreground">Stan magazynowy:</span>
+                    <span class="text-muted-foreground">{{ 'PRODUCT.STOCK_STATUS' | translate }}:</span>
                     <span [class]="product.stock > 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                      {{ product.stock > 0 ? product.stock + ' szt.' : 'Brak' }}
+                      {{ product.stock > 0 ? (product.stock + ' ' + ('PRODUCT.PIECES' | translate)) : ('PRODUCT.NO_STOCK' | translate) }}
                     </span>
                   </span>
                 </div>
@@ -113,7 +114,7 @@ import { NotificationService } from '../../services/notification.service';
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
                   <span class="text-sm">
-                    <span class="text-muted-foreground">Dostawa:</span>
+                    <span class="text-muted-foreground">{{ 'PRODUCT.DELIVERY' | translate }}:</span>
                     <span class="font-semibold">{{ getDeliveryTime(product.stock) }}</span>
                   </span>
                 </div>
@@ -130,7 +131,7 @@ import { NotificationService } from '../../services/notification.service';
                   </span>
                 </div>
                 <div *ngIf="getTotalPriceModifier() !== 0" class="text-xs text-muted-foreground">
-                  Cena bazowa: {{ parseFloat(product.price) | number:'1.2-2' }} PLN
+                  {{ 'PRODUCT.BASE_PRICE' | translate }}: {{ parseFloat(product.price) | number:'1.2-2' }} PLN
                 </div>
               </div>
 
@@ -145,7 +146,7 @@ import { NotificationService } from '../../services/notification.service';
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
                   </svg>
-                  Dodaj do koszyka
+                  {{ 'CART.ADD_TO_CART' | translate }}
                 </button>
 
                 <button 
@@ -153,7 +154,7 @@ import { NotificationService } from '../../services/notification.service';
                   disabled
                   class="w-full bg-muted text-muted-foreground px-6 py-3 rounded-lg font-semibold cursor-not-allowed"
                 >
-                  Produkt niedostępny
+                  {{ 'PRODUCT.UNAVAILABLE' | translate }}
                 </button>
 
                 <a
@@ -161,7 +162,7 @@ import { NotificationService } from '../../services/notification.service';
                   (click)="close.emit()"
                   class="block w-full text-center border border-border hover:bg-muted px-6 py-3 rounded-lg font-semibold transition-colors"
                 >
-                  Zobacz pełne szczegóły
+                  {{ 'PRODUCT.VIEW_DETAILS' | translate }}
                 </a>
               </div>
             </div>
@@ -181,7 +182,8 @@ export class ProductQuickViewComponent implements OnInit {
 
   constructor(
     private cartService: CartService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private translate: TranslateService
   ) {}
 
   ngOnInit(): void {
@@ -201,7 +203,8 @@ export class ProductQuickViewComponent implements OnInit {
     this.isAdding = true;
     this.cartService.addItem(this.product);
     
-    this.notificationService.showSuccess(`${this.product.name} został dodany do koszyka!`);
+    const message = this.translate.instant('CART.ADDED_TO_CART', { productName: this.product.name });
+    this.notificationService.showSuccess(message);
     
     setTimeout(() => {
       this.isAdding = false;
@@ -214,11 +217,11 @@ export class ProductQuickViewComponent implements OnInit {
 
   getDeliveryTime(stock: number): string {
     if (stock >= 10) {
-      return '2-3 dni robocze';
+      return this.translate.instant('PRODUCT.DELIVERY_2_3');
     } else if (stock >= 5) {
-      return '3-5 dni roboczych';
+      return this.translate.instant('PRODUCT.DELIVERY_3_5');
     } else {
-      return '5-7 dni roboczych';
+      return this.translate.instant('PRODUCT.DELIVERY_5_7');
     }
   }
 

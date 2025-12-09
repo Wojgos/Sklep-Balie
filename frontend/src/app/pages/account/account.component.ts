@@ -1,20 +1,25 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
 import { NotificationService } from '../../services/notification.service';
+import { LanguageService } from '../../services/language.service';
 import { User, Order, NotificationType } from '../../models';
 
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslateModule],
   templateUrl: './account.component.html',
   styleUrls: ['./account.component.scss']
 })
-export class AccountComponent implements OnInit {
+export class AccountComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   currentUser: User | null = null;
   activeTab: 'profile' | 'orders' | 'settings' = 'profile';
   
@@ -43,7 +48,9 @@ export class AccountComponent implements OnInit {
     private apiService: ApiService,
     private router: Router,
     private route: ActivatedRoute,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private translate: TranslateService,
+    private languageService: LanguageService
   ) {}
 
   ngOnInit(): void {
@@ -63,6 +70,11 @@ export class AccountComponent implements OnInit {
     });
 
     this.loadOrders();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadOrders(): void {
@@ -98,7 +110,10 @@ export class AccountComponent implements OnInit {
 
   saveProfile(): void {
     if (!this.editedUser.firstName || !this.editedUser.lastName || !this.editedUser.email) {
-      this.notificationService.show('Proszę wypełnić wszystkie wymagane pola', NotificationType.WARNING);
+      this.notificationService.show(
+        this.translate.instant('ACCOUNT.FILL_REQUIRED_FIELDS'), 
+        NotificationType.WARNING
+      );
       return;
     }
 
@@ -110,12 +125,15 @@ export class AccountComponent implements OnInit {
         this.editedUser = { ...user };
         this.isEditingProfile = false;
         this.isSavingProfile = false;
-        this.notificationService.show('Profil został zaktualizowany', NotificationType.SUCCESS);
+        this.notificationService.show(
+          this.translate.instant('ACCOUNT.PROFILE_UPDATED'), 
+          NotificationType.SUCCESS
+        );
       },
       error: (error) => {
         this.isSavingProfile = false;
         this.notificationService.show(
-          error.message || 'Wystąpił błąd podczas aktualizacji profilu',
+          error.message || this.translate.instant('ACCOUNT.UPDATE_ERROR'),
           NotificationType.ERROR
         );
       }
@@ -135,17 +153,26 @@ export class AccountComponent implements OnInit {
 
   changePassword(): void {
     if (!this.passwordData.currentPassword || !this.passwordData.newPassword || !this.passwordData.confirmPassword) {
-      this.notificationService.show('Proszę wypełnić wszystkie pola', NotificationType.WARNING);
+      this.notificationService.show(
+        this.translate.instant('ACCOUNT.FILL_ALL_FIELDS'), 
+        NotificationType.WARNING
+      );
       return;
     }
 
     if (this.passwordData.newPassword.length < 6) {
-      this.notificationService.show('Nowe hasło musi mieć co najmniej 6 znaków', NotificationType.WARNING);
+      this.notificationService.show(
+        this.translate.instant('ACCOUNT.PASSWORD_MIN_LENGTH'), 
+        NotificationType.WARNING
+      );
       return;
     }
 
     if (this.passwordData.newPassword !== this.passwordData.confirmPassword) {
-      this.notificationService.show('Nowe hasła nie są zgodne', NotificationType.WARNING);
+      this.notificationService.show(
+        this.translate.instant('ACCOUNT.PASSWORD_MISMATCH'), 
+        NotificationType.WARNING
+      );
       return;
     }
 
@@ -154,12 +181,15 @@ export class AccountComponent implements OnInit {
       this.passwordData.newPassword
     ).subscribe({
       next: () => {
-        this.notificationService.show('Hasło zostało zmienione', NotificationType.SUCCESS);
+        this.notificationService.show(
+          this.translate.instant('ACCOUNT.PASSWORD_CHANGED'), 
+          NotificationType.SUCCESS
+        );
         this.togglePasswordChange();
       },
       error: (error) => {
         this.notificationService.show(
-          error.message || 'Wystąpił błąd podczas zmiany hasła',
+          error.message || this.translate.instant('ACCOUNT.PASSWORD_CHANGE_ERROR'),
           NotificationType.ERROR
         );
       }
@@ -168,7 +198,10 @@ export class AccountComponent implements OnInit {
 
   logout(): void {
     this.authService.logout();
-    this.notificationService.show('Zostałeś wylogowany', NotificationType.INFO);
+    this.notificationService.show(
+      this.translate.instant('ACCOUNT.LOGGED_OUT'), 
+      NotificationType.INFO
+    );
     this.router.navigate(['/']);
   }
 
@@ -190,28 +223,17 @@ export class AccountComponent implements OnInit {
   }
 
   getOrderStatusText(status: string): string {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'Oczekujące';
-      case 'processing':
-        return 'Przetwarzane';
-      case 'shipped':
-        return 'Wysłane';
-      case 'completed':
-        return 'Dostarczone';
-      case 'cancelled':
-        return 'Anulowane';
-      default:
-        return status;
-    }
+    const statusKey = `ACCOUNT.ORDER_STATUS_${status.toUpperCase()}`;
+    return this.translate.instant(statusKey);
   }
 
   formatDate(date: Date | string | undefined): string {
     if (!date) {
-      return 'Brak danych';
+      return this.translate.instant('ACCOUNT.NO_DATA');
     }
     const d = new Date(date);
-    return d.toLocaleDateString('pl-PL', {
+    const currentLang = this.languageService.getCurrentLanguage();
+    return d.toLocaleDateString(currentLang === 'pl' ? 'pl-PL' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'

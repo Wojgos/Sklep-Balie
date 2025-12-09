@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../services/notification.service';
 import { RegisterRequest, NotificationType } from '../../models';
@@ -9,7 +10,7 @@ import { RegisterRequest, NotificationType } from '../../models';
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, TranslateModule],
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss']
 })
@@ -34,7 +35,8 @@ export class RegisterComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private Router: Router,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private translate: TranslateService
   ) {}
 
   ngOnInit(): void {
@@ -49,26 +51,38 @@ export class RegisterComponent implements OnInit {
     if (!this.userData.username || !this.userData.email || 
         !this.userData.password || !this.userData.confirmPassword ||
         !this.userData.firstName || !this.userData.lastName) {
-      this.notificationService.show('Proszę wypełnić wszystkie wymagane pola', NotificationType.WARNING);
+      this.notificationService.show(
+        this.translate.instant('AUTH.FILL_REQUIRED_FIELDS'), 
+        NotificationType.WARNING
+      );
       return;
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(this.userData.email)) {
-      this.notificationService.show('Proszę podać prawidłowy adres email', NotificationType.WARNING);
+      this.notificationService.show(
+        this.translate.instant('AUTH.INVALID_EMAIL'), 
+        NotificationType.WARNING
+      );
       return;
     }
 
     // Validate password length
     if (this.userData.password.length < 6) {
-      this.notificationService.show('Hasło musi mieć co najmniej 6 znaków', NotificationType.WARNING);
+      this.notificationService.show(
+        this.translate.instant('AUTH.PASSWORD_MIN_LENGTH'), 
+        NotificationType.WARNING
+      );
       return;
     }
 
     // Validate passwords match
     if (this.userData.password !== this.userData.confirmPassword) {
-      this.notificationService.show('Hasła nie są zgodne', NotificationType.WARNING);
+      this.notificationService.show(
+        this.translate.instant('AUTH.PASSWORDS_NOT_MATCH'), 
+        NotificationType.WARNING
+      );
       return;
     }
 
@@ -80,7 +94,7 @@ export class RegisterComponent implements OnInit {
         const name = response.user?.firstName || this.userData.firstName;
         
         this.notificationService.show(
-          `Witaj ${name}! Twoje konto zostało utworzone. Sprawdź email aby je aktywować.`,
+          this.translate.instant('AUTH.REGISTER_SUCCESS', { name }),
           NotificationType.SUCCESS
         );
         // Navigate to login instead of account since email verification is likely needed
@@ -91,7 +105,7 @@ export class RegisterComponent implements OnInit {
         console.error('Registration error:', error);
         
         // Try to extract meaningful error message
-        let errorMessage = 'Wystąpił błąd podczas rejestracji';
+        let errorMessage = this.translate.instant('AUTH.REGISTER_ERROR');
         if (error.error) {
             if (typeof error.error === 'string') {
                 errorMessage = error.error;

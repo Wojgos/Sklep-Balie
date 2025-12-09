@@ -1,17 +1,20 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+import { takeUntil, switchMap } from 'rxjs/operators';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../services/api.service';
 import { CartService } from '../../services/cart.service';
 import { NotificationService } from '../../services/notification.service';
+import { LanguageService } from '../../services/language.service';
 import { Product, ProductSkuVariant } from '../../models';
 import { ProductCardComponent } from '../../components/product-card/product-card.component';
 
 @Component({
   selector: 'bg-product-details',
   standalone: true,
-  imports: [CommonModule, ProductCardComponent],
+  imports: [CommonModule, ProductCardComponent, TranslateModule],
   template: `
     <ng-container *ngIf="product$ | async as product">
       <div class="flex-1 py-12 bg-background">
@@ -53,8 +56,8 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
                     </svg>
                     <span>
-                      Dostępne w {{ product.variants.length }} 
-                      {{ product.variants.length === 1 ? 'wersji' : (product.variants.length < 5 ? 'wersjach' : 'wersjach') }}
+                      {{ 'PRODUCT_DETAILS.AVAILABLE_IN' | translate }} {{ product.variants.length }} 
+                      {{ product.variants.length === 1 ? ('PRODUCT_DETAILS.VERSION_SINGULAR' | translate) : ('PRODUCT_DETAILS.VERSION_PLURAL' | translate) }}
                     </span>
                   </div>
                 </div>
@@ -62,14 +65,14 @@ import { ProductCardComponent } from '../../components/product-card/product-card
 
               <div class="space-y-2">
                 <div *ngIf="product.description">
-                  <h3 class="font-semibold text-lg mb-2">Opis</h3>
+                  <h3 class="font-semibold text-lg mb-2">{{ 'PRODUCT.DESCRIPTION' | translate }}</h3>
                   <p class="text-muted-foreground">{{ product.description }}</p>
                 </div>
               </div>
 
               <!-- Product Variants Configuration -->
               <div *ngIf="product.available_attributes && getObjectKeys(product.available_attributes).length > 0" class="border-t pt-6">
-                <h3 class="font-semibold text-lg mb-4">Konfiguracja produktu</h3>
+                <h3 class="font-semibold text-lg mb-4">{{ 'PRODUCT.CONFIGURATION' | translate }}</h3>
                 <div class="space-y-4">
                   <div *ngFor="let attrKey of getObjectKeys(product.available_attributes)" class="space-y-2">
                     <label class="block text-sm font-medium">
@@ -81,11 +84,11 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                         (click)="isAttributeValueAvailable(attrKey, value) && selectAttribute(attrKey, value)"
                         [disabled]="!isAttributeValueAvailable(attrKey, value)"
                         [class]="getAttributeButtonClass(attrKey, value)"
-                        [title]="!isAttributeValueAvailable(attrKey, value) ? 'Ta kombinacja nie jest dostępna' : ''"
+                        [title]="!isAttributeValueAvailable(attrKey, value) ? ('PRODUCT_DETAILS.COMBINATION_UNAVAILABLE' | translate) : ''"
                         class="px-4 py-2 text-sm font-medium rounded-lg border transition-colors flex flex-col items-center relative"
                       >
                         <span [class.line-through]="!isAttributeValueAvailable(attrKey, value)">{{ value }}</span>
-                        <span *ngIf="!isAttributeValueAvailable(attrKey, value)" class="text-xs text-red-500 mt-1">Niedostępne</span>
+                        <span *ngIf="!isAttributeValueAvailable(attrKey, value)" class="text-xs text-red-500 mt-1">{{ 'PRODUCT_DETAILS.UNAVAILABLE' | translate }}</span>
                         <span *ngIf="getPriceModifier(attrKey, value) !== 0 && isAttributeValueAvailable(attrKey, value)" class="text-xs mt-1">
                           {{ getPriceModifier(attrKey, value) > 0 ? '+' : '' }}{{ getPriceModifier(attrKey, value) | number:'1.2-2' }} PLN
                         </span>
@@ -101,15 +104,15 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
                     <div class="flex-1">
-                      <p class="font-medium text-sm">Wybrana konfiguracja:</p>
+                      <p class="font-medium text-sm">{{ 'PRODUCT_DETAILS.SELECTED_CONFIGURATION' | translate }}:</p>
                       <p class="text-sm text-muted-foreground mt-1">{{ currentVariant.name }}</p>
                       <div class="flex items-center gap-4 mt-2 text-xs">
                         <span class="text-muted-foreground">SKU: {{ currentVariant.sku }}</span>
                         <span *ngIf="currentVariant.stock > 0" class="text-green-600 font-medium">
-                          Dostępne: {{ currentVariant.stock }} szt.
+                          {{ 'PRODUCT_DETAILS.AVAILABLE' | translate }}: {{ currentVariant.stock }} {{ 'PRODUCT.PIECES' | translate }}
                         </span>
                         <span *ngIf="currentVariant.stock === 0" class="text-red-600 font-medium">
-                          Brak w magazynie
+                          {{ 'PRODUCT.OUT_OF_STOCK' | translate }}
                         </span>
                       </div>
                     </div>
@@ -122,7 +125,7 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                     (click)="showAllVariants = !showAllVariants"
                     class="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full justify-between p-3 rounded-lg hover:bg-muted border border-transparent hover:border-border"
                   >
-                    <span>Zobacz wszystkie dostępne wersje ({{ product.variants.length }})</span>
+                    <span>{{ 'PRODUCT_DETAILS.VIEW_ALL_VERSIONS' | translate }} ({{ product.variants.length }})</span>
                     <svg 
                       class="h-4 w-4 transition-transform"
                       [class.rotate-180]="showAllVariants"
@@ -155,7 +158,7 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                           <p class="font-medium text-sm flex items-center gap-2">
                             {{ variant.name }}
                             <span *ngIf="variant.id === currentVariant?.id" class="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded">
-                              ✓ Wybrane
+                              ✓ {{ 'PRODUCT_DETAILS.SELECTED' | translate }}
                             </span>
                           </p>
                           <p class="text-xs text-muted-foreground mt-1">SKU: {{ variant.sku }}</p>
@@ -169,10 +172,10 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                               [class.bg-yellow-100]="variant.stock <= variant.low_stock_threshold && variant.stock > 0"
                               [class.text-yellow-700]="variant.stock <= variant.low_stock_threshold && variant.stock > 0"
                             >
-                              {{ variant.stock }} szt.
+                              {{ variant.stock }} {{ 'PRODUCT.PIECES' | translate }}
                             </span>
                             <span *ngIf="variant.stock === 0" class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
-                              Brak w magazynie
+                              {{ 'PRODUCT.OUT_OF_STOCK' | translate }}
                             </span>
                           </div>
                         </div>
@@ -214,14 +217,14 @@ import { ProductCardComponent } from '../../components/product-card/product-card
 
                 <div class="space-y-3 mb-6">
                   <div class="flex items-center gap-4">
-                    <span class="text-sm text-muted-foreground">Stan magazynowy:</span>
+                    <span class="text-sm text-muted-foreground">{{ 'PRODUCT.STOCK_STATUS' | translate }}:</span>
                     <span [class]="getCurrentStock() > 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                      {{ getCurrentStock() > 0 ? getCurrentStock() + ' szt.' : 'Brak w magazynie' }}
+                      {{ getCurrentStock() > 0 ? (getCurrentStock() + ' ' + ('PRODUCT.PIECES' | translate)) : ('PRODUCT.OUT_OF_STOCK' | translate) }}
                     </span>
                   </div>
                   
                   <div class="flex items-center gap-4" *ngIf="getCurrentStock() > 0">
-                    <span class="text-sm text-muted-foreground">Czas dostawy:</span>
+                    <span class="text-sm text-muted-foreground">{{ 'PRODUCT.DELIVERY' | translate }}:</span>
                     <span class="text-foreground font-semibold flex items-center gap-2">
                       <svg class="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -231,7 +234,7 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                   </div>
                   
                   <div *ngIf="!currentVariant && product.variants?.length" class="text-red-500 text-sm font-medium">
-                    Wybrana kombinacja jest niedostępna.
+                    {{ 'PRODUCT_DETAILS.COMBINATION_UNAVAILABLE_MESSAGE' | translate }}
                   </div>
                 </div>
                 
@@ -241,7 +244,7 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                   [class.scale-95]="isAdding"
                   class="w-full bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-semibold transition-all"
                 >
-                  Dodaj do koszyka
+                  {{ 'CART.ADD_TO_CART' | translate }}
                 </button>
 
                 <button 
@@ -249,7 +252,7 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                   disabled
                   class="w-full bg-muted text-muted-foreground px-6 py-3 rounded-lg font-semibold cursor-not-allowed"
                 >
-                  Produkt niedostępny
+                  {{ 'PRODUCT.UNAVAILABLE' | translate }}
                 </button>
               </div>
             </div>
@@ -263,16 +266,16 @@ import { ProductCardComponent } from '../../components/product-card/product-card
           <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
               <p class="text-sm font-medium text-primary uppercase tracking-wide mb-1">
-                Rekomendacje produktów
+                {{ 'PRODUCT_DETAILS.RECOMMENDATIONS' | translate }}
               </p>
               <h2 class="text-2xl font-heading font-semibold">
-                Propozycje podobnych produktów
+                {{ 'PRODUCT_DETAILS.SIMILAR_PRODUCTS' | translate }}
               </h2>
             </div>
           </div>
 
           <div *ngIf="isSimilarLoading" class="text-muted-foreground">
-            Ładowanie propozycji...
+            {{ 'PRODUCT_DETAILS.LOADING_SUGGESTIONS' | translate }}
           </div>
 
           <div 
@@ -286,7 +289,7 @@ import { ProductCardComponent } from '../../components/product-card/product-card
           </div>
 
           <div *ngIf="!isSimilarLoading && similarProducts.length === 0" class="text-muted-foreground text-center">
-            Aktualnie brak podobnych produktów do wyświetlenia.
+            {{ 'PRODUCT_DETAILS.NO_SIMILAR_PRODUCTS' | translate }}
           </div>
         </div>
       </section>
@@ -297,16 +300,16 @@ import { ProductCardComponent } from '../../components/product-card/product-card
           <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
               <p class="text-sm font-medium text-primary uppercase tracking-wide mb-1">
-                Inspiracje zakupowe
+                {{ 'PRODUCT_DETAILS.SHOPPING_INSPIRATION' | translate }}
               </p>
               <h2 class="text-2xl font-heading font-semibold">
-                Inni kupili też…
+                {{ 'PRODUCT_DETAILS.OTHERS_BOUGHT' | translate }}
               </h2>
             </div>
           </div>
 
           <div *ngIf="isBoughtTogetherLoading" class="text-muted-foreground">
-            Analizujemy zamówienia klientów...
+            {{ 'PRODUCT_DETAILS.ANALYZING_ORDERS' | translate }}
           </div>
 
           <div 
@@ -320,7 +323,7 @@ import { ProductCardComponent } from '../../components/product-card/product-card
           </div>
 
           <div *ngIf="!isBoughtTogetherLoading && boughtTogetherProducts.length === 0" class="text-muted-foreground text-center">
-            Nie mamy jeszcze danych o wspólnych zakupach dla tego produktu.
+            {{ 'PRODUCT_DETAILS.NO_BOUGHT_TOGETHER_DATA' | translate }}
           </div>
         </div>
       </section>
@@ -328,7 +331,8 @@ import { ProductCardComponent } from '../../components/product-card/product-card
   `,
   styleUrls: ['./product-details.component.scss']
 })
-export class ProductDetailsComponent implements OnInit {
+export class ProductDetailsComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   product$: Observable<Product>;
   product: Product | null = null;
   isAdding = false;
@@ -347,39 +351,29 @@ export class ProductDetailsComponent implements OnInit {
     private route: ActivatedRoute,
     private apiService: ApiService,
     private cartService: CartService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private translate: TranslateService,
+    private languageService: LanguageService
   ) {
     this.product$ = new Observable();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   ngOnInit(): void {
     const productId = this.route.snapshot.paramMap.get('id');
     if (productId) {
-      this.product$ = this.apiService.getProduct(productId);
+      // Auto-reload product on language change
+      this.product$ = this.languageService.currentLanguage$.pipe(
+        takeUntil(this.destroy$),
+        switchMap(() => this.apiService.getProduct(productId!))
+      );
       
       this.product$.subscribe(product => {
         this.product = product;
-        console.log('=== DANE PRODUKTU Z BACKENDU ===');
-        console.log('Pełny obiekt produktu:', JSON.stringify(product, null, 2));
-        console.log('\n--- PODSTAWOWE INFORMACJE ---');
-        console.log('ID:', product.id);
-        console.log('Slug:', product.slug);
-        console.log('Nazwa:', product.name);
-        console.log('Opis:', product.description);
-        console.log('Dostępny:', product.available);
-        console.log('Data utworzenia:', product.createdAt);
-        console.log('Data aktualizacji:', product.updatedAt);
-        
-        console.log('\n--- KATEGORIA ---');
-        console.log('Kategoria (slug):', product.categoryId);
-        console.log('Kategoria ID:', product.category_id);
-        console.log('Nazwa kategorii:', product.category_name);
-        
-        console.log('\n--- DOSTĘPNE ATRYBUTY ---');
-        console.log('available_attributes:', JSON.stringify(product.available_attributes, null, 2));
-        
-        console.log('\n--- WARIANTY ---');
-        console.log('Liczba wariantów:', product.variants?.length || 0);
         if (product.variants && product.variants.length > 0) {
           product.variants.forEach((variant, index) => {
             console.log(`\nWariant ${index + 1}:`, JSON.stringify({
@@ -575,7 +569,8 @@ export class ProductDetailsComponent implements OnInit {
     
     this.cartService.addItem(productToAdd);
     
-    this.notificationService.showSuccess(`${productToAdd.name} został dodany do koszyka! 🎉`);
+    const message = this.translate.instant('CART.ADDED_TO_CART', { productName: productToAdd.name });
+    this.notificationService.showSuccess(message + ' 🎉');
     
     setTimeout(() => {
       this.isAdding = false;
@@ -588,11 +583,11 @@ export class ProductDetailsComponent implements OnInit {
 
   getDeliveryTime(stock: number): string {
     if (stock >= 10) {
-      return '2-3 dni robocze';
+      return this.translate.instant('PRODUCT.DELIVERY_2_3');
     } else if (stock >= 5) {
-      return '3-5 dni roboczych';
+      return this.translate.instant('PRODUCT.DELIVERY_3_5');
     } else {
-      return '5-7 dni roboczych';
+      return this.translate.instant('PRODUCT.DELIVERY_5_7');
     }
   }
 

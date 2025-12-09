@@ -1,29 +1,33 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../services/api.service';
 import { NotificationService } from '../../services/notification.service';
+import { LanguageService } from '../../services/language.service';
 import { Ticket, InsertTicket, TicketReply } from '../../models';
 
 @Component({
   selector: 'app-support',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslateModule],
   template: `
     <div class="min-h-screen bg-muted/30 py-8">
       <div class="container mx-auto px-4 max-w-6xl">
         <!-- Header -->
         <div class="flex items-center justify-between mb-8">
           <div>
-            <h1 class="text-3xl font-bold text-foreground">Moje zgłoszenia</h1>
-            <p class="text-muted-foreground mt-2">Zarządzaj swoimi zgłoszeniami do obsługi klienta</p>
+            <h1 class="text-3xl font-bold text-foreground">{{ 'SUPPORT.MY_TICKETS' | translate }}</h1>
+            <p class="text-muted-foreground mt-2">{{ 'SUPPORT.SUBTITLE' | translate }}</p>
           </div>
           <button
             (click)="showCreateForm = true"
             class="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-medium transition-colors"
           >
-            + Nowe zgłoszenie
+            + {{ 'SUPPORT.NEW_TICKET' | translate }}
           </button>
         </div>
 
@@ -39,7 +43,7 @@ import { Ticket, InsertTicket, TicketReply } from '../../models';
           >
             <div class="p-6">
               <div class="flex items-center justify-between mb-6">
-                <h2 class="text-2xl font-bold text-foreground">Nowe zgłoszenie</h2>
+                <h2 class="text-2xl font-bold text-foreground">{{ 'SUPPORT.NEW_TICKET' | translate }}</h2>
                 <button
                   (click)="showCreateForm = false"
                   class="text-muted-foreground hover:text-foreground transition-colors"
@@ -53,7 +57,7 @@ import { Ticket, InsertTicket, TicketReply } from '../../models';
               <form (ngSubmit)="createTicket()" class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium text-foreground mb-2">
-                    Temat zgłoszenia
+                    {{ 'SUPPORT.TICKET_SUBJECT' | translate }}
                   </label>
                   <input
                     [(ngModel)]="newTicket.subject"
@@ -61,13 +65,13 @@ import { Ticket, InsertTicket, TicketReply } from '../../models';
                     type="text"
                     required
                     class="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="Krótki opis problemu"
+                    [placeholder]="'SUPPORT.SUBJECT_PLACEHOLDER' | translate"
                   />
                 </div>
 
                 <div>
                   <label class="block text-sm font-medium text-foreground mb-2">
-                    Szczegółowy opis
+                    {{ 'SUPPORT.DETAILED_DESCRIPTION' | translate }}
                   </label>
                   <textarea
                     [(ngModel)]="newTicket.body"
@@ -75,7 +79,7 @@ import { Ticket, InsertTicket, TicketReply } from '../../models';
                     required
                     rows="6"
                     class="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                    placeholder="Opisz szczegółowo swój problem lub pytanie..."
+                    [placeholder]="'SUPPORT.DESCRIPTION_PLACEHOLDER' | translate"
                   ></textarea>
                 </div>
 
@@ -85,14 +89,14 @@ import { Ticket, InsertTicket, TicketReply } from '../../models';
                     (click)="showCreateForm = false"
                     class="px-6 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
                   >
-                    Anuluj
+                    {{ 'COMMON.CANCEL' | translate }}
                   </button>
                   <button
                     type="submit"
                     [disabled]="isLoading"
                     class="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                   >
-                    {{ isLoading ? 'Tworzenie...' : 'Wyślij zgłoszenie' }}
+                    {{ isLoading ? ('SUPPORT.CREATING' | translate) : ('SUPPORT.SUBMIT_TICKET' | translate) }}
                   </button>
                 </div>
               </form>
@@ -105,13 +109,13 @@ import { Ticket, InsertTicket, TicketReply } from '../../models';
           <svg class="w-24 h-24 mx-auto text-muted-foreground/50 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
           </svg>
-          <h3 class="text-xl font-semibold text-foreground mb-2">Brak zgłoszeń</h3>
-          <p class="text-muted-foreground mb-6">Nie masz jeszcze żadnych zgłoszeń do obsługi klienta</p>
+          <h3 class="text-xl font-semibold text-foreground mb-2">{{ 'SUPPORT.NO_TICKETS' | translate }}</h3>
+          <p class="text-muted-foreground mb-6">{{ 'SUPPORT.NO_TICKETS_MESSAGE' | translate }}</p>
           <button
             (click)="showCreateForm = true"
             class="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-medium transition-colors"
           >
-            Utwórz pierwsze zgłoszenie
+            {{ 'SUPPORT.CREATE_FIRST_TICKET' | translate }}
           </button>
         </div>
 
@@ -147,7 +151,7 @@ import { Ticket, InsertTicket, TicketReply } from '../../models';
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
                     </svg>
-                    {{ ticket.message_count || ticket.messages?.length || 0 }} wiadomości
+                    {{ ticket.message_count || ticket.messages?.length || 0 }} {{ 'SUPPORT.MESSAGES' | translate }}
                   </span>
                   <span class="flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -192,7 +196,7 @@ import { Ticket, InsertTicket, TicketReply } from '../../models';
                     </span>
                   </div>
                   <p class="text-sm text-muted-foreground">
-                    Utworzono: {{ selectedTicket.created_at | date:'dd.MM.yyyy HH:mm' }}
+                    {{ 'SUPPORT.CREATED' | translate }}: {{ selectedTicket.created_at | date:'dd.MM.yyyy HH:mm' }}
                   </p>
                 </div>
                 <button
@@ -235,7 +239,7 @@ import { Ticket, InsertTicket, TicketReply } from '../../models';
                 <form (ngSubmit)="replyToTicket()" class="space-y-4">
                   <div>
                     <label class="block text-sm font-medium text-foreground mb-2">
-                      Twoja odpowiedź
+                      {{ 'SUPPORT.YOUR_REPLY' | translate }}
                     </label>
                     <textarea
                       [(ngModel)]="replyText"
@@ -243,7 +247,7 @@ import { Ticket, InsertTicket, TicketReply } from '../../models';
                       required
                       rows="4"
                       class="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                      placeholder="Napisz swoją odpowiedź..."
+                      [placeholder]="'SUPPORT.REPLY_PLACEHOLDER' | translate"
                     ></textarea>
                   </div>
                   <div class="flex justify-end">
@@ -252,7 +256,7 @@ import { Ticket, InsertTicket, TicketReply } from '../../models';
                       [disabled]="isLoading || !replyText.trim()"
                       class="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                     >
-                      {{ isLoading ? 'Wysyłanie...' : 'Wyślij odpowiedź' }}
+                      {{ isLoading ? ('SUPPORT.SENDING' | translate) : ('SUPPORT.SEND_REPLY' | translate) }}
                     </button>
                   </div>
                 </form>
@@ -260,7 +264,7 @@ import { Ticket, InsertTicket, TicketReply } from '../../models';
 
               <div *ngIf="selectedTicket.status === 'closed'" class="border-t border-border pt-4">
                 <p class="text-center text-muted-foreground">
-                  To zgłoszenie zostało zamknięte i nie można już wysyłać odpowiedzi.
+                  {{ 'SUPPORT.TICKET_CLOSED_MESSAGE' | translate }}
                 </p>
               </div>
             </div>
@@ -271,7 +275,8 @@ import { Ticket, InsertTicket, TicketReply } from '../../models';
   `,
   styles: []
 })
-export class SupportComponent implements OnInit {
+export class SupportComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   tickets: Ticket[] = [];
   selectedTicket: Ticket | null = null;
   showCreateForm = false;
@@ -286,11 +291,18 @@ export class SupportComponent implements OnInit {
   constructor(
     private apiService: ApiService,
     private notificationService: NotificationService,
-    private router: Router
+    private router: Router,
+    private translate: TranslateService,
+    private languageService: LanguageService
   ) {}
 
   ngOnInit(): void {
     this.loadTickets();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadTickets(): void {
@@ -302,7 +314,9 @@ export class SupportComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading tickets:', error);
-        this.notificationService.showError('Nie udało się załadować zgłoszeń');
+        this.notificationService.showError(
+          this.translate.instant('SUPPORT.LOAD_ERROR')
+        );
         this.isLoading = false;
       }
     });
@@ -310,21 +324,27 @@ export class SupportComponent implements OnInit {
 
   createTicket(): void {
     if (!this.newTicket.subject.trim() || !this.newTicket.body.trim()) {
-      this.notificationService.showWarning('Uzupełnij wszystkie pola');
+      this.notificationService.showWarning(
+        this.translate.instant('SUPPORT.FILL_ALL_FIELDS')
+      );
       return;
     }
 
     this.isLoading = true;
     this.apiService.createTicket(this.newTicket).subscribe({
       next: (ticket) => {
-        this.notificationService.showSuccess('Zgłoszenie zostało utworzone');
+        this.notificationService.showSuccess(
+          this.translate.instant('SUPPORT.TICKET_CREATED')
+        );
         this.showCreateForm = false;
         this.newTicket = { subject: '', body: '' };
         this.loadTickets();
       },
       error: (error) => {
         console.error('Error creating ticket:', error);
-        this.notificationService.showError('Nie udało się utworzyć zgłoszenia');
+        this.notificationService.showError(
+          this.translate.instant('SUPPORT.CREATE_ERROR')
+        );
         this.isLoading = false;
       }
     });
@@ -340,7 +360,9 @@ export class SupportComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading ticket details:', error);
-        this.notificationService.showError('Nie udało się załadować szczegółów zgłoszenia');
+        this.notificationService.showError(
+          this.translate.instant('SUPPORT.LOAD_DETAILS_ERROR')
+        );
         this.isLoading = false;
       }
     });
@@ -354,25 +376,25 @@ export class SupportComponent implements OnInit {
 
     this.apiService.replyToTicket(this.selectedTicket.id, reply).subscribe({
       next: () => {
-        this.notificationService.showSuccess('Odpowiedź została wysłana');
+        this.notificationService.showSuccess(
+          this.translate.instant('SUPPORT.REPLY_SENT')
+        );
         this.replyText = '';
         this.viewTicket(this.selectedTicket!);
       },
       error: (error) => {
         console.error('Error replying to ticket:', error);
-        this.notificationService.showError('Nie udało się wysłać odpowiedzi');
+        this.notificationService.showError(
+          this.translate.instant('SUPPORT.REPLY_ERROR')
+        );
         this.isLoading = false;
       }
     });
   }
 
   getStatusLabel(status: string): string {
-    const labels: Record<string, string> = {
-      'new': 'Nowe',
-      'in_progress': 'W trakcie',
-      'closed': 'Zamknięte'
-    };
-    return labels[status] || status;
+    const statusKey = `SUPPORT.STATUS_${status.toUpperCase()}`;
+    return this.translate.instant(statusKey);
   }
 
   isCurrentUser(authorId: number): boolean {
@@ -383,7 +405,7 @@ export class SupportComponent implements OnInit {
   }
 
   getAuthorName(authorId: number): string {
-    if (!this.selectedTicket) return 'Nieznany';
+    if (!this.selectedTicket) return this.translate.instant('SUPPORT.UNKNOWN');
     
     // Find participant by matching author_id
     const participant = this.selectedTicket.participants?.find(p => 
@@ -394,7 +416,9 @@ export class SupportComponent implements OnInit {
       return `${participant.firstName} ${participant.lastName}`;
     }
     
-    return this.isCurrentUser(authorId) ? 'Ty' : 'Obsługa klienta';
+    return this.isCurrentUser(authorId) 
+      ? this.translate.instant('SUPPORT.YOU') 
+      : this.translate.instant('SUPPORT.CUSTOMER_SERVICE');
   }
 }
 
