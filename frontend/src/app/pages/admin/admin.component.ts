@@ -689,11 +689,11 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               
               <div class="space-y-3">
                 <p class="text-foreground">
-                  <span class="font-semibold">{{ 'ADMIN.PROGRAM_NAME' | translate }}:</span> Program Lojalnościowy BarrelGarden
+                  <span class="font-semibold">{{ 'ADMIN.PROGRAM_NAME' | translate }}:</span> {{ 'ADMIN.PROGRAM_NAME_VALUE' | translate }}
                 </p>
                 
                 <p class="text-foreground">
-                  <span class="font-semibold">{{ 'ADMIN.PROGRAM_DESC' | translate }}:</span> Zbieraj punkty za każde zamówienie i wymieniaj je na atrakcyjne nagrody!
+                  <span class="font-semibold">{{ 'ADMIN.PROGRAM_DESC' | translate }}:</span> {{ 'ADMIN.PROGRAM_DESC_VALUE' | translate }}
                 </p>
                 
                 <p class="text-foreground">
@@ -3204,10 +3204,10 @@ export class AdminComponent implements OnInit {
 
   getRewardTypeLabel(type: string): string {
     const labels: Record<string, string> = {
-      'discount_percentage': 'Zniżka procentowa',
-      'discount_fixed': 'Zniżka stała',
-      'free_shipping': 'Darmowa dostawa',
-      'free_product': 'Darmowy produkt'
+      'discount_percentage': this.translate.instant('ADMIN.REWARD_TYPE_DISCOUNT_PERCENTAGE'),
+      'discount_fixed': this.translate.instant('ADMIN.REWARD_TYPE_DISCOUNT_FIXED'),
+      'free_shipping': this.translate.instant('ADMIN.REWARD_TYPE_FREE_SHIPPING'),
+      'free_product': this.translate.instant('ADMIN.REWARD_TYPE_FREE_PRODUCT')
     };
     return labels[type] || type;
   }
