@@ -1,0 +1,188 @@
+{
+  "COMMON": {
+    "CANCEL": "Cancel",
+    "CONFIRM": "Confirm",
+    "SAVE": "Save",
+    "DELETE": "Delete",
+    "EDIT": "Edit",
+    "ADD": "Add",
+    "CLOSE": "Close",
+    "YES": "Yes",
+    "NO": "No",
+    "BACK": "Back",
+    "NEXT": "Next",
+    "SEARCH": "Search",
+    "LOADING": "Loading...",
+    "NO_RESULTS": "No results",
+    "ERROR": "An error occurred",
+    "SUCCESS": "Success"
+  },
+  "MODAL": {
+    "SUCCESS_TITLE": "Success",
+    "ERROR_TITLE": "Error",
+    "INFO_TITLE": "Information",
+    "CONFIRM_TITLE": "Confirm Action",
+    "DEFAULT_CONFIRM": "Yes",
+    "DEFAULT_CANCEL": "No"
+  },
+  "NAVIGATION": {
+    "HOME": "Home",
+    "PRODUCTS": "Products",
+    "CATEGORIES": "Categories",
+    "CART": "Cart",
+    "ACCOUNT": "Account",
+    "LOGIN": "Log in",
+    "REGISTER": "Register",
+    "LOGOUT": "Log out",
+    "ADMIN": "Admin Panel",
+    "SUPPORT": "Support",
+    "ABOUT": "About Us",
+    "CONTACT": "Contact"
+  },
+  "HEADER": {
+    "MENU": "Menu",
+    "MY_ACCOUNT": "My Account",
+    "MY_ORDERS": "My Orders",
+    "SUPPORT": "Support Tickets",
+    "LOYALTY_PROGRAM": "Loyalty Program",
+    "SETTINGS": "Settings",
+    "ADMIN_PANEL": "Admin Panel"
+  },
+  "PRODUCT": {
+    "NAME": "Name",
+    "DESCRIPTION": "Description",
+    "PRICE": "Price",
+    "STOCK": "Stock",
+    "CATEGORY": "Category",
+    "ADD_TO_CART": "Add to Cart",
+    "QUICK_VIEW": "Quick View",
+    "DETAILS": "Details",
+    "IN_STOCK": "In Stock",
+    "OUT_OF_STOCK": "Out of Stock",
+    "PIECES": "pieces",
+    "VARIANTS": "Variants",
+    "ATTRIBUTES": "Attributes"
+  },
+  "CART": {
+    "TITLE": "Cart",
+    "EMPTY": "Your cart is empty",
+    "TOTAL": "Total",
+    "SUBTOTAL": "Subtotal",
+    "CHECKOUT": "Checkout",
+    "CONTINUE_SHOPPING": "Continue Shopping",
+    "REMOVE": "Remove",
+    "QUANTITY": "Quantity"
+  },
+  "AUTH": {
+    "LOGIN": "Log In",
+    "REGISTER": "Sign Up",
+    "EMAIL": "Email",
+    "PASSWORD": "Password",
+    "CONFIRM_PASSWORD": "Confirm Password",
+    "FIRST_NAME": "First Name",
+    "LAST_NAME": "Last Name",
+    "FORGOT_PASSWORD": "Forgot Password?",
+    "REMEMBER_ME": "Remember Me",
+    "NO_ACCOUNT": "Don't have an account?",
+    "HAVE_ACCOUNT": "Already have an account?"
+  },
+  "FORM": {
+    "REQUIRED": "This field is required",
+    "INVALID_EMAIL": "Invalid email address",
+    "MIN_LENGTH": "Minimum length: {{value}}",
+    "MAX_LENGTH": "Maximum length: {{value}}",
+    "PASSWORD_MISMATCH": "Passwords do not match",
+    "INVALID_FORMAT": "Invalid format"
+  },
+  "SEARCH": {
+    "PLACEHOLDER": "Search products...",
+    "NO_RESULTS": "No products found",
+    "SEARCHING": "Searching...",
+    "FOUND": "Found",
+    "PRODUCT_SINGULAR": "product",
+    "PRODUCT_PLURAL": "products",
+    "NO_RESULTS_FOR": "No products found for"
+  },
+  "FOOTER": {
+    "DESCRIPTION": "Highest quality wooden garden barrels, bathing tubs and decorative barrels. Natural wood, fast delivery, professional advice.",
+    "QUICK_LINKS": "Quick Links",
+    "CUSTOMER_SERVICE": "Customer Service",
+    "CONTACT_INFO": "Contact",
+    "SHIPPING_RETURNS": "Shipping & Returns",
+    "TERMS": "Terms & Conditions",
+    "PRIVACY": "Privacy Policy",
+    "FAQ": "FAQ",
+    "CONTACT": "Contact",
+    "OPENING_HOURS": "Mon-Fri: 8:00-18:00 | Sat: 9:00-15:00",
+    "COPYRIGHT": "All rights reserved.",
+    "WE_ACCEPT": "We accept",
+    "ABOUT": "About Us"
+  },
+  "ADMIN": {
+    "DASHBOARD": "Admin Dashboard",
+    "PRODUCTS": "Products",
+    "ORDERS": "Orders",
+    "USERS": "Users",
+    "CATEGORIES": "Categories",
+    "ATTRIBUTES": "Attributes",
+    "STATISTICS": "Statistics",
+    "SETTINGS": "Settings"
+  },
+  "CHATBOT": {
+    "TITLE": "Assistant",
+    "PLACEHOLDER": "Type a message...",
+    "SEND": "Send",
+    "GREETING": "Hi! How can I help you?"
+  },
+  "HOME": {
+    "HERO": {
+      "TITLE": "Wooden Garden Barrels",
+      "SUBTITLE_SPAN": "Natural Relaxation",
+      "DESCRIPTION": "Discover our collection of wooden barrels, tubs and water barrels. Perfect for gardens, patios and bathing. Professional advice and fast delivery.",
+      "BROWSE_PRODUCTS": "Browse Products",
+      "VIEW_PROJECTS": "View Projects",
+      "QUALITY_SINCE": "⭐ Premium Quality since 2015 · 10,000+ Happy Customers"
+    },
+    "CATEGORIES": {
+      "PREMIUM_OFFER": "Premium Offer",
+      "TITLE": "Product Categories",
+      "SUBTITLE": "Discover our wide range of wooden barrels, jacuzzis and accessories for your garden.",
+      "PRODUCT_SINGULAR": "product",
+      "PRODUCT_PLURAL": "products"
+    },
+    "FEATURED": {
+      "TITLE": "Featured Products",
+      "SUBTITLE": "Our best-selling products",
+      "VIEW_ALL": "View all products"
+    },
+    "FEATURES": {
+      "TITLE": "Why Choose Us?",
+      "SUBTITLE": "We are experts in manufacturing wooden garden barrels",
+      "NATURAL_WOOD_TITLE": "Natural Wood",
+      "NATURAL_WOOD_DESC": "Made from the highest quality oak and pine wood",
+      "FAST_DELIVERY_TITLE": "Fast Delivery",
+      "FAST_DELIVERY_DESC": "We deliver your order within 3-5 business days",
+      "EXPERT_ADVICE_TITLE": "Expert Advice",
+      "EXPERT_ADVICE_DESC": "Our experts will help you choose the right barrel"
+    },
+    "TESTIMONIALS": {
+      "TITLE": "Customer Reviews",
+      "SUBTITLE": "See what our satisfied customers say about us",
+      "CUSTOMER_1_NAME": "John Smith",
+      "CUSTOMER_1_LOCATION": "Warsaw",
+      "CUSTOMER_1_QUOTE": "Wonderful barrel! Excellent wood quality and fast delivery. Highly recommend!",
+      "CUSTOMER_2_NAME": "Anna Brown",
+      "CUSTOMER_2_LOCATION": "Krakow",
+      "CUSTOMER_2_QUOTE": "My garden tub is now my favorite place to relax. Professional service!",
+      "CUSTOMER_3_NAME": "Peter Wilson",
+      "CUSTOMER_3_LOCATION": "Gdansk",
+      "CUSTOMER_3_QUOTE": "The decorative barrel looks beautiful in the garden. Great craftsmanship!"
+    },
+    "NEWSLETTER": {
+      "TITLE": "Stay Updated",
+      "DESCRIPTION": "Subscribe to our newsletter and receive the latest information about products, promotions and gardening tips.",
+      "EMAIL_PLACEHOLDER": "Your email address",
+      "SUBSCRIBE": "Subscribe"
+    }
+  }
+}

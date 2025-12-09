@@ -1,9 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { TranslateService } from '@ngx-translate/core';
 
 /**
  * Serwis do zarządzania językiem aplikacji
- * Obsługuje wielojęzyczność dla backendu django-parler
+ * Obsługuje wielojęzyczność dla backendu django-parler i UI (ngx-translate)
  */
 @Injectable({
   providedIn: 'root'
@@ -15,11 +16,22 @@ export class LanguageService {
 
   private currentLanguageSubject: BehaviorSubject<string>;
   public currentLanguage$: Observable<string>;
+  private translate?: TranslateService;
 
-  constructor() {
+  constructor(private injector: Injector) {
     const savedLanguage = this.getStoredLanguage();
+    
     this.currentLanguageSubject = new BehaviorSubject<string>(savedLanguage);
     this.currentLanguage$ = this.currentLanguageSubject.asObservable();
+  }
+  
+  /**
+   * Initialize TranslateService (called after construction)
+   */
+  private initTranslate(): void {
+    if (!this.translate) {
+      this.translate = this.injector.get(TranslateService);
+    }
   }
 
   /**
@@ -36,9 +48,15 @@ export class LanguageService {
   setLanguage(language: string): void {
     if (this.SUPPORTED_LANGUAGES.includes(language)) {
       localStorage.setItem(this.STORAGE_KEY, language);
+      
+      // Zmień język w ngx-translate (natychmiastowo, bez przeładowania strony)
+      this.initTranslate();
+      if (this.translate) {
+        this.translate.use(language);
+      }
+      
       this.currentLanguageSubject.next(language);
       
-      // Opcjonalnie: możesz tu dodać logikę do przeładowania danych z API
       console.log(`Language changed to: ${language}`);
     } else {
       console.warn(`Unsupported language: ${language}`);

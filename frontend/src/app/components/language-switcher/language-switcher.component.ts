@@ -107,14 +107,14 @@ export class LanguageSwitcherComponent {
     // Ustaw flagę ładowania
     this.isChanging = true;
     
-    // Zmień język w serwisie
+    // Zmień język w serwisie (ngx-translate zmieni język natychmiastowo)
     this.languageService.setLanguage(language);
     
-    console.log(`Language switched from ${previousLanguage} to ${language}, reloading page...`);
+    console.log(`Language switched from ${previousLanguage} to ${language}`);
     
-    // Krótkie opóźnienie dla płynnego UX, potem przeładuj stronę
+    // Wyłącz flagę ładowania po krótkiej chwili
     setTimeout(() => {
-      window.location.reload();
+      this.isChanging = false;
     }, 300);
   }
 }

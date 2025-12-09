@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Observable, map } from 'rxjs';
+import { Observable, map, Subject, takeUntil, switchMap } from 'rxjs';
+import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../services/api.service';
 import { NotificationService } from '../../services/notification.service';
+import { LanguageService } from '../../services/language.service';
 import { Product, Category, NotificationType } from '../../models';
 import { ProductCardComponent } from '../../components/product-card/product-card.component';
 
@@ -18,7 +20,8 @@ type CategoryCardData = Category & {
   standalone: true,
   imports: [
     CommonModule, 
-    ProductCardComponent
+    ProductCardComponent,
+    TranslateModule
   ],
   template: `
     <div class="flex-1">
@@ -28,26 +31,25 @@ type CategoryCardData = Category & {
           <div class="absolute inset-0 bg-gradient-to-b from-black/65 via-black/55 to-black/35"></div>
           <div class="relative z-10 text-center max-w-4xl mx-auto px-4 text-white">
             <h1 class="font-heading font-bold text-4xl sm:text-5xl lg:text-6xl mb-6 tracking-tight drop-shadow-lg" data-testid="text-hero-title">
-              Drewniane Bale Ogrodowe<br>
-              <span>Naturalny Relaks</span>
+              {{ 'HOME.HERO.TITLE' | translate }}<br>
+              <span>{{ 'HOME.HERO.SUBTITLE_SPAN' | translate }}</span>
             </h1>
             <p class="text-lg sm:text-xl text-white/90 mb-8 max-w-2xl mx-auto drop-shadow" data-testid="text-hero-subtitle">
-              Odkryj naszą kolekcję drewnianych bali, kadzi i beczek na wodę. Idealne do ogrodu, tarasu i kąpieli. 
-              Profesjonalne doradztwo i szybka dostawa.
+              {{ 'HOME.HERO.DESCRIPTION' | translate }}
             </p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
               <button 
                 (click)="navigateToProducts()"
                 class="inline-flex items-center justify-center gap-3 bg-[#266741] text-white hover:bg-[#1f5635] px-10 py-4 rounded-full text-lg font-semibold transition-all shadow-lg shadow-black/30">
-                Przeglądaj Produkty
+                {{ 'HOME.HERO.BROWSE_PRODUCTS' | translate }}
                 <span class="text-2xl leading-none">→</span>
               </button>
               <button class="inline-flex items-center justify-center bg-white/80 text-[#3a3a3a] hover:bg-white px-10 py-4 rounded-full text-lg font-semibold transition-all shadow-md">
-                Zobacz Realizacje
+                {{ 'HOME.HERO.VIEW_PROJECTS' | translate }}
               </button>
             </div>
             <p class="text-sm text-white/80 mt-6 tracking-wide">
-              ⭐ Premium Jakość od 2015 · 10,000+ Zadowolonych Klientów
+              {{ 'HOME.HERO.QUALITY_SINCE' | translate }}
             </p>
           </div>
         </section>
@@ -57,13 +59,13 @@ type CategoryCardData = Category & {
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12 space-y-4">
               <p class="text-sm uppercase tracking-[0.3em] text-primary/80">
-                Oferta Premium
+                {{ 'HOME.CATEGORIES.PREMIUM_OFFER' | translate }}
               </p>
               <h2 class="font-heading font-bold text-3xl sm:text-4xl" data-testid="text-categories-title">
-                Kategorie Produktów
+                {{ 'HOME.CATEGORIES.TITLE' | translate }}
               </h2>
               <p class="text-muted-foreground max-w-2xl mx-auto" data-testid="text-categories-subtitle">
-                Odkryj naszą szeroką gamę drewnianych bali, jacuzzi i akcesoriów dla Twojego ogrodu.
+                {{ 'HOME.CATEGORIES.SUBTITLE' | translate }}
               </p>
             </div>
 
@@ -87,7 +89,7 @@ type CategoryCardData = Category & {
                     {{ category.name }}
                   </h3>
                   <p class="text-sm text-muted-foreground text-center mt-1">
-                    {{ category.totalProductCount }} {{ category.totalProductCount === 1 ? 'produkt' : 'produktów' }}
+                    {{ category.totalProductCount }} {{ category.totalProductCount === 1 ? ('HOME.CATEGORIES.PRODUCT_SINGULAR' | translate) : ('HOME.CATEGORIES.PRODUCT_PLURAL' | translate) }}
                   </p>
                 </div>
               </div>
@@ -100,10 +102,10 @@ type CategoryCardData = Category & {
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
               <h2 class="font-heading font-bold text-3xl sm:text-4xl mb-4" data-testid="text-featured-title">
-                Wyróżnione Produkty
+                {{ 'HOME.FEATURED.TITLE' | translate }}
               </h2>
               <p class="text-muted-foreground max-w-2xl mx-auto" data-testid="text-featured-subtitle">
-                Nasze najlepiej sprzedające się produkty
+                {{ 'HOME.FEATURED.SUBTITLE' | translate }}
               </p>
             </div>
 
@@ -120,7 +122,7 @@ type CategoryCardData = Category & {
                 class="text-primary font-medium hover:underline"
                 data-testid="link-view-all"
               >
-                Zobacz wszystkie produkty →
+                {{ 'HOME.FEATURED.VIEW_ALL' | translate }} →
               </button>
             </div>
           </div>
@@ -131,10 +133,10 @@ type CategoryCardData = Category & {
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
               <h2 class="font-heading font-bold text-3xl sm:text-4xl mb-4" data-testid="text-features-title">
-                Dlaczego My?
+                {{ 'HOME.FEATURES.TITLE' | translate }}
               </h2>
               <p class="text-muted-foreground max-w-2xl mx-auto" data-testid="text-features-subtitle">
-                Jesteśmy ekspertami w produkcji drewnianych bali ogrodowych
+                {{ 'HOME.FEATURES.SUBTITLE' | translate }}
               </p>
             </div>
 
@@ -145,8 +147,8 @@ type CategoryCardData = Category & {
                     <path [attr.d]="feature.iconPath" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
                   </svg>
                 </div>
-                <h3 class="font-semibold text-lg mb-2">{{ feature.title }}</h3>
-                <p class="text-muted-foreground text-sm">{{ feature.description }}</p>
+                <h3 class="font-semibold text-lg mb-2">{{ feature.titleKey | translate }}</h3>
+                <p class="text-muted-foreground text-sm">{{ feature.descriptionKey | translate }}</p>
               </div>
             </div>
           </div>
@@ -157,10 +159,10 @@ type CategoryCardData = Category & {
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
               <h2 class="font-heading font-bold text-3xl sm:text-4xl mb-4" data-testid="text-testimonials-title">
-                Opinie Klientów
+                {{ 'HOME.TESTIMONIALS.TITLE' | translate }}
               </h2>
               <p class="text-muted-foreground max-w-2xl mx-auto" data-testid="text-testimonials-subtitle">
-                Zobacz co mówią o nas nasi zadowoleni klienci
+                {{ 'HOME.TESTIMONIALS.SUBTITLE' | translate }}
               </p>
             </div>
 
@@ -179,10 +181,10 @@ type CategoryCardData = Category & {
                   </ng-container>
                 </div>
                 <blockquote class="text-muted-foreground mb-4">
-                  "{{ testimonial.quote }}"
+                  "{{ testimonial.quoteKey | translate }}"
                 </blockquote>
-                <div class="font-semibold">{{ testimonial.name }}</div>
-                <div class="text-sm text-muted-foreground">{{ testimonial.location }}</div>
+                <div class="font-semibold">{{ testimonial.nameKey | translate }}</div>
+                <div class="text-sm text-muted-foreground">{{ testimonial.locationKey | translate }}</div>
               </div>
             </div>
           </div>
@@ -192,20 +194,19 @@ type CategoryCardData = Category & {
         <section class="py-16 bg-primary text-primary-foreground">
           <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 class="font-heading font-bold text-3xl sm:text-4xl mb-4">
-              Bądź na bieżąco
+              {{ 'HOME.NEWSLETTER.TITLE' | translate }}
             </h2>
             <p class="text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
-              Zapisz się do naszego newslettera i otrzymuj najnowsze informacje o produktach, 
-              promocjach i poradach ogrodniczych.
+              {{ 'HOME.NEWSLETTER.DESCRIPTION' | translate }}
             </p>
             <div class="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
               <input 
                 type="email" 
-                placeholder="Twój adres email"
+                [placeholder]="'HOME.NEWSLETTER.EMAIL_PLACEHOLDER' | translate"
                 class="flex-1 px-4 py-3 rounded-lg text-foreground bg-background border border-border"
               />
               <button class="bg-secondary text-secondary-foreground hover:bg-secondary/90 px-6 py-3 rounded-lg font-semibold transition-colors">
-                Zapisz się
+                {{ 'HOME.NEWSLETTER.SUBSCRIBE' | translate }}
               </button>
             </div>
           </div>
@@ -214,65 +215,79 @@ type CategoryCardData = Category & {
   `,
   styleUrls: ['./home.component.scss']
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
   categoryCards$: Observable<CategoryCardData[]>;
   products$: Observable<Product[]>;
   featuredProducts: Product[] = [];
+  private destroy$ = new Subject<void>();
 
   features = [
     {
-      title: 'Naturalne Drewno',
-      description: 'Wykonane z najwyższej jakości drewna dębowego i sosnowego',
+      titleKey: 'HOME.FEATURES.NATURAL_WOOD_TITLE',
+      descriptionKey: 'HOME.FEATURES.NATURAL_WOOD_DESC',
       iconPath: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
     },
     {
-      title: 'Szybka Dostawa',
-      description: 'Dostarczamy Twoje zamówienie w ciągu 3-5 dni roboczych',
+      titleKey: 'HOME.FEATURES.FAST_DELIVERY_TITLE',
+      descriptionKey: 'HOME.FEATURES.FAST_DELIVERY_DESC',
       iconPath: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
     },
     {
-      title: 'Fachowe Doradztwo',
-      description: 'Nasi eksperci pomogą Ci wybrać odpowiednią balię',
+      titleKey: 'HOME.FEATURES.EXPERT_ADVICE_TITLE',
+      descriptionKey: 'HOME.FEATURES.EXPERT_ADVICE_DESC',
       iconPath: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
     }
   ];
 
   testimonials = [
     {
-      name: 'Jan Kowalski',
-      location: 'Warszawa',
+      nameKey: 'HOME.TESTIMONIALS.CUSTOMER_1_NAME',
+      locationKey: 'HOME.TESTIMONIALS.CUSTOMER_1_LOCATION',
       rating: 5,
-      quote: 'Wspaniała balia! Doskonała jakość drewna i szybka dostawa. Polecam!'
+      quoteKey: 'HOME.TESTIMONIALS.CUSTOMER_1_QUOTE'
     },
     {
-      name: 'Anna Nowak',
-      location: 'Kraków',
+      nameKey: 'HOME.TESTIMONIALS.CUSTOMER_2_NAME',
+      locationKey: 'HOME.TESTIMONIALS.CUSTOMER_2_LOCATION',
       rating: 5,
-      quote: 'Moja kadź ogrodowa to teraz ulubione miejsce relaksu. Profesjonalna obsługa!'
+      quoteKey: 'HOME.TESTIMONIALS.CUSTOMER_2_QUOTE'
     },
     {
-      name: 'Piotr Wiśniewski',
-      location: 'Gdańsk',
+      nameKey: 'HOME.TESTIMONIALS.CUSTOMER_3_NAME',
+      locationKey: 'HOME.TESTIMONIALS.CUSTOMER_3_LOCATION',
       rating: 5,
-      quote: 'Beczka ozdobna pięknie wygląda w ogrodzie. Świetne wykonanie!'
+      quoteKey: 'HOME.TESTIMONIALS.CUSTOMER_3_QUOTE'
     }
   ];
 
   constructor(
     private apiService: ApiService, 
     private notificationService: NotificationService,
+    private languageService: LanguageService,
     private router: Router
   ) {
-    this.categoryCards$ = this.apiService.getCategories().pipe(
+    // Przeładuj dane po zmianie języka
+    this.categoryCards$ = this.languageService.currentLanguage$.pipe(
+      switchMap(() => this.apiService.getCategories()),
       map(categories => this.buildCategoryCards(categories))
     );
-    this.products$ = this.apiService.getProducts();
+    
+    this.products$ = this.languageService.currentLanguage$.pipe(
+      switchMap(() => this.apiService.getProducts())
+    );
   }
 
   ngOnInit(): void {
-    this.products$.subscribe(products => {
+    this.products$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(products => {
       this.featuredProducts = products.slice(0, 4);
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   navigateToProducts(): void {

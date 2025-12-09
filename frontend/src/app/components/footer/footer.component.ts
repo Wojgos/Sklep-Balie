@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'bg-footer',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, TranslateModule],
   template: `
     <footer class="bg-muted/30 border-t">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -17,8 +18,7 @@ import { RouterModule } from '@angular/router';
               <span class="font-heading font-bold text-xl">BarrelGarden</span>
             </div>
             <p class="text-muted-foreground text-sm">
-              Najwyższej jakości drewniane balie ogrodowe, kadzie kąpielowe i beczki ozdobne. 
-              Naturalne drewno, szybka dostawa, fachowe doradztwo.
+              {{ 'FOOTER.DESCRIPTION' | translate }}
             </p>
             <div class="flex space-x-4">
               <a href="#" class="text-muted-foreground hover:text-primary transition-colors">
@@ -41,36 +41,36 @@ import { RouterModule } from '@angular/router';
 
           <!-- Quick Links -->
           <div class="space-y-4">
-            <h3 class="font-semibold">Szybkie linki</h3>
+            <h3 class="font-semibold">{{ 'FOOTER.QUICK_LINKS' | translate }}</h3>
             <ul class="space-y-2 text-sm">
-              <li><a href="#produkty" class="text-muted-foreground hover:text-primary transition-colors">Produkty</a></li>
-              <li><a href="#kategorie" class="text-muted-foreground hover:text-primary transition-colors">Kategorie</a></li>
-              <li><a href="#o-nas" class="text-muted-foreground hover:text-primary transition-colors">O nas</a></li>
-              <li><a href="#kontakt" class="text-muted-foreground hover:text-primary transition-colors">Kontakt</a></li>
-              <li><a routerLink="/admin" class="text-muted-foreground hover:text-primary transition-colors">Panel Admin</a></li>
+              <li><a href="#produkty" class="text-muted-foreground hover:text-primary transition-colors">{{ 'NAVIGATION.PRODUCTS' | translate }}</a></li>
+              <li><a href="#kategorie" class="text-muted-foreground hover:text-primary transition-colors">{{ 'NAVIGATION.CATEGORIES' | translate }}</a></li>
+              <li><a href="#o-nas" class="text-muted-foreground hover:text-primary transition-colors">{{ 'NAVIGATION.ABOUT' | translate }}</a></li>
+              <li><a href="#kontakt" class="text-muted-foreground hover:text-primary transition-colors">{{ 'NAVIGATION.CONTACT' | translate }}</a></li>
+              <li><a routerLink="/admin" class="text-muted-foreground hover:text-primary transition-colors">{{ 'NAVIGATION.ADMIN' | translate }}</a></li>
             </ul>
           </div>
 
           <!-- Customer Service -->
           <div class="space-y-4">
-            <h3 class="font-semibold">Obsługa klienta</h3>
+            <h3 class="font-semibold">{{ 'FOOTER.CUSTOMER_SERVICE' | translate }}</h3>
             <ul class="space-y-2 text-sm">
-              <li><a href="#" class="text-muted-foreground hover:text-primary transition-colors">Dostawa i zwroty</a></li>
-              <li><a href="#" class="text-muted-foreground hover:text-primary transition-colors">Regulamin</a></li>
-              <li><a href="#" class="text-muted-foreground hover:text-primary transition-colors">Polityka prywatności</a></li>
-              <li><a href="#" class="text-muted-foreground hover:text-primary transition-colors">FAQ</a></li>
-              <li><a href="#" class="text-muted-foreground hover:text-primary transition-colors">Kontakt</a></li>
+              <li><a href="#" class="text-muted-foreground hover:text-primary transition-colors">{{ 'FOOTER.SHIPPING_RETURNS' | translate }}</a></li>
+              <li><a href="#" class="text-muted-foreground hover:text-primary transition-colors">{{ 'FOOTER.TERMS' | translate }}</a></li>
+              <li><a href="#" class="text-muted-foreground hover:text-primary transition-colors">{{ 'FOOTER.PRIVACY' | translate }}</a></li>
+              <li><a href="#" class="text-muted-foreground hover:text-primary transition-colors">{{ 'FOOTER.FAQ' | translate }}</a></li>
+              <li><a href="#" class="text-muted-foreground hover:text-primary transition-colors">{{ 'FOOTER.CONTACT' | translate }}</a></li>
             </ul>
           </div>
 
           <!-- Contact Info -->
           <div class="space-y-4">
-            <h3 class="font-semibold">Kontakt</h3>
+            <h3 class="font-semibold">{{ 'FOOTER.CONTACT_INFO' | translate }}</h3>
             <div class="space-y-2 text-sm text-muted-foreground">
               <p>📧 info&#64;barrelgarden.pl</p>
               <p>📞 +48 123 456 789</p>
               <p>📍 ul. Wiejska 45<br>00-001 Białystok</p>
-              <p>🕒 Pn-Pt: 8:00-18:00<br>Sb: 9:00-15:00</p>
+              <p>🕒 {{ 'FOOTER.OPENING_HOURS' | translate }}</p>
             </div>
           </div>
         </div>
@@ -78,10 +78,10 @@ import { RouterModule } from '@angular/router';
         <div class="border-t mt-8 pt-8">
           <div class="flex flex-col md:flex-row justify-between items-center">
             <p class="text-sm text-muted-foreground">
-              © {{ currentYear }} BarrelGarden. Wszystkie prawa zastrzeżone.
+              © {{ currentYear }} BarrelGarden. {{ 'FOOTER.COPYRIGHT' | translate }}
             </p>
             <div class="flex items-center space-x-4 mt-4 md:mt-0">
-              <span class="text-sm text-muted-foreground">Akceptujemy:</span>
+              <span class="text-sm text-muted-foreground">{{ 'FOOTER.WE_ACCEPT' | translate }}:</span>
               <div class="flex space-x-2">
                 <div class="w-8 h-5 bg-muted rounded border flex items-center justify-center text-xs">VISA</div>
                 <div class="w-8 h-5 bg-muted rounded border flex items-center justify-center text-xs">MC</div>

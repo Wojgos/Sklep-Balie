@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslateModule } from '@ngx-translate/core';
 import { ModalService, Modal } from '../../services/modal.service';
 
 @Component({
   selector: 'app-modal-container',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslateModule],
   template: `
     <div class="fixed top-4 right-4 z-[9999] space-y-3 max-w-md">
       @for (modal of modals$ | async; track modal.id) {
@@ -64,13 +65,13 @@ import { ModalService, Modal } from '../../services/modal.service';
                 (click)="modal.onCancel?.()"
                 class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
-                {{ modal.cancelText || 'Anuluj' }}
+                {{ modal.cancelText || ('COMMON.CANCEL' | translate) }}
               </button>
               <button
                 (click)="modal.onConfirm?.()"
                 class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
               >
-                {{ modal.confirmText || 'Potwierdź' }}
+                {{ modal.confirmText || ('COMMON.CONFIRM' | translate) }}
               </button>
             </div>
           }

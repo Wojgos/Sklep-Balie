@@ -3,12 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, switchMap, takeUntil, filter, finalize } from 'rxjs';
+import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../services/api.service';
+import { LanguageService } from '../../services/language.service';
 
 @Component({
   selector: 'bg-search-bar',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslateModule],
   template: `
     <div class="relative w-full max-w-md">
       <div class="relative">
@@ -17,7 +19,7 @@ import { ApiService } from '../../services/api.service';
           [(ngModel)]="searchQuery"
           (input)="onSearch()"
           (keyup.enter)="onEnter()"
-          placeholder="Szukaj produktów..."
+          [placeholder]="'SEARCH.PLACEHOLDER' | translate"
           class="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           data-testid="input-search"
         />
@@ -38,7 +40,7 @@ import { ApiService } from '../../services/api.service';
       >
         <div class="p-2">
           <div class="text-xs text-muted-foreground mb-2 px-2">
-            Znaleziono {{ searchResults.length }} produktów
+            {{ 'SEARCH.FOUND' | translate }} {{ searchResults.length }} {{ searchResults.length === 1 ? ('SEARCH.PRODUCT_SINGULAR' | translate) : ('SEARCH.PRODUCT_PLURAL' | translate) }}
           </div>
           <div 
             *ngFor="let result of searchResults" 
@@ -64,7 +66,7 @@ import { ApiService } from '../../services/api.service';
         class="absolute top-full left-0 right-0 mt-1 bg-popover border border-popover-border rounded-lg shadow-lg z-50"
       >
         <div class="p-4 text-center text-muted-foreground text-sm">
-          Nie znaleziono produktów dla "{{ searchQuery }}"
+          {{ 'SEARCH.NO_RESULTS_FOR' | translate }} "{{ searchQuery }}"
         </div>
       </div>
     </div>
@@ -84,10 +86,20 @@ export class SearchBarComponent implements OnInit, OnDestroy {
 
   constructor(
     private apiService: ApiService,
+    private languageService: LanguageService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
+    // Re-search when language changes
+    this.languageService.currentLanguage$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+      if (this.searchQuery.trim()) {
+        this.searchSubject.next(this.searchQuery);
+      }
+    });
+
     this.searchSubject.pipe(
       takeUntil(this.destroy$),
       debounceTime(300),

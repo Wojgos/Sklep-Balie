@@ -2,6 +2,7 @@ import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { Observable } from 'rxjs';
+import { TranslateModule } from '@ngx-translate/core';
 import { CartService } from '../../services/cart.service';
 import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../services/notification.service';
@@ -13,7 +14,7 @@ import { User, NotificationType } from '../../models';
 @Component({
   selector: 'bg-header',
   standalone: true,
-  imports: [CommonModule, RouterModule, SearchBarComponent, CartDrawerComponent, LanguageSwitcherComponent],
+  imports: [CommonModule, RouterModule, SearchBarComponent, CartDrawerComponent, LanguageSwitcherComponent, TranslateModule],
   template: `
     <header class="sticky top-0 z-50 bg-background border-b">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -40,28 +41,28 @@ import { User, NotificationType } from '../../models';
                 class="text-sm font-medium hover:bg-muted px-3 py-2 rounded-md transition-colors" 
                 data-testid="link-produkty"
               >
-                Produkty
+                {{ 'NAVIGATION.PRODUCTS' | translate }}
               </a>
               <a 
                 href="#kategorie" 
                 class="text-sm font-medium hover:bg-muted px-3 py-2 rounded-md transition-colors" 
                 data-testid="link-kategorie"
               >
-                Kategorie
+                {{ 'NAVIGATION.CATEGORIES' | translate }}
               </a>
               <a 
                 href="#o-nas" 
                 class="text-sm font-medium hover:bg-muted px-3 py-2 rounded-md transition-colors" 
                 data-testid="link-o-nas"
               >
-                O nas
+                {{ 'NAVIGATION.ABOUT' | translate }}
               </a>
               <a 
                 href="#kontakt" 
                 class="text-sm font-medium hover:bg-muted px-3 py-2 rounded-md transition-colors" 
                 data-testid="link-kontakt"
               >
-                Kontakt
+                {{ 'NAVIGATION.CONTACT' | translate }}
               </a>
             </nav>
           </div>
@@ -138,7 +139,7 @@ import { User, NotificationType } from '../../models';
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                         </svg>
-                        Moje konto
+                        {{ 'HEADER.MY_ACCOUNT' | translate }}
                       </div>
                     </a>
                     <a 
@@ -151,7 +152,7 @@ import { User, NotificationType } from '../../models';
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                         </svg>
-                        Moje zamówienia
+                        {{ 'HEADER.MY_ORDERS' | translate }}
                       </div>
                     </a>
                     <a 
@@ -163,7 +164,7 @@ import { User, NotificationType } from '../../models';
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
                         </svg>
-                        Zgłoszenia
+                        {{ 'HEADER.SUPPORT' | translate }}
                       </div>
                     </a>
                     <a 
@@ -175,7 +176,7 @@ import { User, NotificationType } from '../../models';
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
                         </svg>
-                        Program Lojalnościowy
+                        {{ 'HEADER.LOYALTY_PROGRAM' | translate }}
                       </div>
                     </a>
                     <a 
@@ -189,7 +190,7 @@ import { User, NotificationType } from '../../models';
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
-                        Ustawienia
+                        {{ 'HEADER.SETTINGS' | translate }}
                       </div>
                     </a>
                     
@@ -204,7 +205,7 @@ import { User, NotificationType } from '../../models';
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                         </svg>
-                        Panel Admina
+                        {{ 'HEADER.ADMIN_PANEL' | translate }}
                       </div>
                     </a>
                     
@@ -217,7 +218,7 @@ import { User, NotificationType } from '../../models';
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                         </svg>
-                        Wyloguj się
+                        {{ 'NAVIGATION.LOGOUT' | translate }}
                       </div>
                     </button>
                   </div>
@@ -235,7 +236,7 @@ import { User, NotificationType } from '../../models';
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
                         </svg>
-                        <span class="font-semibold">Zaloguj się</span>
+                        <span class="font-semibold">{{ 'NAVIGATION.LOGIN' | translate }}</span>
                       </div>
                     </a>
                     <a 
@@ -247,7 +248,7 @@ import { User, NotificationType } from '../../models';
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
                         </svg>
-                        <span class="font-semibold">Zarejestruj się</span>
+                        <span class="font-semibold">{{ 'NAVIGATION.REGISTER' | translate }}</span>
                       </div>
                     </a>
                   </div>
@@ -293,7 +294,7 @@ import { User, NotificationType } from '../../models';
       <div class="fixed inset-y-0 left-0 w-64 bg-background border-r shadow-lg">
         <div class="p-4">
           <div class="flex items-center justify-between mb-6">
-            <span class="font-heading font-bold text-xl">Menu</span>
+            <span class="font-heading font-bold text-xl">{{ 'HEADER.MENU' | translate }}</span>
             <button (click)="toggleMobileMenu()" class="p-2 hover:bg-muted rounded-md">
               <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -301,10 +302,10 @@ import { User, NotificationType } from '../../models';
             </button>
           </div>
           <nav class="space-y-2">
-            <a routerLink="/products" class="block px-3 py-2 rounded-md hover:bg-muted">Produkty</a>
-            <a href="#kategorie" class="block px-3 py-2 rounded-md hover:bg-muted">Kategorie</a>
-            <a href="#o-nas" class="block px-3 py-2 rounded-md hover:bg-muted">O nas</a>
-            <a href="#kontakt" class="block px-3 py-2 rounded-md hover:bg-muted">Kontakt</a>
+            <a routerLink="/products" class="block px-3 py-2 rounded-md hover:bg-muted">{{ 'NAVIGATION.PRODUCTS' | translate }}</a>
+            <a href="#kategorie" class="block px-3 py-2 rounded-md hover:bg-muted">{{ 'NAVIGATION.CATEGORIES' | translate }}</a>
+            <a href="#o-nas" class="block px-3 py-2 rounded-md hover:bg-muted">{{ 'NAVIGATION.ABOUT' | translate }}</a>
+            <a href="#kontakt" class="block px-3 py-2 rounded-md hover:bg-muted">{{ 'NAVIGATION.CONTACT' | translate }}</a>
           </nav>
         </div>
       </div>
