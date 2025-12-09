@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable, of, forkJoin } from 'rxjs';
 import { ApiService } from '../../services/api.service';
+import { ModalService } from '../../services/modal.service';
 import { Product, Category, Order, InsertProduct, InsertCategory, SalesStatistics, LowStockAlert, LowStockVariantAlert, LowStockStatistics, GroupedLowStockAlert, ProductSkuVariant, OrderItem, ProductAttribute, ProductVariant, Ticket, TicketReply, TicketStatusUpdate, LoyaltyProgram, LoyaltyReward, InsertLoyaltyProgram, InsertLoyaltyReward } from '../../models';
 import { AdvancedStatisticsComponent } from './advanced-statistics.component';
 
@@ -2002,7 +2003,10 @@ export class AdminComponent implements OnInit {
 
   private allCategories: Category[] = [];
 
-  constructor(private apiService: ApiService) {
+  constructor(
+    private apiService: ApiService,
+    private modalService: ModalService
+  ) {
     this.products$ = this.apiService.getProducts();
     this.categories$ = this.apiService.getCategories();
     this.orders$ = this.apiService.getOrders();
@@ -2056,41 +2060,46 @@ export class AdminComponent implements OnInit {
       // Update existing attribute
       this.apiService.updateAttribute(this.editingAttribute.id, attributeData).subscribe({
         next: () => {
-          alert('Atrybut zaktualizowany pomyślnie!');
+          this.modalService.showSuccess('Atrybut zaktualizowany pomyślnie!');
           this.loadAttributes();
           this.closeAttributeModal();
         },
         error: (err) => {
           console.error('Błąd aktualizacji atrybutu:', err);
-          alert('Błąd podczas aktualizacji atrybutu');
+          this.modalService.showError('Błąd podczas aktualizacji atrybutu');
         }
       });
     } else {
       // Create new attribute
       this.apiService.createAttribute(attributeData).subscribe({
         next: () => {
-          alert('Atrybut utworzony pomyślnie!');
+          this.modalService.showSuccess('Atrybut utworzony pomyślnie!');
           this.loadAttributes();
           this.closeAttributeModal();
         },
         error: (err) => {
           console.error('Błąd tworzenia atrybutu:', err);
-          alert('Błąd podczas tworzenia atrybutu');
+          this.modalService.showError('Błąd podczas tworzenia atrybutu');
         }
       });
     }
   }
 
-  deleteAttribute(id: number): void {
-    if (confirm('Czy na pewno chcesz usunąć ten atrybut? Zostaną usunięte wszystkie jego wartości.')) {
+  async deleteAttribute(id: number): Promise<void> {
+    const confirmed = await this.modalService.showConfirm(
+      'Czy na pewno chcesz usunąć ten atrybut? Zostaną usunięte wszystkie jego wartości.',
+      'Potwierdź usunięcie'
+    );
+    
+    if (confirmed) {
       this.apiService.deleteAttribute(id).subscribe({
         next: () => {
-          alert('Atrybut usunięty pomyślnie!');
+          this.modalService.showSuccess('Atrybut usunięty pomyślnie!');
           this.loadAttributes();
         },
         error: (err) => {
           console.error('Błąd usuwania atrybutu:', err);
-          alert('Błąd podczas usuwania atrybutu');
+          this.modalService.showError('Błąd podczas usuwania atrybutu');
         }
       });
     }
@@ -2123,7 +2132,7 @@ export class AdminComponent implements OnInit {
 
     this.apiService.createAttributeValue(valueData).subscribe({
       next: () => {
-        alert('Wartość dodana pomyślnie!');
+        this.modalService.showSuccess('Wartość dodana pomyślnie!');
         this.attributeValueForm.value = '';
         
         // Refresh the current attribute to show new value
@@ -2134,16 +2143,21 @@ export class AdminComponent implements OnInit {
       },
       error: (err) => {
         console.error('Błąd dodawania wartości:', err);
-        alert('Błąd podczas dodawania wartości');
+        this.modalService.showError('Błąd podczas dodawania wartości');
       }
     });
   }
 
-  deleteAttributeValue(valueId: number): void {
-    if (confirm('Czy na pewno chcesz usunąć tę wartość?')) {
+  async deleteAttributeValue(valueId: number): Promise<void> {
+    const confirmed = await this.modalService.showConfirm(
+      'Czy na pewno chcesz usunąć tę wartość?',
+      'Potwierdź usunięcie'
+    );
+    
+    if (confirmed) {
       this.apiService.deleteAttributeValue(valueId).subscribe({
         next: () => {
-          alert('Wartość usunięta pomyślnie!');
+          this.modalService.showSuccess('Wartość usunięta pomyślnie!');
           
           // Refresh the current attribute
           if (this.selectedAttributeForValues) {
@@ -2155,7 +2169,7 @@ export class AdminComponent implements OnInit {
         },
         error: (err) => {
           console.error('Błąd usuwania wartości:', err);
-          alert('Błąd podczas usuwania wartości');
+          this.modalService.showError('Błąd podczas usuwania wartości');
         }
       });
     }
@@ -2256,11 +2270,11 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.products$ = this.apiService.getProducts();
           this.closeProductModal();
-          alert('Produkt zaktualizowany pomyślnie!');
+          this.modalService.showSuccess('Produkt zaktualizowany pomyślnie!');
         },
         error: (err) => {
           console.error('Błąd aktualizacji produktu:', err);
-          alert('Błąd podczas aktualizacji produktu');
+          this.modalService.showError('Błąd podczas aktualizacji produktu');
         }
       });
     } else {
@@ -2268,26 +2282,31 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.products$ = this.apiService.getProducts();
           this.closeProductModal();
-          alert('Produkt dodany pomyślnie!');
+          this.modalService.showSuccess('Produkt dodany pomyślnie!');
         },
         error: (err) => {
           console.error('Błąd dodawania produktu:', err);
-          alert('Błąd podczas dodawania produktu');
+          this.modalService.showError('Błąd podczas dodawania produktu');
         }
       });
     }
   }
 
-  deleteProduct(id: string): void {
-    if (confirm('Czy na pewno chcesz usunąć ten produkt?')) {
+  async deleteProduct(id: string): Promise<void> {
+    const confirmed = await this.modalService.showConfirm(
+      'Czy na pewno chcesz usunąć ten produkt?',
+      'Potwierdź usunięcie'
+    );
+    
+    if (confirmed) {
       this.apiService.deleteProduct(id).subscribe({
         next: () => {
           this.products$ = this.apiService.getProducts();
-          alert('Produkt usunięty pomyślnie!');
+          this.modalService.showSuccess('Produkt usunięty pomyślnie!');
         },
         error: (err) => {
           console.error('Błąd usuwania produktu:', err);
-          alert('Błąd podczas usuwania produktu');
+          this.modalService.showError('Błąd podczas usuwania produktu');
         }
       });
     }
@@ -2401,7 +2420,7 @@ export class AdminComponent implements OnInit {
 
       this.apiService.updateVariant(this.editingSkuVariant.id, updates).subscribe({
         next: () => {
-          alert('Wariant zaktualizowany pomyślnie!');
+          this.modalService.showSuccess('Wariant zaktualizowany pomyślnie!');
           this.closeVariantModal();
           // Refresh product to get updated variants
           if (this.editingProduct?.numericId) {
@@ -2416,13 +2435,13 @@ export class AdminComponent implements OnInit {
         },
         error: (err) => {
           console.error('Błąd aktualizacji wariantu:', err);
-          alert('Błąd podczas aktualizacji wariantu');
+          this.modalService.showError('Błąd podczas aktualizacji wariantu');
         }
       });
     } else {
       // Create new variant
       if (!this.editingProduct?.numericId) {
-        alert('Brak ID produktu');
+        this.modalService.showError('Brak ID produktu');
         return;
       }
 
@@ -2438,7 +2457,7 @@ export class AdminComponent implements OnInit {
 
       this.apiService.createVariant(this.editingProduct.numericId, variantData).subscribe({
         next: () => {
-          alert('Wariant utworzony pomyślnie!');
+          this.modalService.showSuccess('Wariant utworzony pomyślnie!');
           this.closeVariantModal();
           // Refresh product to get new variant
           if (this.editingProduct?.numericId) {
@@ -2453,20 +2472,25 @@ export class AdminComponent implements OnInit {
         },
         error: (err) => {
           console.error('Błąd tworzenia wariantu:', err);
-          alert('Błąd podczas tworzenia wariantu');
+          this.modalService.showError('Błąd podczas tworzenia wariantu');
         }
       });
     }
   }
 
-  deleteSkuVariant(variant: ProductSkuVariant): void {
-    if (!confirm(`Czy na pewno chcesz usunąć wariant ${variant.sku}?`)) {
+  async deleteSkuVariant(variant: ProductSkuVariant): Promise<void> {
+    const confirmed = await this.modalService.showConfirm(
+      `Czy na pewno chcesz usunąć wariant ${variant.sku}?`,
+      'Potwierdź usunięcie'
+    );
+    
+    if (!confirmed) {
       return;
     }
 
     this.apiService.deleteVariant(variant.id).subscribe({
       next: () => {
-        alert('Wariant usunięty pomyślnie!');
+        this.modalService.showSuccess('Wariant usunięty pomyślnie!');
         // Refresh product to remove deleted variant
         if (this.editingProduct?.numericId) {
           this.apiService.getProduct(this.editingProduct.numericId.toString()).subscribe({
@@ -2480,7 +2504,7 @@ export class AdminComponent implements OnInit {
       },
       error: (err) => {
         console.error('Błąd usuwania wariantu:', err);
-        alert('Błąd podczas usuwania wariantu');
+        this.modalService.showError('Błąd podczas usuwania wariantu');
       }
     });
   }
@@ -2527,11 +2551,11 @@ export class AdminComponent implements OnInit {
           this.categories$ = this.apiService.getCategories();
           this.categories$.subscribe(cats => this.allCategories = cats);
           this.closeCategoryModal();
-          alert('Kategoria zaktualizowana pomyślnie!');
+          this.modalService.showSuccess('Kategoria zaktualizowana pomyślnie!');
         },
         error: (err) => {
           console.error('Błąd aktualizacji kategorii:', err);
-          alert('Błąd podczas aktualizacji kategorii');
+          this.modalService.showError('Błąd podczas aktualizacji kategorii');
         }
       });
     } else {
@@ -2540,27 +2564,32 @@ export class AdminComponent implements OnInit {
           this.categories$ = this.apiService.getCategories();
           this.categories$.subscribe(cats => this.allCategories = cats);
           this.closeCategoryModal();
-          alert('Kategoria dodana pomyślnie!');
+          this.modalService.showSuccess('Kategoria dodana pomyślnie!');
         },
         error: (err) => {
           console.error('Błąd dodawania kategorii:', err);
-          alert('Błąd podczas dodawania kategorii');
+          this.modalService.showError('Błąd podczas dodawania kategorii');
         }
       });
     }
   }
 
-  deleteCategory(id: string): void {
-    if (confirm('Czy na pewno chcesz usunąć tę kategorię?')) {
+  async deleteCategory(id: string): Promise<void> {
+    const confirmed = await this.modalService.showConfirm(
+      'Czy na pewno chcesz usunąć tę kategorię?',
+      'Potwierdź usunięcie'
+    );
+    
+    if (confirmed) {
       this.apiService.deleteCategory(id).subscribe({
         next: () => {
           this.categories$ = this.apiService.getCategories();
           this.categories$.subscribe(cats => this.allCategories = cats);
-          alert('Kategoria usunięta pomyślnie!');
+          this.modalService.showSuccess('Kategoria usunięta pomyślnie!');
         },
         error: (err) => {
           console.error('Błąd usuwania kategorii:', err);
-          alert('Błąd podczas usuwania kategorii');
+          this.modalService.showError('Błąd podczas usuwania kategorii');
         }
       });
     }
@@ -2573,11 +2602,11 @@ export class AdminComponent implements OnInit {
     this.apiService.updateOrderStatus(orderId, status).subscribe({
       next: () => {
         this.orders$ = this.apiService.getOrders();
-        alert('Status zamówienia zaktualizowany!');
+        this.modalService.showSuccess('Status zamówienia zaktualizowany!');
       },
       error: (err) => {
         console.error('Błąd aktualizacji statusu:', err);
-        alert('Błąd podczas aktualizacji statusu');
+        this.modalService.showError('Błąd podczas aktualizacji statusu');
       }
     });
   }
@@ -2595,7 +2624,7 @@ export class AdminComponent implements OnInit {
         console.error('Błąd pobierania szczegółów zamówienia:', err);
         console.error('Status:', err.status);
         console.error('Szczegóły:', err.error);
-        alert(`Błąd podczas pobierania szczegółów zamówienia.\nStatus: ${err.status}\nSprawdź konsolę przeglądarki (F12) po więcej szczegółów.`);
+        this.modalService.showError(`Błąd podczas pobierania szczegółów zamówienia.\nStatus: ${err.status}\nSprawdź konsolę przeglądarki (F12) po więcej szczegółów.`);
       }
     });
   }
@@ -2657,11 +2686,11 @@ export class AdminComponent implements OnInit {
         };
         this.orders$ = this.apiService.getOrders();
         this.closeOrderEditModal();
-        alert('Zamówienie zaktualizowane pomyślnie!');
+        this.modalService.showSuccess('Zamówienie zaktualizowane pomyślnie!');
       },
       error: (err) => {
         console.error('Błąd aktualizacji zamówienia:', err);
-        alert('Błąd podczas aktualizacji zamówienia');
+        this.modalService.showError('Błąd podczas aktualizacji zamówienia');
       }
     });
   }
@@ -2691,13 +2720,14 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  autoOrderVariant(variantAlert: LowStockVariantAlert): void {
-    const confirmed = confirm(
+  async autoOrderVariant(variantAlert: LowStockVariantAlert): Promise<void> {
+    const confirmed = await this.modalService.showConfirm(
       `Czy chcesz automatycznie zamówić ${variantAlert.suggestedOrder} sztuk wariantu?\n\n` +
       `Produkt: ${variantAlert.productName}\n` +
       `SKU: ${variantAlert.variant.sku}\n` +
       `Obecny stan: ${variantAlert.currentStock} szt.\n` +
-      `Nowy stan: ${variantAlert.currentStock + variantAlert.suggestedOrder} szt.`
+      `Nowy stan: ${variantAlert.currentStock + variantAlert.suggestedOrder} szt.`,
+      'Potwierdź zamówienie'
     );
     
     if (confirmed) {
@@ -2706,23 +2736,24 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.loadLowStockAlerts();
           this.products$ = this.apiService.getProducts();
-          window.alert(`✅ Zamówiono ${variantAlert.suggestedOrder} sztuk.\nNowy stan: ${newStock} szt.`);
+          this.modalService.showSuccess(`Zamówiono ${variantAlert.suggestedOrder} sztuk.\nNowy stan: ${newStock} szt.`);
         },
         error: (err) => {
           console.error('Błąd automatycznego zamawiania:', err);
-          window.alert('❌ Błąd podczas automatycznego zamawiania');
+          this.modalService.showError('Błąd podczas automatycznego zamawiania');
         }
       });
     }
   }
 
-  bulkOrderGroup(group: GroupedLowStockAlert): void {
+  async bulkOrderGroup(group: GroupedLowStockAlert): Promise<void> {
     const totalToOrder = group.variants.reduce((sum, v) => sum + v.suggestedOrder, 0);
-    const confirmed = confirm(
+    const confirmed = await this.modalService.showConfirm(
       `Czy chcesz zamówić wszystkie warianty produktu "${group.productName}"?\n\n` +
       `Liczba wariantów: ${group.totalVariantsAffected}\n` +
       `Łączna ilość do zamówienia: ${totalToOrder} szt.\n\n` +
-      `To zaktualizuje stan magazynowy wszystkich wariantów.`
+      `To zaktualizuje stan magazynowy wszystkich wariantów.`,
+      'Potwierdź masowe zamówienie'
     );
     
     if (confirmed) {
@@ -2737,7 +2768,7 @@ export class AdminComponent implements OnInit {
             if (completedCount + errorCount === group.variants.length) {
               this.loadLowStockAlerts();
               this.products$ = this.apiService.getProducts();
-              window.alert(`✅ Zamówienie zakończone!\n\nZaktualizowano: ${completedCount} wariantów\nBłędy: ${errorCount}`);
+              this.modalService.showSuccess(`Zamówienie zakończone!\n\nZaktualizowano: ${completedCount} wariantów\nBłędy: ${errorCount}`);
             }
           },
           error: (err) => {
@@ -2745,7 +2776,7 @@ export class AdminComponent implements OnInit {
             errorCount++;
             if (completedCount + errorCount === group.variants.length) {
               this.loadLowStockAlerts();
-              window.alert(`⚠️ Zamówienie zakończone z błędami.\n\nZaktualizowano: ${completedCount} wariantów\nBłędy: ${errorCount}`);
+              this.modalService.showError(`Zamówienie zakończone z błędami.\n\nZaktualizowano: ${completedCount} wariantów\nBłędy: ${errorCount}`);
             }
           }
         });
@@ -2754,6 +2785,7 @@ export class AdminComponent implements OnInit {
   }
 
   editVariantThreshold(variantAlert: LowStockVariantAlert): void {
+    // Note: Using browser prompt for now - could be replaced with custom input modal
     const newThreshold = prompt(
       `Edytuj próg niskiego stanu dla wariantu:\n\n` +
       `Produkt: ${variantAlert.productName}\n` +
@@ -2765,18 +2797,18 @@ export class AdminComponent implements OnInit {
     if (newThreshold !== null) {
       const threshold = parseInt(newThreshold, 10);
       if (isNaN(threshold) || threshold < 0) {
-        window.alert('❌ Nieprawidłowa wartość progu');
+        this.modalService.showError('Nieprawidłowa wartość progu');
         return;
       }
       
       this.apiService.updateVariant(variantAlert.variant.id, { low_stock_threshold: threshold }).subscribe({
         next: () => {
           this.loadLowStockAlerts();
-          window.alert(`✅ Próg zaktualizowany do ${threshold} szt.`);
+          this.modalService.showSuccess(`Próg zaktualizowany do ${threshold} szt.`);
         },
         error: (err) => {
           console.error('Błąd aktualizacji progu:', err);
-          window.alert('❌ Błąd podczas aktualizacji progu');
+          this.modalService.showError('Błąd podczas aktualizacji progu');
         }
       });
     }
@@ -2788,15 +2820,15 @@ export class AdminComponent implements OnInit {
       next: (response) => {
         this.sendingAlert = false;
         if (response.success) {
-          window.alert(`✅ ${response.message}`);
+          this.modalService.showSuccess(response.message);
         } else {
-          window.alert(`❌ ${response.message}`);
+          this.modalService.showError(response.message);
         }
       },
       error: (err) => {
         console.error('Błąd wyzwalania alertu:', err);
         this.sendingAlert = false;
-        window.alert('❌ Błąd podczas wyzwalania alertu');
+        this.modalService.showError('Błąd podczas wyzwalania alertu');
       }
     });
   }
@@ -2804,7 +2836,7 @@ export class AdminComponent implements OnInit {
   exportLowStockToCSV(): void {
     this.groupedLowStockAlerts$.subscribe(groups => {
       if (groups.length === 0) {
-        window.alert('Brak danych do eksportu');
+        this.modalService.showError('Brak danych do eksportu');
         return;
       }
 
@@ -2852,14 +2884,15 @@ export class AdminComponent implements OnInit {
       link.click();
       document.body.removeChild(link);
       
-      window.alert('✅ Plik CSV został pobrany');
+      this.modalService.showSuccess('Plik CSV został pobrany');
     });
   }
 
   // Legacy method for backward compatibility
-  autoOrderProduct(stockAlert: LowStockAlert): void {
-    const confirmed = confirm(
-      `Czy chcesz automatycznie zamówić ${stockAlert.suggestedOrder} sztuk produktu "${stockAlert.product.name}"?`
+  async autoOrderProduct(stockAlert: LowStockAlert): Promise<void> {
+    const confirmed = await this.modalService.showConfirm(
+      `Czy chcesz automatycznie zamówić ${stockAlert.suggestedOrder} sztuk produktu "${stockAlert.product.name}"?`,
+      'Potwierdź zamówienie'
     );
     
     if (confirmed) {
@@ -2868,11 +2901,11 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.products$ = this.apiService.getProducts();
           this.loadLowStockAlerts();
-          alert(`Zamówiono ${stockAlert.suggestedOrder} sztuk. Nowy stan: ${newStock} szt.`);
+          this.modalService.showSuccess(`Zamówiono ${stockAlert.suggestedOrder} sztuk. Nowy stan: ${newStock} szt.`);
         },
         error: (err) => {
           console.error('Błąd automatycznego zamawiania:', err);
-          alert('Błąd podczas automatycznego zamawiania');
+          this.modalService.showError('Błąd podczas automatycznego zamawiania');
         }
       });
     }
@@ -2901,7 +2934,7 @@ export class AdminComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error loading tickets:', err);
-        alert('Błąd podczas ładowania zgłoszeń');
+        this.modalService.showError('Błąd podczas ładowania zgłoszeń');
         this.loadingTickets = false;
       }
     });
@@ -2933,7 +2966,7 @@ export class AdminComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error loading ticket details:', err);
-        alert('Błąd podczas ładowania szczegółów zgłoszenia');
+        this.modalService.showError('Błąd podczas ładowania szczegółów zgłoszenia');
         this.loadingTickets = false;
       }
     });
@@ -2954,7 +2987,7 @@ export class AdminComponent implements OnInit {
 
     this.apiService.updateTicketStatus(this.selectedTicket.id, statusUpdate).subscribe({
       next: (updatedTicket) => {
-        alert('Status zgłoszenia został zaktualizowany');
+        this.modalService.showSuccess('Status zgłoszenia został zaktualizowany');
         this.loadSupportTickets();
         if (this.selectedTicket) {
           this.selectedTicket.status = updatedTicket.status;
@@ -2962,7 +2995,7 @@ export class AdminComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error updating ticket status:', err);
-        alert('Błąd podczas aktualizacji statusu zgłoszenia');
+        this.modalService.showError('Błąd podczas aktualizacji statusu zgłoszenia');
       }
     });
   }
@@ -2976,7 +3009,7 @@ export class AdminComponent implements OnInit {
 
     this.apiService.adminReplyToTicket(this.selectedTicket.id, reply).subscribe({
       next: () => {
-        alert('Odpowiedź została wysłana');
+        this.modalService.showSuccess('Odpowiedź została wysłana');
         this.ticketReplyText = '';
         // Reload ticket details
         if (this.selectedTicket) {
@@ -2985,7 +3018,7 @@ export class AdminComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error replying to ticket:', err);
-        alert('Błąd podczas wysyłania odpowiedzi');
+        this.modalService.showError('Błąd podczas wysyłania odpowiedzi');
       }
     });
   }
@@ -3092,11 +3125,11 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.loyaltyRewards$ = this.apiService.getLoyaltyRewards();
           this.closeRewardModal();
-          alert('Nagroda została zaktualizowana');
+          this.modalService.showSuccess('Nagroda została zaktualizowana');
         },
         error: (err) => {
           console.error('Error updating reward:', err);
-          alert('Błąd podczas aktualizacji nagrody');
+          this.modalService.showError('Błąd podczas aktualizacji nagrody');
         }
       });
     } else {
@@ -3105,27 +3138,28 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.loyaltyRewards$ = this.apiService.getLoyaltyRewards();
           this.closeRewardModal();
-          alert('Nagroda została dodana');
+          this.modalService.showSuccess('Nagroda została dodana');
         },
         error: (err) => {
           console.error('Error creating reward:', err);
-          alert('Błąd podczas tworzenia nagrody');
+          this.modalService.showError('Błąd podczas tworzenia nagrody');
         }
       });
     }
   }
 
-  deleteReward(rewardId: string): void {
-    if (!confirm('Czy na pewno chcesz usunąć tę nagrodę?')) return;
+  async deleteReward(rewardId: string): Promise<void> {
+    const confirmed = await this.modalService.showConfirm('Czy na pewno chcesz usunąć tę nagrodę?', 'Usuń nagrodę');
+    if (!confirmed) return;
 
     this.apiService.deleteLoyaltyReward(rewardId).subscribe({
       next: () => {
         this.loyaltyRewards$ = this.apiService.getLoyaltyRewards();
-        alert('Nagroda została usunięta');
+        this.modalService.showSuccess('Nagroda została usunięta');
       },
       error: (err) => {
         console.error('Error deleting reward:', err);
-        alert('Błąd podczas usuwania nagrody');
+        this.modalService.showError('Błąd podczas usuwania nagrody');
       }
     });
   }
