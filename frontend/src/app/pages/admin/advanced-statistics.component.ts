@@ -1,7 +1,10 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { LanguageService } from '../../services/language.service';
 import { ApiService } from '../../services/api.service';
 import {
   MonthlyStatistics,
@@ -23,13 +26,13 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-advanced-statistics',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslateModule],
   template: `
     <div class="space-y-6">
       <!-- Header with Quick Stats -->
       <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
-        <h2 class="text-3xl font-bold mb-4">📊 Panel Analityczny Biznesowy</h2>
-        <p class="text-blue-100">Kompleksowa analiza wyników sprzedażowych Twojego sklepu</p>
+        <h2 class="text-3xl font-bold mb-4">📊 {{ 'STATISTICS.TITLE' | translate }}</h2>
+        <p class="text-blue-100">{{ 'STATISTICS.SUBTITLE' | translate }}</p>
       </div>
 
       <!-- Dashboard Overview -->
@@ -37,26 +40,26 @@ Chart.register(...registerables);
         <!-- Today -->
         <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium opacity-90">Dzisiaj</span>
+            <span class="text-sm font-medium opacity-90">{{ 'STATISTICS.TODAY' | translate }}</span>
             <svg class="w-8 h-8 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
           </div>
           <p class="text-3xl font-bold">{{dashboard.today.revenue | number:'1.2-2'}} PLN</p>
-          <p class="text-sm opacity-75 mt-1">{{dashboard.today.orders_count}} zamówień</p>
+          <p class="text-sm opacity-75 mt-1">{{dashboard.today.orders_count}} {{ 'STATISTICS.ORDERS' | translate }}</p>
         </div>
 
         <!-- Current Month -->
         <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium opacity-90">Ten miesiąc</span>
+            <span class="text-sm font-medium opacity-90">{{ 'STATISTICS.CURRENT_MONTH' | translate }}</span>
             <svg class="w-8 h-8 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
           </div>
           <p class="text-3xl font-bold">{{dashboard.current_month.revenue | number:'1.2-2'}} PLN</p>
           <p class="text-sm opacity-75 mt-1">
-            {{dashboard.current_month.orders_count}} zamówień
+            {{dashboard.current_month.orders_count}} {{ 'STATISTICS.ORDERS' | translate }}
             <span [class]="dashboard.current_month.growth_rate >= 0 ? 'text-green-200' : 'text-red-200'" class="ml-2">
               {{dashboard.current_month.growth_rate >= 0 ? '↗' : '↘'}} {{dashboard.current_month.growth_rate | number:'1.1-1'}}%
             </span>
@@ -66,25 +69,25 @@ Chart.register(...registerables);
         <!-- Current Year -->
         <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium opacity-90">Ten rok</span>
+            <span class="text-sm font-medium opacity-90">{{ 'STATISTICS.CURRENT_YEAR' | translate }}</span>
             <svg class="w-8 h-8 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
             </svg>
           </div>
           <p class="text-3xl font-bold">{{dashboard.current_year.revenue | number:'1.2-2'}} PLN</p>
-          <p class="text-sm opacity-75 mt-1">{{dashboard.current_year.orders_count}} zamówień</p>
+          <p class="text-sm opacity-75 mt-1">{{dashboard.current_year.orders_count}} {{ 'STATISTICS.ORDERS' | translate }}</p>
         </div>
 
         <!-- Previous Month -->
         <div class="bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg p-6 text-white shadow-lg">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium opacity-90">Poprzedni miesiąc</span>
+            <span class="text-sm font-medium opacity-90">{{ 'STATISTICS.PREVIOUS_MONTH' | translate }}</span>
             <svg class="w-8 h-8 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
           </div>
           <p class="text-3xl font-bold">{{dashboard.previous_month.revenue | number:'1.2-2'}} PLN</p>
-          <p class="text-sm opacity-75 mt-1">{{dashboard.previous_month.orders_count}} zamówień</p>
+          <p class="text-sm opacity-75 mt-1">{{dashboard.previous_month.orders_count}} {{ 'STATISTICS.ORDERS' | translate }}</p>
         </div>
       </div>
 
@@ -106,7 +109,7 @@ Chart.register(...registerables);
       <!-- Monthly Analysis Tab -->
       <div *ngIf="activeAnalyticsTab === 'monthly'" class="space-y-6">
         <div class="flex justify-between items-center">
-          <h3 class="text-2xl font-semibold">Analiza Miesięczna</h3>
+          <h3 class="text-2xl font-semibold">{{ 'STATISTICS.MONTHLY_ANALYTICS' | translate }}</h3>
           <div class="flex items-center gap-2">
             <input 
               type="date" 
@@ -123,7 +126,7 @@ Chart.register(...registerables);
               (click)="loadMonthlyData()"
               class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg font-semibold transition-colors"
             >
-              Generuj Analizę
+              {{ 'STATISTICS.GENERATE_ANALYSIS' | translate }}
             </button>
           </div>
         </div>
@@ -131,7 +134,7 @@ Chart.register(...registerables);
         <div *ngIf="monthlyStats$ | async as monthly">
           <!-- View Selection Buttons -->
           <div class="bg-card border border-card-border rounded-lg p-5">
-            <p class="text-sm text-muted-foreground mb-4 font-medium">Wybierz widok do wyświetlenia:</p>
+            <p class="text-sm text-muted-foreground mb-4 font-medium">{{ 'STATISTICS.SELECT_VIEW' | translate }}</p>
             <div class="flex flex-wrap gap-3">
               <button
                 (click)="toggleMonthlyView('summary')"
@@ -140,7 +143,7 @@ Chart.register(...registerables);
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                 class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                📊 Podsumowanie
+                {{ 'STATISTICS.VIEW_SUMMARY' | translate }}
               </button>
               <button
                 (click)="toggleMonthlyView('bestWorst')"
@@ -149,7 +152,7 @@ Chart.register(...registerables);
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                 class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                🏆 Najlepszy/Najsłabszy
+                {{ 'STATISTICS.VIEW_BEST_WORST' | translate }}
               </button>
               <button
                 (click)="toggleMonthlyView('revenueChart')"
@@ -158,7 +161,7 @@ Chart.register(...registerables);
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                 class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                📈 Wykres Przychodów
+                {{ 'STATISTICS.VIEW_REVENUE_CHART' | translate }}
               </button>
               <button
                 (click)="toggleMonthlyView('growthChart')"
@@ -167,7 +170,7 @@ Chart.register(...registerables);
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                 class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                📉 Wykres Wzrostu
+                {{ 'STATISTICS.VIEW_GROWTH_CHART' | translate }}
               </button>
               <button
                 (click)="toggleMonthlyView('table')"
@@ -176,19 +179,19 @@ Chart.register(...registerables);
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                 class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                📋 Tabela Danych
+                {{ 'STATISTICS.VIEW_TABLE' | translate }}
               </button>
               <button
                 (click)="showAllMonthlyViews()"
                 class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors ml-auto"
               >
-                👁️ Wszystkie
+                👁️ {{ 'STATISTICS.SHOW_ALL' | translate }}
               </button>
               <button
                 (click)="hideAllMonthlyViews()"
                 class="bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                ✖️ Żadne
+                ✖️ {{ 'STATISTICS.HIDE_ALL' | translate }}
               </button>
             </div>
           </div>
@@ -196,19 +199,19 @@ Chart.register(...registerables);
           <!-- Summary Cards -->
           <div *ngIf="monthlyActiveViews.includes('summary')" class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
             <div class="bg-card border border-card-border rounded-lg p-4">
-              <p class="text-sm text-muted-foreground">Całkowity przychód</p>
+              <p class="text-sm text-muted-foreground">{{ 'STATISTICS.TOTAL_REVENUE' | translate }}</p>
               <p class="text-2xl font-bold mt-1">{{ monthly.summary.total_revenue | number:'1.2-2' }} PLN</p>
             </div>
             <div class="bg-card border border-card-border rounded-lg p-4">
-              <p class="text-sm text-muted-foreground">Łączna liczba zamówień</p>
+              <p class="text-sm text-muted-foreground">{{ 'STATISTICS.TOTAL_ORDERS' | translate }}</p>
               <p class="text-2xl font-bold mt-1">{{ monthly.summary.total_orders }}</p>
             </div>
             <div class="bg-card border border-card-border rounded-lg p-4">
-              <p class="text-sm text-muted-foreground">Śr. przychód miesięczny</p>
+              <p class="text-sm text-muted-foreground">{{ 'STATISTICS.AVERAGE_ORDER' | translate }}</p>
               <p class="text-2xl font-bold mt-1">{{ monthly.summary.avg_monthly_revenue | number:'1.2-2' }} PLN</p>
             </div>
             <div class="bg-card border border-card-border rounded-lg p-4">
-              <p class="text-sm text-muted-foreground">Liczba miesięcy</p>
+              <p class="text-sm text-muted-foreground">{{ 'STATISTICS.MONTHS_SHOWN' | translate }}</p>
               <p class="text-2xl font-bold mt-1">{{ monthly.summary.months_count }}</p>
             </div>
           </div>
@@ -220,11 +223,11 @@ Chart.register(...registerables);
                 <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
                 </svg>
-                <h4 class="text-lg font-semibold text-green-800">Najlepszy Miesiąc</h4>
+                <h4 class="text-lg font-semibold text-green-800">{{ 'STATISTICS.BEST_MONTH' | translate }}</h4>
               </div>
               <p class="text-2xl font-bold text-green-900">{{ monthly.best_month.month_name }}</p>
               <p class="text-xl text-green-700 mt-2">{{ monthly.best_month.revenue | number:'1.2-2' }} PLN</p>
-              <p class="text-sm text-green-600 mt-1">{{ monthly.best_month.orders_count }} zamówień</p>
+              <p class="text-sm text-green-600 mt-1">{{ monthly.best_month.orders_count }} {{ 'STATISTICS.ORDERS' | translate }}</p>
             </div>
 
             <div *ngIf="monthly.worst_month" class="bg-red-50 border border-red-200 rounded-lg p-6">
@@ -232,17 +235,17 @@ Chart.register(...registerables);
                 <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
                 </svg>
-                <h4 class="text-lg font-semibold text-red-800">Najsłabszy Miesiąc</h4>
+                <h4 class="text-lg font-semibold text-red-800">{{ 'STATISTICS.WORST_MONTH' | translate }}</h4>
               </div>
               <p class="text-2xl font-bold text-red-900">{{ monthly.worst_month.month_name }}</p>
               <p class="text-xl text-red-700 mt-2">{{ monthly.worst_month.revenue | number:'1.2-2' }} PLN</p>
-              <p class="text-sm text-red-600 mt-1">{{ monthly.worst_month.orders_count }} zamówień</p>
+              <p class="text-sm text-red-600 mt-1">{{ monthly.worst_month.orders_count }} {{ 'STATISTICS.ORDERS' | translate }}</p>
             </div>
           </div>
 
           <!-- Monthly Revenue Chart -->
           <div *ngIf="monthlyActiveViews.includes('revenueChart')" class="bg-card border border-card-border rounded-lg p-6 mt-6">
-            <h4 class="text-lg font-semibold mb-4">Przychody Miesięczne</h4>
+            <h4 class="text-lg font-semibold mb-4">{{ 'STATISTICS.MONTHLY_REVENUE_CHART' | translate }}</h4>
             <div style="height: 300px; position: relative;">
               <canvas #monthlyRevenueChart></canvas>
             </div>
@@ -250,7 +253,7 @@ Chart.register(...registerables);
 
           <!-- Monthly Growth Chart -->
           <div *ngIf="monthlyActiveViews.includes('growthChart')" class="bg-card border border-card-border rounded-lg p-6 mt-6">
-            <h4 class="text-lg font-semibold mb-4">Wzrost/Spadek Względem Poprzedniego Miesiąca (%)</h4>
+            <h4 class="text-lg font-semibold mb-4">{{ 'STATISTICS.MONTHLY_GROWTH_CHART' | translate }}</h4>
             <div style="height: 300px; position: relative;">
               <canvas #monthlyGrowthChart></canvas>
             </div>
@@ -262,11 +265,11 @@ Chart.register(...registerables);
               <table class="w-full">
                 <thead class="bg-muted">
                   <tr>
-                    <th class="px-4 py-3 text-left text-sm font-semibold">Miesiąc</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Przychód</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Zamówienia</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Śr. wartość</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Wzrost</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'STATISTICS.MONTH' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.REVENUE' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.ORDERS' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.AVERAGE_ORDER' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.GROWTH' | translate }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -305,7 +308,7 @@ Chart.register(...registerables);
         <div *ngIf="yearlyStats$ | async as yearly">
           <!-- View Selection Buttons -->
           <div class="bg-card border border-card-border rounded-lg p-5">
-            <p class="text-sm text-muted-foreground mb-4 font-medium">Wybierz widok do wyświetlenia:</p>
+            <p class="text-sm text-muted-foreground mb-4 font-medium">{{ 'STATISTICS.SELECT_VIEW' | translate }}</p>
             <div class="flex flex-wrap gap-3">
               <button
                 (click)="toggleYearlyView('chart')"
@@ -314,7 +317,7 @@ Chart.register(...registerables);
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                 class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                📊 Wykres Przychodów
+                {{ 'STATISTICS.VIEW_REVENUE_CHART' | translate }}
               </button>
               <button
                 (click)="toggleYearlyView('table')"
@@ -323,26 +326,26 @@ Chart.register(...registerables);
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                 class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                📋 Tabela Danych
+                {{ 'STATISTICS.VIEW_TABLE' | translate }}
               </button>
               <button
                 (click)="showAllYearlyViews()"
                 class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors ml-auto"
               >
-                👁️ Wszystkie
+                {{ 'STATISTICS.SHOW_ALL' | translate }}
               </button>
               <button
                 (click)="hideAllYearlyViews()"
                 class="bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                ✖️ Żadne
+                {{ 'STATISTICS.HIDE_ALL' | translate }}
               </button>
             </div>
           </div>
 
           <!-- Yearly Revenue Chart -->
           <div *ngIf="yearlyActiveViews.includes('chart')" class="bg-card border border-card-border rounded-lg p-6 mt-6">
-            <h4 class="text-lg font-semibold mb-4">Porównanie Przychodów Rocznych</h4>
+            <h4 class="text-lg font-semibold mb-4">{{ 'STATISTICS.YEARLY_REVENUE_CHART' | translate }}</h4>
             <div style="height: 300px; position: relative;">
               <canvas #yearlyRevenueChart></canvas>
             </div>
@@ -354,11 +357,11 @@ Chart.register(...registerables);
               <table class="w-full">
                 <thead class="bg-muted">
                   <tr>
-                    <th class="px-4 py-3 text-left text-sm font-semibold">Rok</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Przychód</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Zamówienia</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Śr. wartość zamówienia</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Wzrost YoY</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'STATISTICS.YEAR' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.REVENUE' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.ORDERS' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.AVERAGE_ORDER' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.GROWTH_RATE' | translate }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -386,7 +389,7 @@ Chart.register(...registerables);
       <!-- Category Performance Tab -->
       <div *ngIf="activeAnalyticsTab === 'categories'" class="space-y-6">
         <div class="flex justify-between items-center">
-          <h3 class="text-2xl font-semibold">Wydajność Kategorii</h3>
+          <h3 class="text-2xl font-semibold">{{ 'STATISTICS.CATEGORY_TITLE' | translate }}</h3>
           <div class="flex items-center gap-2">
             <input 
               type="date" 
@@ -403,7 +406,7 @@ Chart.register(...registerables);
               (click)="loadCategoryData()"
               class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg font-semibold transition-colors"
             >
-              Generuj
+              {{ 'STATISTICS.APPLY_FILTERS' | translate }}
             </button>
           </div>
         </div>
@@ -411,7 +414,7 @@ Chart.register(...registerables);
         <div *ngIf="categoryPerformance$ | async as categories">
           <!-- View Selection Buttons -->
           <div class="bg-card border border-card-border rounded-lg p-5">
-            <p class="text-sm text-muted-foreground mb-4 font-medium">Wybierz widok do wyświetlenia:</p>
+            <p class="text-sm text-muted-foreground mb-4 font-medium">{{ 'STATISTICS.SELECT_VIEW' | translate }}</p>
             <div class="flex flex-wrap gap-3">
               <button
                 (click)="toggleCategoryView('summary')"
@@ -420,7 +423,7 @@ Chart.register(...registerables);
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                 class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                📊 Podsumowanie
+                {{ 'STATISTICS.VIEW_SUMMARY' | translate }}
               </button>
               <button
                 (click)="toggleCategoryView('chart')"
@@ -429,7 +432,7 @@ Chart.register(...registerables);
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                 class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                📈 Wykres Udziałów
+                {{ 'STATISTICS.VIEW_CHART' | translate }}
               </button>
               <button
                 (click)="toggleCategoryView('table')"
@@ -438,33 +441,33 @@ Chart.register(...registerables);
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                 class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                📋 Tabela Danych
+                {{ 'STATISTICS.VIEW_TABLE' | translate }}
               </button>
               <button
                 (click)="showAllCategoryViews()"
                 class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors ml-auto"
               >
-                👁️ Wszystkie
+                {{ 'STATISTICS.SHOW_ALL' | translate }}
               </button>
               <button
                 (click)="hideAllCategoryViews()"
                 class="bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                ✖️ Żadne
+                {{ 'STATISTICS.HIDE_ALL' | translate }}
               </button>
             </div>
           </div>
 
           <!-- Summary Card -->
           <div *ngIf="categoryActiveViews.includes('summary')" class="bg-card border border-card-border rounded-lg p-6 mt-6">
-            <h4 class="text-lg font-semibold mb-4">Podsumowanie Kategorii</h4>
-            <p class="text-sm text-muted-foreground">Całkowity przychód ze wszystkich kategorii: <span class="font-bold text-foreground">{{ categories.total_revenue | number:'1.2-2' }} PLN</span></p>
-            <p class="text-sm text-muted-foreground mt-2">Liczba aktywnych kategorii: <span class="font-bold text-foreground">{{ categories.categories.length }}</span></p>
+            <h4 class="text-lg font-semibold mb-4">{{ 'STATISTICS.CATEGORY_SUMMARY' | translate }}</h4>
+            <p class="text-sm text-muted-foreground">{{ 'STATISTICS.TOTAL_CATEGORY_REVENUE' | translate }}: <span class="font-bold text-foreground">{{ categories.total_revenue | number:'1.2-2' }} PLN</span></p>
+            <p class="text-sm text-muted-foreground mt-2">{{ 'STATISTICS.ACTIVE_CATEGORIES' | translate }}: <span class="font-bold text-foreground">{{ categories.categories.length }}</span></p>
           </div>
 
           <!-- Category Revenue Distribution Chart -->
           <div *ngIf="categoryActiveViews.includes('chart')" class="bg-card border border-card-border rounded-lg p-6 mt-6">
-            <h4 class="text-lg font-semibold mb-4">Udział Kategorii w Przychodach</h4>
+            <h4 class="text-lg font-semibold mb-4">{{ 'STATISTICS.CATEGORY_CHART' | translate }}</h4>
             <div class="flex justify-center">
               <div style="height: 400px; width: 400px; position: relative;">
                 <canvas #categoryChart></canvas>
@@ -478,11 +481,11 @@ Chart.register(...registerables);
               <table class="w-full">
                 <thead class="bg-muted">
                   <tr>
-                    <th class="px-4 py-3 text-left text-sm font-semibold">Kategoria</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Przychód</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Udział %</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Sprzedano</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Zamówienia</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'STATISTICS.CATEGORY' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.REVENUE' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.SHARE_PERCENT' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.QUANTITY_SOLD' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.ORDERS' | translate }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -507,7 +510,7 @@ Chart.register(...registerables);
       <!-- Top Products Tab -->
       <div *ngIf="activeAnalyticsTab === 'products'" class="space-y-6">
         <div class="flex justify-between items-center">
-          <h3 class="text-2xl font-semibold">Najlepiej Sprzedające się Produkty</h3>
+          <h3 class="text-2xl font-semibold">{{ 'STATISTICS.PRODUCTS_TITLE' | translate }}</h3>
           <div class="flex items-center gap-2">
             <input 
               type="date" 
@@ -533,7 +536,7 @@ Chart.register(...registerables);
               (click)="loadTopProducts()"
               class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg font-semibold transition-colors"
             >
-              Generuj
+              {{ 'STATISTICS.APPLY_FILTERS' | translate }}
             </button>
           </div>
         </div>
@@ -541,7 +544,7 @@ Chart.register(...registerables);
         <div *ngIf="topProducts$ | async as products">
           <!-- View Selection Buttons -->
           <div class="bg-card border border-card-border rounded-lg p-5">
-            <p class="text-sm text-muted-foreground mb-4 font-medium">Wybierz widok do wyświetlenia:</p>
+            <p class="text-sm text-muted-foreground mb-4 font-medium">{{ 'STATISTICS.SELECT_VIEW' | translate }}</p>
             <div class="flex flex-wrap gap-3">
               <button
                 (click)="toggleProductView('summary')"
@@ -550,7 +553,7 @@ Chart.register(...registerables);
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                 class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                📊 Podsumowanie
+                {{ 'STATISTICS.VIEW_SUMMARY' | translate }}
               </button>
               <button
                 (click)="toggleProductView('chart')"
@@ -559,7 +562,7 @@ Chart.register(...registerables);
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                 class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                📊 Wykres Top 10
+                {{ 'STATISTICS.VIEW_CHART' | translate }}
               </button>
               <button
                 (click)="toggleProductView('table')"
@@ -568,33 +571,33 @@ Chart.register(...registerables);
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                 class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                📋 Pełna Tabela
+                {{ 'STATISTICS.VIEW_TABLE' | translate }}
               </button>
               <button
                 (click)="showAllProductViews()"
                 class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors ml-auto"
               >
-                👁️ Wszystkie
+                {{ 'STATISTICS.SHOW_ALL' | translate }}
               </button>
               <button
                 (click)="hideAllProductViews()"
                 class="bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                ✖️ Żadne
+                {{ 'STATISTICS.HIDE_ALL' | translate }}
               </button>
             </div>
           </div>
 
           <!-- Summary Card -->
           <div *ngIf="productActiveViews.includes('summary')" class="bg-card border border-card-border rounded-lg p-6 mt-6">
-            <h4 class="text-lg font-semibold mb-4">Podsumowanie Produktów</h4>
-            <p class="text-sm text-muted-foreground">Okres analizy: <span class="font-bold text-foreground">{{ products.period.start_date | date:'shortDate' }} - {{ products.period.end_date | date:'shortDate' }}</span></p>
-            <p class="text-sm text-muted-foreground mt-2">Liczba produktów w rankingu: <span class="font-bold text-foreground">{{ products.top_products.length }}</span></p>
+            <h4 class="text-lg font-semibold mb-4">{{ 'STATISTICS.PRODUCTS_SUMMARY' | translate }}</h4>
+            <p class="text-sm text-muted-foreground">{{ 'STATISTICS.DATE_RANGE' | translate }}: <span class="font-bold text-foreground">{{ products.period.start_date | date:'shortDate' }} - {{ products.period.end_date | date:'shortDate' }}</span></p>
+            <p class="text-sm text-muted-foreground mt-2">{{ 'STATISTICS.PRODUCTS_COUNT' | translate }}: <span class="font-bold text-foreground">{{ products.top_products.length }}</span></p>
           </div>
 
           <!-- Top Products Chart -->
           <div *ngIf="productActiveViews.includes('chart')" class="bg-card border border-card-border rounded-lg p-6 mt-6">
-            <h4 class="text-lg font-semibold mb-4">Top Produkty wg Przychodu</h4>
+            <h4 class="text-lg font-semibold mb-4">{{ 'STATISTICS.TOP_PRODUCTS_CHART' | translate }}</h4>
             <div style="height: 400px; position: relative;">
               <canvas #topProductsChart></canvas>
             </div>
@@ -607,11 +610,11 @@ Chart.register(...registerables);
                 <thead class="bg-muted">
                   <tr>
                     <th class="px-4 py-3 text-left text-sm font-semibold">#</th>
-                    <th class="px-4 py-3 text-left text-sm font-semibold">Produkt</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Przychód</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Sprzedano</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Zamówienia</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold">Śr. cena</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold">{{ 'STATISTICS.PRODUCT_NAME' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.REVENUE' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.QUANTITY_SOLD' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.ORDERS' | translate }}</th>
+                    <th class="px-4 py-3 text-right text-sm font-semibold">{{ 'STATISTICS.AVERAGE_PRICE' | translate }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -643,7 +646,9 @@ Chart.register(...registerables);
     }
   `]
 })
-export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
+export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDestroy {
+  private destroy$ = new Subject<void>();
+
   // ViewChild references for charts
   @ViewChild('monthlyRevenueChart') monthlyRevenueChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('monthlyGrowthChart') monthlyGrowthChartRef!: ElementRef<HTMLCanvasElement>;
@@ -683,14 +688,14 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
   topProductsEndDate: string = '';
   topProductsLimit: number = 10;
 
-  analyticsTabs = [
-    { id: 'monthly' as const, label: '📅 Analiza Miesięczna' },
-    { id: 'yearly' as const, label: '📊 Analiza Roczna' },
-    { id: 'categories' as const, label: '🏷️ Kategorie' },
-    { id: 'products' as const, label: '🏆 Top Produkty' },
-  ];
+  analyticsTabs: Array<{id: 'monthly' | 'yearly' | 'categories' | 'products', label: string}> = [];
 
-  constructor(private apiService: ApiService) {
+  constructor(
+    private apiService: ApiService,
+    private translate: TranslateService,
+    private languageService: LanguageService
+  ) {
+    this.initializeAnalyticsTabs();
     // Set default dates
     const today = new Date();
     const twelveMonthsAgo = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
@@ -704,10 +709,50 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
     this.topProductsEndDate = today.toISOString().split('T')[0];
   }
 
+  initializeAnalyticsTabs(): void {
+    this.analyticsTabs = [
+      { id: 'monthly' as const, label: this.translate.instant('STATISTICS.TAB_MONTHLY') },
+      { id: 'yearly' as const, label: this.translate.instant('STATISTICS.TAB_YEARLY') },
+      { id: 'categories' as const, label: this.translate.instant('STATISTICS.TAB_CATEGORIES') },
+      { id: 'products' as const, label: this.translate.instant('STATISTICS.TAB_PRODUCTS') },
+    ];
+  }
+
   ngOnInit(): void {
+    // Subscribe to language changes
+    this.languageService.currentLanguage$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.initializeAnalyticsTabs();
+        // Reinitialize charts with new language
+        this.reloadChartsWithNewLanguage();
+      });
+
     this.loadDashboardData();
     // Load data for initial tab
     this.loadDataForTab(this.activeAnalyticsTab);
+  }
+
+  reloadChartsWithNewLanguage(): void {
+    // Recreate charts when language changes
+    if (this.activeAnalyticsTab === 'monthly' && this.monthlyRevenueChartRef) {
+      this.monthlyStats$.subscribe(data => {
+        this.createMonthlyRevenueChart(data);
+        this.createMonthlyGrowthChart(data);
+      });
+    } else if (this.activeAnalyticsTab === 'yearly' && this.yearlyRevenueChartRef) {
+      this.yearlyStats$.subscribe(data => {
+        this.createYearlyRevenueChart(data);
+      });
+    } else if (this.activeAnalyticsTab === 'categories' && this.categoryChartRef) {
+      this.categoryPerformance$.subscribe(data => {
+        this.createCategoryChart(data);
+      });
+    } else if (this.activeAnalyticsTab === 'products' && this.topProductsChartRef) {
+      this.topProducts$.subscribe(data => {
+        this.createTopProductsChart(data);
+      });
+    }
   }
 
   ngAfterViewInit(): void {
@@ -811,7 +856,7 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
         labels: data.monthly_data.map((m: MonthlyData) => m.month_name),
         datasets: [
           {
-            label: 'Przychód (PLN)',
+            label: this.translate.instant('STATISTICS.REVENUE_PLN'),
             data: data.monthly_data.map((m: MonthlyData) => m.revenue),
             borderColor: 'rgb(59, 130, 246)',
             backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -819,7 +864,7 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
             fill: true
           },
           {
-            label: 'Liczba zamówień',
+            label: this.translate.instant('STATISTICS.ORDERS_COUNT'),
             data: data.monthly_data.map((m: MonthlyData) => m.orders_count),
             borderColor: 'rgb(16, 185, 129)',
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
@@ -842,7 +887,7 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
             position: 'left',
             title: {
               display: true,
-              text: 'Przychód (PLN)'
+              text: this.translate.instant('STATISTICS.REVENUE_PLN')
             }
           },
           y1: {
@@ -851,7 +896,7 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
             position: 'right',
             title: {
               display: true,
-              text: 'Liczba zamówień'
+              text: this.translate.instant('STATISTICS.ORDERS_COUNT')
             },
             grid: {
               drawOnChartArea: false,
@@ -877,7 +922,7 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
       data: {
         labels: data.monthly_data.map((m: MonthlyData) => m.month_name),
         datasets: [{
-          label: 'Wzrost (%)',
+          label: this.translate.instant('STATISTICS.GROWTH_RATE'),
           data: data.monthly_data.map((m: MonthlyData) => m.growth_rate || 0),
           backgroundColor: data.monthly_data.map((m: MonthlyData) => 
             (m.growth_rate || 0) >= 0 ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)'
@@ -901,7 +946,7 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
             beginAtZero: true,
             title: {
               display: true,
-              text: 'Wzrost/Spadek (%)'
+              text: this.translate.instant('STATISTICS.GROWTH_RATE_PERCENT')
             }
           }
         }
@@ -924,7 +969,7 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
       data: {
         labels: data.yearly_data.map((y: YearlyData) => y.year.toString()),
         datasets: [{
-          label: 'Przychód roczny (PLN)',
+          label: this.translate.instant('STATISTICS.YEARLY_REVENUE_PLN'),
           data: data.yearly_data.map((y: YearlyData) => y.revenue),
           backgroundColor: 'rgba(147, 51, 234, 0.5)',
           borderColor: 'rgb(147, 51, 234)',
@@ -944,7 +989,7 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
             beginAtZero: true,
             title: {
               display: true,
-              text: 'Przychód (PLN)'
+              text: this.translate.instant('STATISTICS.REVENUE_PLN')
             }
           }
         }
@@ -976,7 +1021,7 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
       data: {
         labels: data.categories.map((c: CategoryPerformance) => c.category_name),
         datasets: [{
-          label: 'Przychód',
+          label: this.translate.instant('STATISTICS.REVENUE'),
           data: data.categories.map((c: CategoryPerformance) => c.revenue),
           backgroundColor: colors,
           borderWidth: 2,
@@ -1024,7 +1069,7 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
       data: {
         labels: topTen.map((p: TopProduct) => p.product_name),
         datasets: [{
-          label: 'Przychód (PLN)',
+          label: this.translate.instant('STATISTICS.REVENUE_PLN'),
           data: topTen.map((p: TopProduct) => p.revenue),
           backgroundColor: 'rgba(59, 130, 246, 0.6)',
           borderColor: 'rgb(59, 130, 246)',
@@ -1045,7 +1090,7 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
             beginAtZero: true,
             title: {
               display: true,
-              text: 'Przychód (PLN)'
+              text: this.translate.instant('STATISTICS.REVENUE_PLN')
             }
           }
         }
@@ -1182,5 +1227,17 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit {
 
   hideAllProductViews(): void {
     this.productActiveViews = [];
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    
+    // Destroy all chart instances
+    this.monthlyRevenueChart?.destroy();
+    this.monthlyGrowthChart?.destroy();
+    this.yearlyRevenueChart?.destroy();
+    this.categoryChart?.destroy();
+    this.topProductsChart?.destroy();
   }
 }
