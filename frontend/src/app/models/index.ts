@@ -1,3 +1,11 @@
+// Pagination models
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
 // User models
 export interface User {
   id: string;

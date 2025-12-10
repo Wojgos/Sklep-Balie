@@ -79,7 +79,7 @@ export class AccountComponent implements OnInit, OnDestroy {
 
   loadOrders(): void {
     this.isLoadingOrders = true;
-    this.apiService.getOrders().subscribe({
+    this.apiService.getAllOrders().subscribe({
       next: (orders) => {
         // Backend already filters orders for current user based on auth token
         this.orders = orders;

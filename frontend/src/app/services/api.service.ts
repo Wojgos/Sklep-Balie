@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, catchError, map, switchMap, retry, forkJoin } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { Observable, of, catchError, map, switchMap, retry, forkJoin, expand, reduce } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { 
   Product, 
   Category, 
@@ -32,7 +32,8 @@ import {
   PeriodComparison,
   TopProductsReport,
   CategoryPerformanceReport,
-  DashboardOverview
+  DashboardOverview,
+  PaginatedResponse
 } from '../models';
 import { MockDataService } from './mock-data.service';
 import { AuthService } from './auth.service';
@@ -386,16 +387,66 @@ export class ApiService {
   }
 
   // Categories
-  getCategories(): Observable<Category[]> {
-    return this.http.get<BackendCategoryResponse[]>(`${this.apiUrl}/shop/categories/`).pipe(
+  getCategories(page: number = 1, pageSize: number = 10): Observable<PaginatedResponse<Category>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('page_size', pageSize.toString());
+
+    return this.http.get<PaginatedResponse<BackendCategoryResponse>>(`${this.apiUrl}/shop/categories/`, { params }).pipe(
       retry({ count: 3, delay: 1000 }),
-      map(categories => {
-        this.categorySlugToId.clear();
-        this.categoryIdToSlug.clear();
-        return categories.map(category => this.mapCategoryFromApi(category));
+      map(response => {
+        const mappedResults = response.results.map(category => {
+          const mapped = this.mapCategoryFromApi(category);
+          return mapped;
+        });
+        return {
+          count: response.count,
+          next: response.next,
+          previous: response.previous,
+          results: mappedResults
+        };
       }),
       catchError(error => {
         console.error('Nie udało się pobrać kategorii z backendu, używam danych mock.', error);
+        return this.mockDataService.getCategories().pipe(
+          map(categories => ({
+            count: categories.length,
+            next: null,
+            previous: null,
+            results: categories
+          }))
+        );
+      })
+    );
+  }
+
+  getAllCategories(): Observable<Category[]> {
+    return this.getCategories(1, 1000).pipe(
+      expand(response => response.next ? 
+        this.http.get<PaginatedResponse<BackendCategoryResponse>>(response.next).pipe(
+          map(nextResponse => ({
+            count: nextResponse.count,
+            next: nextResponse.next,
+            previous: nextResponse.previous,
+            results: nextResponse.results.map(c => this.mapCategoryFromApi(c))
+          }))
+        ) : 
+        of()
+      ),
+      reduce((acc: Category[], response) => [...acc, ...response.results], []),
+      map(categories => {
+        this.categorySlugToId.clear();
+        this.categoryIdToSlug.clear();
+        categories.forEach(category => {
+          if (category.slug && category.id) {
+            this.categorySlugToId.set(category.slug, category.id);
+            this.categoryIdToSlug.set(category.id, category.slug);
+          }
+        });
+        return categories;
+      }),
+      catchError(error => {
+        console.error('Nie udało się pobrać wszystkich kategorii z backendu, używam danych mock.', error);
         return this.mockDataService.getCategories();
       })
     );
@@ -412,22 +463,68 @@ export class ApiService {
   }
 
   // Products
-  getProducts(): Observable<Product[]> {
-    return this.http.get<BackendProductResponse[]>(`${this.apiUrl}/shop/products/`).pipe(
+  getProducts(page: number = 1, pageSize: number = 10): Observable<PaginatedResponse<Product>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('page_size', pageSize.toString());
+
+    return this.http.get<PaginatedResponse<BackendProductResponse>>(`${this.apiUrl}/shop/products/`, { params }).pipe(
       retry({ count: 30, delay: 2000 }),
-      map(products => {
+      map(response => {
         const uniqueProducts = new Map<string, Product>();
-        products.forEach(product => {
+        response.results.forEach(product => {
           const mapped = this.mapProductFromApi(product);
           const key = mapped.slug || mapped.id;
           if (!uniqueProducts.has(key)) {
             uniqueProducts.set(key, mapped);
           }
         });
-        return Array.from(uniqueProducts.values());
+        return {
+          count: response.count,
+          next: response.next,
+          previous: response.previous,
+          results: Array.from(uniqueProducts.values())
+        };
       }),
       catchError(error => {
         console.error('Nie udało się pobrać produktów z backendu, używam danych mock.', error);
+        return this.mockDataService.getProducts().pipe(
+          map(products => ({
+            count: products.length,
+            next: null,
+            previous: null,
+            results: products
+          }))
+        );
+      })
+    );
+  }
+
+  getAllProducts(): Observable<Product[]> {
+    return this.getProducts(1, 1000).pipe(
+      expand(response => response.next ? 
+        this.http.get<PaginatedResponse<BackendProductResponse>>(response.next).pipe(
+          map(nextResponse => ({
+            count: nextResponse.count,
+            next: nextResponse.next,
+            previous: nextResponse.previous,
+            results: nextResponse.results.map(p => this.mapProductFromApi(p))
+          }))
+        ) : 
+        of()
+      ),
+      reduce((acc: Product[], response) => {
+        const uniqueProducts = new Map<string, Product>();
+        [...acc, ...response.results].forEach(product => {
+          const key = product.slug || product.id;
+          if (!uniqueProducts.has(key)) {
+            uniqueProducts.set(key, product);
+          }
+        });
+        return Array.from(uniqueProducts.values());
+      }, []),
+      catchError(error => {
+        console.error('Nie udało się pobrać wszystkich produktów z backendu, używam danych mock.', error);
         return this.mockDataService.getProducts();
       })
     );
@@ -504,7 +601,7 @@ export class ApiService {
   getSimilarProducts(productId: string, limit: number = 4): Observable<Product[]> {
     return this.getProduct(productId).pipe(
       switchMap(product =>
-        this.getProducts().pipe(
+        this.getAllProducts().pipe(
           map(products =>
             products
               .filter(p => p.id !== product.id && p.categoryId === product.categoryId)
@@ -522,7 +619,7 @@ export class ApiService {
   getFrequentlyBoughtTogether(productId: string, limit: number = 4): Observable<Product[]> {
     return this.getProduct(productId).pipe(
       switchMap(product =>
-        this.getProducts().pipe(
+        this.getAllProducts().pipe(
           map(products =>
             products
               .filter(p => p.id !== product.id && p.categoryId !== product.categoryId)
@@ -667,7 +764,12 @@ export class ApiService {
 
   // Product Attributes
   getAttributes(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/shop/attributes/`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/shop/attributes/`).pipe(
+      map(response => {
+        // Handle both array and paginated response
+        const attributes = Array.isArray(response) ? response : (response.results || []);
+        return attributes;
+      }),
       catchError(error => {
         console.error('Backend getAttributes failed:', error);
         return of([]);
@@ -739,12 +841,46 @@ export class ApiService {
   }
 
   // Orders
-  getOrders(): Observable<Order[]> {
-    return this.http.get<BackendOrderResponse[]>(`${this.apiUrl}/orders/`).pipe(
-      map(orders => orders.map(order => this.mapOrderFromApi(order))),
+  getOrders(page: number = 1, pageSize: number = 10): Observable<PaginatedResponse<Order>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('page_size', pageSize.toString());
+
+    return this.http.get<PaginatedResponse<BackendOrderResponse>>(`${this.apiUrl}/orders/`, { params }).pipe(
+      map(response => ({
+        count: response.count,
+        next: response.next,
+        previous: response.previous,
+        results: response.results.map(order => this.mapOrderFromApi(order))
+      })),
       catchError(error => {
         console.error('Błąd pobierania zamówień:', error);
-        // Return empty array instead of mock data
+        return of({
+          count: 0,
+          next: null,
+          previous: null,
+          results: []
+        });
+      })
+    );
+  }
+
+  getAllOrders(): Observable<Order[]> {
+    return this.getOrders(1, 1000).pipe(
+      expand(response => response.next ? 
+        this.http.get<PaginatedResponse<BackendOrderResponse>>(response.next).pipe(
+          map(nextResponse => ({
+            count: nextResponse.count,
+            next: nextResponse.next,
+            previous: nextResponse.previous,
+            results: nextResponse.results.map(o => this.mapOrderFromApi(o))
+          }))
+        ) : 
+        of()
+      ),
+      reduce((acc: Order[], response) => [...acc, ...response.results], []),
+      catchError(error => {
+        console.error('Błąd pobierania wszystkich zamówień:', error);
         return of([]);
       })
     );
@@ -956,9 +1092,9 @@ export class ApiService {
         summary: { total_revenue: number; total_orders: number };
         by_day: Array<{ day: string; daily_revenue: number; orders_count: number }>;
       }>(url),
-      orders: this.getOrders(),
-      products: this.getProducts(),
-      categories: this.getCategories()
+      orders: this.getAllOrders(),
+      products: this.getAllProducts(),
+      categories: this.getAllCategories()
     }).pipe(
       map(({ salesStats, orders, products, categories }) => {
         const totalRevenue = salesStats.summary.total_revenue;
@@ -1288,7 +1424,7 @@ export class ApiService {
   // Low stock alerts (legacy - simple product-based)
   getLowStockAlerts(threshold: number = 10): Observable<LowStockAlert[]> {
     // Client-side filtering based on products from backend
-    return this.getProducts().pipe(
+    return this.getAllProducts().pipe(
       map(products => {
         return products
           .filter(p => p.stock <= threshold)
@@ -1310,9 +1446,11 @@ export class ApiService {
   // Enhanced Low Stock Alerts - Variant-based from backend
   getLowStockVariants(severity?: 'critical' | 'warning' | 'all'): Observable<LowStockVariantAlert[]> {
     const params = severity && severity !== 'all' ? `?severity=${severity}` : '';
-    return this.http.get<ProductSkuVariant[]>(`${this.apiUrl}/shop/low-stock-variants/${params}`).pipe(
-      map(variants => {
-        return variants.map(variant => {
+    return this.http.get<any>(`${this.apiUrl}/shop/low-stock-variants/${params}`).pipe(
+      map(response => {
+        // Handle both array and paginated response
+        const variants = Array.isArray(response) ? response : (response.results || []);
+        return variants.map((variant: ProductSkuVariant) => {
           const difference = variant.low_stock_threshold - variant.stock;
           const suggestedOrder = Math.max(20, difference + 10);
           
@@ -1434,7 +1572,12 @@ export class ApiService {
   // Support Tickets - Client API
   getMyTickets(): Observable<Ticket[]> {
     // Using backend if authenticated, else mock or empty
-    return this.http.get<Ticket[]>(`${this.apiUrl}/support/tickets/`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/support/tickets/`).pipe(
+      map(response => {
+        // Handle both array and paginated response
+        const tickets = Array.isArray(response) ? response : (response.results || []);
+        return tickets;
+      }),
       catchError(error => {
         const userId = this.authService.currentUserValue?.id || '2';
         console.error('Backend getMyTickets failed, using mock', error);
@@ -1474,7 +1617,12 @@ export class ApiService {
 
   // Support Tickets - Admin API
   getAllTickets(): Observable<Ticket[]> {
-    return this.http.get<Ticket[]>(`${this.apiUrl}/support/admin/tickets/`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/support/admin/tickets/`).pipe(
+      map(response => {
+        // Handle both array and paginated response
+        const tickets = Array.isArray(response) ? response : (response.results || []);
+        return tickets;
+      }),
       catchError(error => {
         console.error('Backend getAllTickets failed, using mock', error);
         return this.mockDataService.getAllTickets();
@@ -1546,26 +1694,30 @@ export class ApiService {
 
   // Loyalty Rewards - Admin API
   getLoyaltyRewards(): Observable<LoyaltyReward[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/promotions/rewards/`).pipe(
-      map(rewards => rewards.map(reward => {
-        const pointsRequired = reward.points_required || 0;
-        const rewardValue = parseFloat(reward.reward_value || '0');
-        const isPercentage = reward.is_percentage || false;
-        
-        return {
-          id: reward.id.toString(),
-          name: reward.name,
-          description: reward.description,
-          pointsCost: pointsRequired,
-          pointsRequired: pointsRequired,
-          rewardType: isPercentage ? 'discount_percentage' : 'discount_fixed',
-          rewardValue: rewardValue,
-          isActive: reward.active || false,
-          isPercentage: isPercentage,
-          active: reward.active,
-          createdAt: reward.created_at ? new Date(reward.created_at) : undefined
-        } as LoyaltyReward;
-      }))
+    return this.http.get<any>(`${this.apiUrl}/promotions/rewards/`).pipe(
+      map(response => {
+        // Handle both array and paginated response
+        const rewards = Array.isArray(response) ? response : (response.results || []);
+        return rewards.map((reward: any) => {
+          const pointsRequired = reward.points_required || 0;
+          const rewardValue = parseFloat(reward.reward_value || '0');
+          const isPercentage = reward.is_percentage || false;
+          
+          return {
+            id: reward.id.toString(),
+            name: reward.name,
+            description: reward.description,
+            pointsCost: pointsRequired,
+            pointsRequired: pointsRequired,
+            rewardType: isPercentage ? 'discount_percentage' : 'discount_fixed',
+            rewardValue: rewardValue,
+            isActive: reward.active || false,
+            isPercentage: isPercentage,
+            active: reward.active,
+            createdAt: reward.created_at ? new Date(reward.created_at) : undefined
+          } as LoyaltyReward;
+        });
+      })
     );
   }
 
@@ -1649,25 +1801,29 @@ export class ApiService {
   }
 
   getLoyaltyOffers(): Observable<LoyaltyReward[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/promotions/loyalty/offers/`).pipe(
-      map(rewards => rewards.map(reward => {
-        const pointsRequired = reward.points_required || 0;
-        const rewardValue = parseFloat(reward.reward_value || '0');
-        const isPercentage = reward.is_percentage || false;
-        
-        return {
-          id: reward.id.toString(),
-          name: reward.name,
-          description: reward.description,
-          pointsCost: pointsRequired, // Unified field for frontend
-          pointsRequired: pointsRequired,
-          rewardType: isPercentage ? 'discount_percentage' : 'discount_fixed',
-          rewardValue: rewardValue,
-          isActive: reward.active || false,
-          isPercentage: isPercentage,
-          active: reward.active
-        } as LoyaltyReward;
-      }))
+    return this.http.get<any>(`${this.apiUrl}/promotions/loyalty/offers/`).pipe(
+      map(response => {
+        // Handle both array and paginated response
+        const rewards = Array.isArray(response) ? response : (response.results || []);
+        return rewards.map((reward: any) => {
+          const pointsRequired = reward.points_required || 0;
+          const rewardValue = parseFloat(reward.reward_value || '0');
+          const isPercentage = reward.is_percentage || false;
+          
+          return {
+            id: reward.id.toString(),
+            name: reward.name,
+            description: reward.description,
+            pointsCost: pointsRequired, // Unified field for frontend
+            pointsRequired: pointsRequired,
+            rewardType: isPercentage ? 'discount_percentage' : 'discount_fixed',
+            rewardValue: rewardValue,
+            isActive: reward.active || false,
+            isPercentage: isPercentage,
+            active: reward.active
+          } as LoyaltyReward;
+        });
+      })
     );
   }
 
@@ -1700,20 +1856,24 @@ export class ApiService {
   }
 
   getMyRedeemedRewards(): Observable<RedeemedReward[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/promotions/loyalty/my-rewards/`).pipe(
-      map(rewards => rewards.map(r => ({
-        id: r.id?.toString() || '',
-        userId: this.authService.currentUserValue?.id || '',
-        rewardId: r.reward?.toString() || '',
-        rewardName: r.reward_name,
-        reward: {} as LoyaltyReward,
-        pointsSpent: r.points_spent,
-        code: r.coupon_code,
-        couponCode: r.coupon_code,
-        isUsed: !!r.is_used,
-        createdAt: new Date(r.redeemed_at),
-        redeemedAt: r.redeemed_at
-      } as RedeemedReward)))
+    return this.http.get<any>(`${this.apiUrl}/promotions/loyalty/my-rewards/`).pipe(
+      map(response => {
+        // Handle both array and paginated response
+        const rewards = Array.isArray(response) ? response : (response.results || []);
+        return rewards.map((r: any) => ({
+          id: r.id?.toString() || '',
+          userId: this.authService.currentUserValue?.id || '',
+          rewardId: r.reward?.toString() || '',
+          rewardName: r.reward_name,
+          reward: {} as LoyaltyReward,
+          pointsSpent: r.points_spent,
+          code: r.coupon_code,
+          couponCode: r.coupon_code,
+          isUsed: !!r.is_used,
+          createdAt: new Date(r.redeemed_at),
+          redeemedAt: r.redeemed_at
+        } as RedeemedReward));
+      })
     );
   }
 

@@ -6,8 +6,9 @@ import { Observable, combineLatest, map, Subject, takeUntil, switchMap } from 'r
 import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../services/api.service';
 import { LanguageService } from '../../services/language.service';
-import { Product, Category } from '../../models';
+import { Product, Category, PaginatedResponse } from '../../models';
 import { ProductCardComponent } from '../../components/product-card/product-card.component';
+import { PaginationComponent } from '../../components/pagination/pagination.component';
 
 type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'rating-desc' | 'newest';
 
@@ -18,7 +19,8 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
     CommonModule, 
     FormsModule,
     ProductCardComponent,
-    TranslateModule
+    TranslateModule,
+    PaginationComponent
   ],
   template: `
     <div class="flex-1 bg-background">
@@ -189,17 +191,17 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
           <!-- Products Grid/List -->
           <div *ngIf="filteredProducts.length > 0; else noResults">
             <!-- Grid View -->
-            <div *ngIf="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div *ngIf="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
               <bg-product-card 
-                *ngFor="let product of filteredProducts" 
+                *ngFor="let product of paginatedProducts" 
                 [product]="product"
               ></bg-product-card>
             </div>
 
             <!-- List View -->
-            <div *ngIf="viewMode === 'list'" class="space-y-4">
+            <div *ngIf="viewMode === 'list'" class="space-y-4 mb-8">
               <div 
-                *ngFor="let product of filteredProducts"
+                *ngFor="let product of paginatedProducts"
                 class="bg-card border border-card-border rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer"
                 (click)="navigateToProduct(product.slug || product.id)"
               >
@@ -250,6 +252,15 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
                 </div>
               </div>
             </div>
+
+            <!-- Pagination -->
+            <app-pagination
+              [currentPage]="currentPage"
+              [totalItems]="totalItems"
+              [pageSize]="pageSize"
+              (pageChange)="onPageChange($event)"
+              (pageSizeChange)="onPageSizeChange($event)">
+            </app-pagination>
           </div>
 
           <!-- No Results -->
@@ -289,6 +300,7 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
 export class ProductsComponent implements OnInit, OnDestroy {
   allProducts: Product[] = [];
   filteredProducts: Product[] = [];
+  paginatedProducts: Product[] = [];
   categories: Category[] = [];
 
   // Filter values
@@ -298,6 +310,11 @@ export class ProductsComponent implements OnInit, OnDestroy {
   maxPrice: number | null = null;
   sortOption: SortOption = 'newest';
   viewMode: 'grid' | 'list' = 'grid';
+
+  // Pagination
+  currentPage: number = 1;
+  pageSize: number = 12;
+  totalItems: number = 0;
 
   private destroy$ = new Subject<void>();
 
@@ -313,8 +330,8 @@ export class ProductsComponent implements OnInit, OnDestroy {
     this.languageService.currentLanguage$.pipe(
       takeUntil(this.destroy$),
       switchMap(() => combineLatest([
-        this.apiService.getProducts(),
-        this.apiService.getCategories()
+        this.apiService.getAllProducts(),
+        this.apiService.getAllCategories()
       ]))
     ).subscribe(([products, categories]) => {
       this.allProducts = products;
@@ -367,6 +384,30 @@ export class ProductsComponent implements OnInit, OnDestroy {
     filtered = this.sortProducts(filtered, this.sortOption);
 
     this.filteredProducts = filtered;
+    this.totalItems = filtered.length;
+    
+    // Reset to page 1 when filters change
+    this.currentPage = 1;
+    this.updatePaginatedProducts();
+  }
+
+  updatePaginatedProducts(): void {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+    this.paginatedProducts = this.filteredProducts.slice(startIndex, endIndex);
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage = page;
+    this.updatePaginatedProducts();
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  onPageSizeChange(pageSize: number): void {
+    this.pageSize = pageSize;
+    this.currentPage = 1;
+    this.updatePaginatedProducts();
   }
 
   sortProducts(products: Product[], option: SortOption): Product[] {

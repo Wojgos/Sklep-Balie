@@ -9,13 +9,14 @@ import { ModalService } from '../../services/modal.service';
 import { LanguageService } from '../../services/language.service';
 import { Product, Category, Order, InsertProduct, InsertCategory, SalesStatistics, LowStockAlert, LowStockVariantAlert, LowStockStatistics, GroupedLowStockAlert, ProductSkuVariant, OrderItem, ProductAttribute, ProductVariant, Ticket, TicketReply, TicketStatusUpdate, LoyaltyProgram, LoyaltyReward, InsertLoyaltyProgram, InsertLoyaltyReward } from '../../models';
 import { AdvancedStatisticsComponent } from './advanced-statistics.component';
+import { PaginationComponent } from '../../components/pagination/pagination.component';
 
 type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' | 'support' | 'loyalty' | 'attributes';
 
 @Component({
   selector: 'bg-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, AdvancedStatisticsComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, AdvancedStatisticsComponent, PaginationComponent],
   template: `
     <div class="flex-1 bg-background py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -69,7 +70,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let product of products$ | async" class="border-t border-card-border hover:bg-muted/50">
+                    <tr *ngFor="let product of paginatedProducts" class="border-t border-card-border hover:bg-muted/50">
                       <td class="px-4 py-3">
                         <img
                           [src]="product.image"
@@ -129,6 +130,15 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 </table>
               </div>
             </div>
+
+            <!-- Products Pagination -->
+            <app-pagination
+              [currentPage]="productsCurrentPage"
+              [totalItems]="productsTotalItems"
+              [pageSize]="productsPageSize"
+              (pageChange)="onProductsPageChange($event)"
+              (pageSizeChange)="onProductsPageSizeChange($event)">
+            </app-pagination>
           </div>
 
           <!-- Categories Tab -->
@@ -143,8 +153,8 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div *ngFor="let category of categories$ | async" 
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              <div *ngFor="let category of paginatedCategories" 
                    class="bg-card border border-card-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
                 <img [src]="category.image" [alt]="category.name" class="w-full h-48 object-cover" />
                 <div class="p-4">
@@ -176,6 +186,15 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 </div>
               </div>
             </div>
+
+            <!-- Categories Pagination -->
+            <app-pagination
+              [currentPage]="categoriesCurrentPage"
+              [totalItems]="categoriesTotalItems"
+              [pageSize]="categoriesPageSize"
+              (pageChange)="onCategoriesPageChange($event)"
+              (pageSizeChange)="onCategoriesPageSizeChange($event)">
+            </app-pagination>
           </div>
 
           <!-- Attributes Tab -->
@@ -266,7 +285,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let order of orders$ | async" class="border-t border-card-border hover:bg-muted/50">
+                    <tr *ngFor="let order of paginatedOrders" class="border-t border-card-border hover:bg-muted/50">
                       <td class="px-4 py-3 font-mono text-sm">
                         #{{ order.id.slice(0, 8) }}
                       </td>
@@ -312,6 +331,15 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 </table>
               </div>
             </div>
+
+            <!-- Orders Pagination -->
+            <app-pagination
+              [currentPage]="ordersCurrentPage"
+              [totalItems]="ordersTotalItems"
+              [pageSize]="ordersPageSize"
+              (pageChange)="onOrdersPageChange($event)"
+              (pageSizeChange)="onOrdersPageSizeChange($event)">
+            </app-pagination>
           </div>
 
           <!-- Low Stock Tab -->
@@ -1913,13 +1941,34 @@ export class AdminComponent implements OnInit {
   
   tabs: { id: TabType; label: string }[] = [];
 
-  products$: Observable<Product[]>;
-  categories$: Observable<Category[]>;
-  orders$: Observable<Order[]>;
+  products$!: Observable<Product[]>;
+  categories$!: Observable<Category[]>;
+  orders$!: Observable<Order[]>;
   lowStockAlerts$: Observable<LowStockAlert[]>;
   groupedLowStockAlerts$: Observable<GroupedLowStockAlert[]>;
   lowStockStats$: Observable<LowStockStatistics>;
   statistics$: Observable<SalesStatistics>;
+
+  // Pagination for products
+  allProducts: Product[] = [];
+  paginatedProducts: Product[] = [];
+  productsCurrentPage: number = 1;
+  productsPageSize: number = 10;
+  productsTotalItems: number = 0;
+
+  // Pagination for categories
+  allCategories: Category[] = [];
+  paginatedCategories: Category[] = [];
+  categoriesCurrentPage: number = 1;
+  categoriesPageSize: number = 10;
+  categoriesTotalItems: number = 0;
+
+  // Pagination for orders
+  allOrders: Order[] = [];
+  paginatedOrders: Order[] = [];
+  ordersCurrentPage: number = 1;
+  ordersPageSize: number = 10;
+  ordersTotalItems: number = 0;
 
   // Modals
   showProductModal = false;
@@ -2014,8 +2063,6 @@ export class AdminComponent implements OnInit {
     isActive: true
   };
 
-  private allCategories: Category[] = [];
-
   constructor(
     private apiService: ApiService,
     private modalService: ModalService,
@@ -2027,9 +2074,11 @@ export class AdminComponent implements OnInit {
     this.initializeSupportFilters();
     this.initializeLowStockFilters();
     
-    this.products$ = this.apiService.getProducts();
-    this.categories$ = this.apiService.getCategories();
-    this.orders$ = this.apiService.getOrders();
+    // Load data with pagination
+    this.reloadProducts();
+    this.reloadCategories();
+    this.reloadOrders();
+
     this.lowStockAlerts$ = this.apiService.getLowStockAlerts(this.lowStockThreshold);
     this.groupedLowStockAlerts$ = of([]);
     this.lowStockStats$ = this.apiService.getLowStockStatistics();
@@ -2332,7 +2381,7 @@ export class AdminComponent implements OnInit {
     if (this.editingProduct) {
       this.apiService.updateProduct(this.editingProduct.id, productData).subscribe({
         next: () => {
-          this.products$ = this.apiService.getProducts();
+          this.reloadProducts();
           this.closeProductModal();
           this.modalService.showSuccess(this.translate.instant('ADMIN.PRODUCT_UPDATED'));
         },
@@ -2344,7 +2393,7 @@ export class AdminComponent implements OnInit {
     } else {
       this.apiService.createProduct(productData).subscribe({
         next: () => {
-          this.products$ = this.apiService.getProducts();
+          this.reloadProducts();
           this.closeProductModal();
           this.modalService.showSuccess(this.translate.instant('ADMIN.PRODUCT_CREATED'));
         },
@@ -2365,7 +2414,7 @@ export class AdminComponent implements OnInit {
     if (confirmed) {
       this.apiService.deleteProduct(id).subscribe({
         next: () => {
-          this.products$ = this.apiService.getProducts();
+          this.reloadProducts();
           this.modalService.showSuccess(this.translate.instant('ADMIN.PRODUCT_DELETED'));
         },
         error: (err) => {
@@ -2491,7 +2540,7 @@ export class AdminComponent implements OnInit {
             this.apiService.getProduct(this.editingProduct.numericId.toString()).subscribe({
               next: (product) => {
                 this.editingProduct = product;
-                this.products$ = this.apiService.getProducts();
+                this.reloadProducts();
               },
               error: (err) => console.error('Błąd odświeżania produktu:', err)
             });
@@ -2528,7 +2577,7 @@ export class AdminComponent implements OnInit {
             this.apiService.getProduct(this.editingProduct.numericId.toString()).subscribe({
               next: (product) => {
                 this.editingProduct = product;
-                this.products$ = this.apiService.getProducts();
+                this.reloadProducts();
               },
               error: (err) => console.error('Błąd odświeżania produktu:', err)
             });
@@ -2560,7 +2609,7 @@ export class AdminComponent implements OnInit {
           this.apiService.getProduct(this.editingProduct.numericId.toString()).subscribe({
             next: (product) => {
               this.editingProduct = product;
-              this.products$ = this.apiService.getProducts();
+              this.reloadProducts();
             },
             error: (err) => console.error('Błąd odświeżania produktu:', err)
           });
@@ -2612,7 +2661,7 @@ export class AdminComponent implements OnInit {
     if (this.editingCategory) {
       this.apiService.updateCategory(this.editingCategory.id, categoryData).subscribe({
         next: () => {
-          this.categories$ = this.apiService.getCategories();
+          this.reloadCategories();
           this.categories$.subscribe(cats => this.allCategories = cats);
           this.closeCategoryModal();
           this.modalService.showSuccess(this.translate.instant('ADMIN.CATEGORY_UPDATED'));
@@ -2625,7 +2674,7 @@ export class AdminComponent implements OnInit {
     } else {
       this.apiService.createCategory(categoryData).subscribe({
         next: () => {
-          this.categories$ = this.apiService.getCategories();
+          this.reloadCategories();
           this.categories$.subscribe(cats => this.allCategories = cats);
           this.closeCategoryModal();
           this.modalService.showSuccess(this.translate.instant('ADMIN.CATEGORY_CREATED'));
@@ -2647,7 +2696,7 @@ export class AdminComponent implements OnInit {
     if (confirmed) {
       this.apiService.deleteCategory(id).subscribe({
         next: () => {
-          this.categories$ = this.apiService.getCategories();
+          this.reloadCategories();
           this.categories$.subscribe(cats => this.allCategories = cats);
           this.modalService.showSuccess(this.translate.instant('ADMIN.CATEGORY_DELETED'));
         },
@@ -2665,7 +2714,7 @@ export class AdminComponent implements OnInit {
     const status = target.value;
     this.apiService.updateOrderStatus(orderId, status).subscribe({
       next: () => {
-        this.orders$ = this.apiService.getOrders();
+        this.reloadOrders();
         this.modalService.showSuccess(this.translate.instant('ADMIN.ORDER_STATUS_UPDATED'));
       },
       error: (err) => {
@@ -2748,7 +2797,7 @@ export class AdminComponent implements OnInit {
           ...updatedOrder,
           id: orderId // Ensure ID is preserved
         };
-        this.orders$ = this.apiService.getOrders();
+        this.reloadOrders();
         this.closeOrderEditModal();
         this.modalService.showSuccess(this.translate.instant('ADMIN.ORDER_UPDATED'));
       },
@@ -2801,7 +2850,7 @@ export class AdminComponent implements OnInit {
       this.apiService.updateVariant(variantAlert.variant.id, { stock: newStock }).subscribe({
         next: () => {
           this.loadLowStockAlerts();
-          this.products$ = this.apiService.getProducts();
+          this.reloadProducts();
           this.modalService.showSuccess(
             this.translate.instant('ADMIN.AUTO_ORDER_SUCCESS', { 
               qty: variantAlert.suggestedOrder,
@@ -2838,7 +2887,7 @@ export class AdminComponent implements OnInit {
             completedCount++;
             if (completedCount + errorCount === group.variants.length) {
               this.loadLowStockAlerts();
-              this.products$ = this.apiService.getProducts();
+              this.reloadProducts();
               this.modalService.showSuccess(
                 this.translate.instant('ADMIN.BULK_ORDER_SUCCESS', {
                   completed: completedCount,
@@ -2982,7 +3031,7 @@ export class AdminComponent implements OnInit {
       const newStock = stockAlert.currentStock + stockAlert.suggestedOrder;
       this.apiService.updateProduct(stockAlert.product.id, { stock: newStock }).subscribe({
         next: () => {
-          this.products$ = this.apiService.getProducts();
+          this.reloadProducts();
           this.loadLowStockAlerts();
           this.modalService.showSuccess(
             this.translate.instant('ADMIN.AUTO_ORDER_SUCCESS', { 
@@ -3029,6 +3078,9 @@ export class AdminComponent implements OnInit {
   }
 
   getFilteredTickets(): Ticket[] {
+    if (!Array.isArray(this.allTickets)) {
+      return [];
+    }
     if (this.selectedSupportStatus === 'all') {
       return this.allTickets;
     }
@@ -3036,6 +3088,9 @@ export class AdminComponent implements OnInit {
   }
 
   getTicketCountByStatus(status: string): number {
+    if (!Array.isArray(this.allTickets)) {
+      return 0;
+    }
     if (status === 'all') {
       return this.allTickets.length;
     }
@@ -3263,6 +3318,88 @@ export class AdminComponent implements OnInit {
       'free_product': this.translate.instant('ADMIN.REWARD_TYPE_FREE_PRODUCT')
     };
     return labels[type] || type;
+  }
+
+  // Reload methods with pagination
+  reloadProducts(): void {
+    this.apiService.getAllProducts().subscribe(products => {
+      this.allProducts = products;
+      this.productsTotalItems = products.length;
+      this.updatePaginatedProducts();
+    });
+    this.products$ = this.apiService.getAllProducts();
+  }
+
+  reloadCategories(): void {
+    this.apiService.getAllCategories().subscribe(categories => {
+      this.allCategories = categories;
+      this.categoriesTotalItems = categories.length;
+      this.updatePaginatedCategories();
+    });
+    this.categories$ = this.apiService.getAllCategories();
+  }
+
+  reloadOrders(): void {
+    this.apiService.getAllOrders().subscribe(orders => {
+      this.allOrders = orders;
+      this.ordersTotalItems = orders.length;
+      this.updatePaginatedOrders();
+    });
+    this.orders$ = this.apiService.getAllOrders();
+  }
+
+  // Pagination methods for Products
+  updatePaginatedProducts(): void {
+    const startIndex = (this.productsCurrentPage - 1) * this.productsPageSize;
+    const endIndex = startIndex + this.productsPageSize;
+    this.paginatedProducts = this.allProducts.slice(startIndex, endIndex);
+  }
+
+  onProductsPageChange(page: number): void {
+    this.productsCurrentPage = page;
+    this.updatePaginatedProducts();
+  }
+
+  onProductsPageSizeChange(pageSize: number): void {
+    this.productsPageSize = pageSize;
+    this.productsCurrentPage = 1;
+    this.updatePaginatedProducts();
+  }
+
+  // Pagination methods for Categories
+  updatePaginatedCategories(): void {
+    const startIndex = (this.categoriesCurrentPage - 1) * this.categoriesPageSize;
+    const endIndex = startIndex + this.categoriesPageSize;
+    this.paginatedCategories = this.allCategories.slice(startIndex, endIndex);
+  }
+
+  onCategoriesPageChange(page: number): void {
+    this.categoriesCurrentPage = page;
+    this.updatePaginatedCategories();
+  }
+
+  onCategoriesPageSizeChange(pageSize: number): void {
+    this.categoriesPageSize = pageSize;
+    this.categoriesCurrentPage = 1;
+    this.updatePaginatedCategories();
+  }
+
+  // Pagination methods for Orders
+  updatePaginatedOrders(): void {
+    const startIndex = (this.ordersCurrentPage - 1) * this.ordersPageSize;
+    const endIndex = startIndex + this.ordersPageSize;
+    this.paginatedOrders = this.allOrders.slice(startIndex, endIndex);
+  }
+
+  onOrdersPageChange(page: number): void {
+    this.ordersCurrentPage = page;
+    this.updatePaginatedOrders();
+  }
+
+  onOrdersPageSizeChange(pageSize: number): void {
+    this.ordersPageSize = pageSize;
+    this.ordersCurrentPage = 1;
+    this.updatePaginatedOrders();
   }
 
   formatRewardValue(reward: LoyaltyReward): string {

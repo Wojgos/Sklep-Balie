@@ -1,0 +1,75 @@
+<div class="pagination-container" *ngIf="totalPages > 1">
+  <div class="pagination-controls">
+    <!-- First page button -->
+    <button 
+      class="pagination-btn"
+      [disabled]="!hasPrevious"
+      (click)="goToFirst()"
+      title="Pierwsza strona">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5" />
+      </svg>
+    </button>
+
+    <!-- Previous page button -->
+    <button 
+      class="pagination-btn"
+      [disabled]="!hasPrevious"
+      (click)="goToPrevious()"
+      title="Poprzednia strona">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+      </svg>
+    </button>
+
+    <!-- Page numbers -->
+    <div class="page-numbers">
+      <button 
+        *ngFor="let page of visiblePages"
+        class="pagination-btn page-number"
+        [class.active]="page === currentPage"
+        (click)="goToPage(page)">
+        {{ page }}
+      </button>
+    </div>
+
+    <!-- Next page button -->
+    <button 
+      class="pagination-btn"
+      [disabled]="!hasNext"
+      (click)="goToNext()"
+      title="Następna strona">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+    </button>
+
+    <!-- Last page button -->
+    <button 
+      class="pagination-btn"
+      [disabled]="!hasNext"
+      (click)="goToLast()"
+      title="Ostatnia strona">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 4.5l7.5 7.5-7.5 7.5m6-15l7.5 7.5-7.5 7.5" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Info and page size selector -->
+  <div class="pagination-info">
+    <span class="items-info">
+      Pokazuję {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, totalItems) }} z {{ totalItems }} elementów
+    </span>
+    
+    <div class="page-size-selector">
+      <label>Elementy na stronę:</label>
+      <select [value]="pageSize" (change)="changePageSize(+$any($event.target).value)">
+        <option [value]="10">10</option>
+        <option [value]="25">25</option>
+        <option [value]="50">50</option>
+        <option [value]="100">100</option>
+      </select>
+    </div>
+  </div>
+</div>

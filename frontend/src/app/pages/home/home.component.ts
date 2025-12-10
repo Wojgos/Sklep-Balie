@@ -268,12 +268,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   ) {
     // Przeładuj dane po zmianie języka
     this.categoryCards$ = this.languageService.currentLanguage$.pipe(
-      switchMap(() => this.apiService.getCategories()),
+      switchMap(() => this.apiService.getAllCategories()),
       map(categories => this.buildCategoryCards(categories))
     );
     
     this.products$ = this.languageService.currentLanguage$.pipe(
-      switchMap(() => this.apiService.getProducts())
+      switchMap(() => this.apiService.getAllProducts())
     );
   }
 
