@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../services/api.service';
 import { LoyaltyProgram, LoyaltyReward, UserLoyaltyPoints, RedeemedReward } from '../../models';
 
@@ -18,16 +19,16 @@ interface ModalState {
 @Component({
   selector: 'bg-loyalty',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslateModule],
   template: `
     <div class="flex-1 bg-background py-8">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="mb-8">
           <h1 class="font-heading font-bold text-3xl sm:text-4xl mb-2">
-            Program Lojalnościowy
+            {{ 'LOYALTY.TITLE' | translate }}
           </h1>
-          <p class="text-muted-foreground">Zbieraj punkty i wymieniaj je na atrakcyjne nagrody!</p>
+          <p class="text-muted-foreground">{{ 'LOYALTY.SUBTITLE' | translate }}</p>
         </div>
 
         <!-- User Points Summary -->
@@ -35,12 +36,12 @@ interface ModalState {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-center">
             <div>
               <div class="text-5xl font-bold text-primary mb-2">{{ userPoints.availablePoints }}</div>
-              <div class="text-sm text-muted-foreground mb-1">Dostępne punkty</div>
-              <div class="text-xs text-muted-foreground">Całkowite: {{ userPoints.totalPoints }}</div>
+              <div class="text-sm text-muted-foreground mb-1">{{ 'LOYALTY.AVAILABLE_POINTS' | translate }}</div>
+              <div class="text-xs text-muted-foreground">{{ 'LOYALTY.TOTAL_POINTS' | translate }}: {{ userPoints.totalPoints }}</div>
             </div>
             <div>
               <div class="text-4xl font-semibold text-muted-foreground mb-2">{{ userPoints.usedPoints }}</div>
-              <div class="text-sm text-muted-foreground">Wykorzystane punkty</div>
+              <div class="text-sm text-muted-foreground">{{ 'LOYALTY.USED_POINTS' | translate }}</div>
             </div>
           </div>
         </div>
@@ -53,7 +54,7 @@ interface ModalState {
             <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
             </svg>
-            <span class="font-medium">Zdobywasz {{ loyaltyProgram.pointsPerZloty }} punkt{{ loyaltyProgram.pointsPerZloty === 1 ? '' : 'y' }} za każdą złotówkę zakupów!</span>
+            <span class="font-medium">{{ getPointsPerZlotyMessage() }}</span>
           </div>
         </div>
 
@@ -66,7 +67,7 @@ interface ModalState {
                 ? 'border-primary text-primary border-b-2 py-4 px-1 text-sm font-medium'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted border-b-2 py-4 px-1 text-sm font-medium'"
             >
-              Dostępne nagrody
+              {{ 'LOYALTY.TAB_REWARDS' | translate }}
             </button>
             <button
               (click)="activeTab = 'myRewards'"
@@ -74,7 +75,7 @@ interface ModalState {
                 ? 'border-primary text-primary border-b-2 py-4 px-1 text-sm font-medium'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted border-b-2 py-4 px-1 text-sm font-medium'"
             >
-              Moje nagrody
+              {{ 'LOYALTY.TAB_MY_REWARDS' | translate }}
             </button>
           </nav>
         </div>
@@ -96,7 +97,7 @@ interface ModalState {
               <div class="flex justify-between items-start mb-2">
                 <h3 class="font-semibold text-lg">{{ reward.name }}</h3>
                 <span *ngIf="reward.isActive" class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
-                  Aktywna
+                  {{ 'LOYALTY.ACTIVE_STATUS' | translate }}
                 </span>
               </div>
 
@@ -104,15 +105,15 @@ interface ModalState {
 
               <div class="space-y-2 mb-4">
                 <div class="flex justify-between text-sm">
-                  <span class="text-muted-foreground">Koszt:</span>
-                  <span class="font-bold text-primary">{{ reward.pointsCost }} punktów</span>
+                  <span class="text-muted-foreground">{{ 'LOYALTY.REWARD_COST' | translate }}</span>
+                  <span class="font-bold text-primary">{{ reward.pointsCost }} {{ 'LOYALTY.POINTS' | translate }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
-                  <span class="text-muted-foreground">Wartość:</span>
+                  <span class="text-muted-foreground">{{ 'LOYALTY.REWARD_VALUE' | translate }}</span>
                   <span class="font-semibold">{{ formatRewardValue(reward) }}</span>
                 </div>
                 <div *ngIf="reward.validUntil" class="flex justify-between text-sm">
-                  <span class="text-muted-foreground">Ważna do:</span>
+                  <span class="text-muted-foreground">{{ 'LOYALTY.VALID_UNTIL' | translate }}</span>
                   <span class="text-xs">{{ reward.validUntil | date:'dd.MM.yyyy' }}</span>
                 </div>
               </div>
@@ -126,7 +127,7 @@ interface ModalState {
                   'bg-muted text-muted-foreground cursor-not-allowed': !canAffordReward(reward) || !reward.isActive
                 }"
               >
-                {{ !canAffordReward(reward) ? 'Brak punktów' : 'Wymień punkty' }}
+                {{ !canAffordReward(reward) ? ('LOYALTY.NOT_ENOUGH_POINTS' | translate) : ('LOYALTY.REDEEM_POINTS' | translate) }}
               </button>
             </div>
           </div>
@@ -138,12 +139,12 @@ interface ModalState {
             <svg class="w-24 h-24 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
             </svg>
-            <p class="text-muted-foreground mb-2">Nie masz jeszcze żadnych wymienionych nagród</p>
+            <p class="text-muted-foreground mb-2">{{ 'LOYALTY.NO_REDEEMED_REWARDS' | translate }}</p>
             <button
               (click)="activeTab = 'rewards'"
               class="text-primary hover:underline font-medium"
             >
-              Przeglądaj dostępne nagrody →
+              {{ 'LOYALTY.BROWSE_REWARDS' | translate }}
             </button>
           </div>
 
@@ -158,7 +159,7 @@ interface ModalState {
                       class="px-3 py-1 rounded-full text-xs font-medium"
                       [ngClass]="redemption.isUsed ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800'"
                     >
-                      {{ redemption.isUsed ? 'Wykorzystane' : 'Do użycia' }}
+                      {{ redemption.isUsed ? ('LOYALTY.USED_STATUS' | translate) : ('LOYALTY.AVAILABLE_STATUS' | translate) }}
                     </span>
                   </div>
                   <p class="text-sm text-muted-foreground mb-3" *ngIf="redemption.reward?.description">
@@ -167,19 +168,19 @@ interface ModalState {
 
                   <div class="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span class="text-muted-foreground">Kod kuponu:</span>
+                      <span class="text-muted-foreground">{{ 'LOYALTY.COUPON_CODE' | translate }}</span>
                       <div class="font-mono font-bold text-primary mt-1">{{ redemption.code }}</div>
                     </div>
                     <div>
-                      <span class="text-muted-foreground">Punkty:</span>
+                      <span class="text-muted-foreground">{{ 'LOYALTY.POINTS' | translate }}:</span>
                       <div class="font-semibold mt-1">{{ redemption.pointsSpent }}</div>
                     </div>
                     <div>
-                      <span class="text-muted-foreground">Data wymiany:</span>
+                      <span class="text-muted-foreground">{{ 'LOYALTY.REDEEM_DATE' | translate }}</span>
                       <div class="mt-1">{{ redemption.createdAt | date:'dd.MM.yyyy' }}</div>
                     </div>
                     <div *ngIf="redemption.expiresAt">
-                      <span class="text-muted-foreground">Wygasa:</span>
+                      <span class="text-muted-foreground">{{ 'LOYALTY.EXPIRES_AT' | translate }}</span>
                       <div class="mt-1">{{ redemption.expiresAt | date:'dd.MM.yyyy' }}</div>
                     </div>
                   </div>
@@ -190,7 +191,7 @@ interface ModalState {
                     class="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold"
                     (click)="showCouponCodeModal(redemption.couponCode || redemption.code, redemption.rewardName || redemption.reward?.name)"
                   >
-                    Pokaż kod
+                    {{ 'LOYALTY.SHOW_CODE' | translate }}
                   </button>
                 </div>
               </div>
@@ -208,7 +209,7 @@ interface ModalState {
         <button
           class="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
           (click)="closeModal()"
-          aria-label="Zamknij"
+          [attr.aria-label]="'COMMON.CLOSE' | translate"
         >
           ✕
         </button>
@@ -220,7 +221,7 @@ interface ModalState {
             {{ modalState.couponCode }}
           </div>
           <p *ngIf="modalState.expiryText" class="text-xs text-muted-foreground mt-2">
-            Ważny do: {{ modalState.expiryText }}
+            {{ 'LOYALTY.COUPON_VALID_UNTIL' | translate:{date: modalState.expiryText} }}
           </p>
           <p *ngIf="copyFeedback" class="text-xs mt-2" [ngClass]="{'text-green-600': copyFeedbackSuccess, 'text-red-500': !copyFeedbackSuccess}">
             {{ copyFeedback }}
@@ -234,14 +235,14 @@ interface ModalState {
               (click)="closeModal()"
               [disabled]="modalLoading"
             >
-              Anuluj
+              {{ 'COMMON.CANCEL' | translate }}
             </button>
             <button
               class="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
               (click)="confirmRedeemReward()"
               [disabled]="modalLoading"
             >
-              {{ modalLoading ? 'Przetwarzanie...' : 'Potwierdź' }}
+              {{ modalLoading ? ('LOYALTY.PROCESSING' | translate) : ('COMMON.CONFIRM' | translate) }}
             </button>
           </ng-container>
 
@@ -251,13 +252,13 @@ interface ModalState {
               *ngIf="modalState.couponCode"
               (click)="copyCouponToClipboard(modalState.couponCode)"
             >
-              Kopiuj kod
+              {{ 'LOYALTY.COPY_CODE' | translate }}
             </button>
             <button
               class="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
               (click)="closeModal()"
             >
-              Zamknij
+              {{ 'COMMON.CLOSE' | translate }}
             </button>
           </ng-container>
 
@@ -267,13 +268,13 @@ interface ModalState {
               *ngIf="modalState.couponCode"
               (click)="copyCouponToClipboard(modalState.couponCode)"
             >
-              Kopiuj kod
+              {{ 'LOYALTY.COPY_CODE' | translate }}
             </button>
             <button
               class="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
               (click)="closeModal()"
             >
-              Zamknij
+              {{ 'COMMON.CLOSE' | translate }}
             </button>
           </ng-container>
 
@@ -282,7 +283,7 @@ interface ModalState {
               class="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold w-full"
               (click)="closeModal()"
             >
-              Zamknij
+              {{ 'COMMON.CLOSE' | translate }}
             </button>
           </ng-container>
         </div>
@@ -304,21 +305,29 @@ export class LoyaltyComponent implements OnInit {
   copyFeedback = '';
   copyFeedbackSuccess = true;
 
-  constructor(private apiService: ApiService) {
+  constructor(
+    private apiService: ApiService,
+    private translate: TranslateService
+  ) {
     this.availableRewards$ = this.apiService.getLoyaltyOffers();
     this.redeemedRewards$ = this.apiService.getMyRedeemedRewards();
   }
 
   ngOnInit(): void {
     this.loadData();
+    
+    // Subscribe to language changes to update loyalty program info
+    this.translate.onLangChange.subscribe(() => {
+      this.updateLoyaltyProgramTranslations();
+    });
   }
 
   loadData(): void {
     // Hardcoded loyalty program info (backend doesn't have this endpoint)
     this.loyaltyProgram = {
       id: '1',
-      name: 'Program Lojalnościowy EStore',
-      description: 'Zbieraj punkty za każde zamówienie i wymieniaj je na atrakcyjne nagrody!',
+      name: this.translate.instant('LOYALTY.PROGRAM_NAME'),
+      description: this.translate.instant('LOYALTY.PROGRAM_DESCRIPTION'),
       pointsPerZloty: 1,
       isActive: true,
       createdAt: new Date(),
@@ -335,6 +344,28 @@ export class LoyaltyComponent implements OnInit {
     });
   }
 
+  updateLoyaltyProgramTranslations(): void {
+    if (this.loyaltyProgram) {
+      this.loyaltyProgram.name = this.translate.instant('LOYALTY.PROGRAM_NAME');
+      this.loyaltyProgram.description = this.translate.instant('LOYALTY.PROGRAM_DESCRIPTION');
+    }
+  }
+
+  getPointsPerZlotyMessage(): string {
+    if (!this.loyaltyProgram) return '';
+    const points = this.loyaltyProgram.pointsPerZloty;
+    const currentLang = this.translate.currentLang;
+    let plural = '';
+    
+    if (currentLang === 'pl') {
+      plural = points === 1 ? '' : 'y';
+    } else if (currentLang === 'en') {
+      plural = points === 1 ? '' : 's';
+    }
+    
+    return this.translate.instant('LOYALTY.POINTS_PER_ZLOTY', { points, plural });
+  }
+
   canAffordReward(reward: LoyaltyReward): boolean {
     if (!this.userPoints) return false;
     return this.userPoints.availablePoints >= reward.pointsCost;
@@ -344,16 +375,16 @@ export class LoyaltyComponent implements OnInit {
     if (!this.canAffordReward(reward)) {
       this.openModal({
         type: 'error',
-        title: 'Za mało punktów',
-        message: 'Zgromadź więcej punktów, aby odebrać tę nagrodę.'
+        title: this.translate.instant('LOYALTY.ERROR_NOT_ENOUGH_POINTS'),
+        message: this.translate.instant('LOYALTY.ERROR_NOT_ENOUGH_POINTS_MESSAGE')
       });
       return;
     }
     this.pendingReward = reward;
     this.openModal({
       type: 'confirm',
-      title: 'Potwierdź wymianę',
-      message: `Czy na pewno chcesz wymienić ${reward.pointsCost} punktów na ${reward.name}?`
+      title: this.translate.instant('LOYALTY.CONFIRM_REDEEM_TITLE'),
+      message: this.translate.instant('LOYALTY.CONFIRM_REDEEM_MESSAGE', { points: reward.pointsCost })
     });
   }
 
@@ -377,10 +408,8 @@ export class LoyaltyComponent implements OnInit {
 
         this.openModal({
           type: 'success',
-          title: 'Nagroda odebrana! 🎉',
-          message: redemption.rewardName
-            ? `Kod dla nagrody ${redemption.rewardName}`
-            : `Kod dla nagrody ${reward.name}`,
+          title: this.translate.instant('LOYALTY.SUCCESS_TITLE'),
+          message: this.translate.instant('LOYALTY.SUCCESS_MESSAGE'),
           couponCode,
           expiryText
         });
@@ -395,11 +424,11 @@ export class LoyaltyComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error redeeming reward:', err);
-        const errorMsg = err.error?.error || 'Błąd podczas wymiany nagrody';
+        const errorMsg = err.error?.error || this.translate.instant('LOYALTY.ERROR_REDEEM');
         this.modalLoading = false;
         this.openModal({
           type: 'error',
-          title: 'Nie udało się wymienić nagrody',
+          title: this.translate.instant('COMMON.ERROR'),
           message: errorMsg
         });
       }
@@ -440,16 +469,16 @@ export class LoyaltyComponent implements OnInit {
     navigator.clipboard.writeText(code)
       .then(() => {
         this.copyFeedbackSuccess = true;
-        this.copyFeedback = 'Kod został skopiowany do schowka.';
+        this.copyFeedback = this.translate.instant('LOYALTY.COPIED_SUCCESS');
       })
       .catch(() => {
         this.copyFeedbackSuccess = false;
-        this.copyFeedback = 'Nie udało się skopiować kodu. Skopiuj go ręcznie.';
+        this.copyFeedback = this.translate.instant('LOYALTY.COPIED_ERROR');
       });
 
     if (silent) {
       this.copyFeedbackSuccess = true;
-      this.copyFeedback = 'Kod został automatycznie skopiowany do schowka.';
+      this.copyFeedback = this.translate.instant('LOYALTY.COPIED_SUCCESS');
     }
   }
 
