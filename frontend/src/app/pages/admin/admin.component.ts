@@ -782,7 +782,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
       <div class="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
         <div class="p-6">
           <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-semibold">{{ editingProduct ? 'Edytuj Produkt' : 'Dodaj Produkt' }}</h2>
+            <h2 class="text-2xl font-semibold">{{ editingProduct ? translate.instant('ADMIN.EDIT_PRODUCT') : translate.instant('ADMIN.ADD_PRODUCT') }}</h2>
             <button (click)="closeProductModal()" class="text-muted-foreground hover:text-foreground">
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -792,7 +792,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
           <form (submit)="saveProduct($event)" class="space-y-4">
             <div>
-              <label class="block text-sm font-medium mb-2">Nazwa produktu</label>
+              <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.PRODUCT_NAME') }}</label>
               <input 
                 type="text" 
                 [(ngModel)]="productForm.name" 
@@ -803,7 +803,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-2">Opis</label>
+              <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.DESCRIPTION') }}</label>
               <textarea 
                 [(ngModel)]="productForm.description" 
                 name="description"
@@ -813,14 +813,14 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-2">Kategoria</label>
+              <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.CATEGORY') }}</label>
               <select 
                 [(ngModel)]="productForm.categoryId" 
                 name="categoryId"
                 required
                 class="w-full px-3 py-2 border border-border rounded-lg bg-background"
               >
-                <option value="">Wybierz kategorię</option>
+                <option value="">{{ translate.instant('ADMIN.SELECT_CATEGORY') }}</option>
                 <option *ngFor="let cat of categories$ | async" [value]="cat.id">
                   {{ cat.name }}
                 </option>
@@ -831,28 +831,41 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             
             <div>
               <label class="block text-sm font-medium mb-2">
-                Zdjęcie produktu
+                {{ translate.instant('ADMIN.PRODUCT_IMAGE') }}
                 @if (editingProduct) {
-                  <span class="text-xs text-gray-500 ml-2">(opcjonalne - pozostaw puste aby zachować obecne)</span>
+                  <span class="text-xs text-gray-500 ml-2">{{ translate.instant('ADMIN.OPTIONAL_KEEP_CURRENT') }}</span>
                 }
               </label>
-              <input 
-                type="file" 
-                (change)="onProductImageSelected($event)"
-                name="imageFile"
-                accept="image/*"
-                class="w-full px-3 py-2 border border-border rounded-lg bg-background"
-              />
+              <div class="flex items-center gap-3">
+                <input 
+                  #productFileInput
+                  type="file" 
+                  (change)="onProductImageSelected($event)"
+                  name="imageFile"
+                  accept="image/*"
+                  class="hidden"
+                />
+                <button 
+                  type="button"
+                  (click)="productFileInput.click()"
+                  class="px-4 py-2 border border-border rounded-lg bg-background hover:bg-muted transition-colors"
+                >
+                  {{ translate.instant('COMMON.CHOOSE_FILE') }}
+                </button>
+                <span class="text-sm text-muted-foreground">
+                  {{ productForm.imageFile?.name || translate.instant('COMMON.NO_FILE_CHOSEN') }}
+                </span>
+              </div>
               @if (productForm.imagePreview) {
                 <div class="mt-2">
                   <p class="text-xs text-gray-500 mb-1">
                     @if (productForm.imageFile) {
-                      Nowe zdjęcie:
+                      {{ translate.instant('ADMIN.NEW_IMAGE') }}
                     } @else {
-                      Obecne zdjęcie:
+                      {{ translate.instant('ADMIN.CURRENT_IMAGE') }}
                     }
                   </p>
-                  <img [src]="productForm.imagePreview" alt="Podgląd" class="h-32 w-32 object-cover rounded">
+                  <img [src]="productForm.imagePreview" [alt]="translate.instant('ADMIN.IMAGE_PREVIEW')" class="h-32 w-32 object-cover rounded">
                 </div>
               }
             </div>
@@ -862,13 +875,13 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               <div class="border-t border-border pt-4 mt-4">
                 <div class="flex justify-between items-center mb-4">
                   <div>
-                    <h3 class="text-lg font-semibold">📦 Warianty Produktu 
+                    <h3 class="text-lg font-semibold">📦 {{ translate.instant('ADMIN.PRODUCT_VARIANTS') }}
                       @if (editingProduct.variants && editingProduct.variants.length > 0) {
                         <span class="text-muted-foreground">({{ editingProduct.variants.length }})</span>
                       }
                     </h3>
                     <p class="text-sm text-muted-foreground mt-1">
-                      Każdy wariant to osobny produkt z własnym SKU, ceną i stanem magazynowym
+                      {{ translate.instant('ADMIN.VARIANT_DESCRIPTION') }}
                     </p>
                   </div>
                   <button 
@@ -876,14 +889,14 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                     (click)="openSkuVariantModal(null)"
                     class="text-sm px-3 py-1.5 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                   >
-                    + Dodaj wariant
+                    {{ translate.instant('ADMIN.ADD_VARIANT') }}
                   </button>
                 </div>
 
                 @if (!editingProduct.variants || editingProduct.variants.length === 0) {
                   <div class="bg-muted/30 p-6 rounded-lg text-center">
                     <p class="text-muted-foreground mb-3">
-                      Brak wariantów. Dodaj pierwszy wariant, aby produkt był dostępny w sklepie.
+                      {{ translate.instant('ADMIN.NO_VARIANTS_MSG') }}
                     </p>
                     <button 
                       type="button"
@@ -893,7 +906,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                       </svg>
-                      Utwórz pierwszy wariant
+                      {{ translate.instant('ADMIN.CREATE_FIRST_VARIANT') }}
                     </button>
                   </div>
                 } @else {
@@ -1176,7 +1189,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
       <div class="bg-background rounded-lg max-w-lg w-full" (click)="$event.stopPropagation()">
         <div class="p-6">
           <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-semibold">{{ editingCategory ? 'Edytuj Kategorię' : 'Dodaj Kategorię' }}</h2>
+            <h2 class="text-2xl font-semibold">{{ editingCategory ? translate.instant('ADMIN.EDIT_CATEGORY') : translate.instant('ADMIN.ADD_CATEGORY') }}</h2>
             <button (click)="closeCategoryModal()" class="text-muted-foreground hover:text-foreground">
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -1186,7 +1199,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
           <form (submit)="saveCategory($event)" class="space-y-4">
             <div>
-              <label class="block text-sm font-medium mb-2">Nazwa kategorii</label>
+              <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.CATEGORY_NAME') }}</label>
               <input 
                 type="text" 
                 [(ngModel)]="categoryForm.name" 
@@ -1197,7 +1210,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-2">Opis</label>
+              <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.DESCRIPTION') }}</label>
               <textarea 
                 [(ngModel)]="categoryForm.description" 
                 name="description"
@@ -1208,28 +1221,41 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
             <div>
               <label class="block text-sm font-medium mb-2">
-                Zdjęcie kategorii
+                {{ translate.instant('ADMIN.CATEGORY_IMAGE') }}
                 @if (editingCategory) {
-                  <span class="text-xs text-gray-500 ml-2">(opcjonalne - pozostaw puste aby zachować obecne)</span>
+                  <span class="text-xs text-gray-500 ml-2">{{ translate.instant('ADMIN.OPTIONAL_KEEP_CURRENT') }}</span>
                 }
               </label>
-              <input 
-                type="file" 
-                (change)="onCategoryImageSelected($event)"
-                name="imageFile"
-                accept="image/*"
-                class="w-full px-3 py-2 border border-border rounded-lg bg-background"
-              />
+              <div class="flex items-center gap-3">
+                <input 
+                  #categoryFileInput
+                  type="file" 
+                  (change)="onCategoryImageSelected($event)"
+                  name="imageFile"
+                  accept="image/*"
+                  class="hidden"
+                />
+                <button 
+                  type="button"
+                  (click)="categoryFileInput.click()"
+                  class="px-4 py-2 border border-border rounded-lg bg-background hover:bg-muted transition-colors"
+                >
+                  {{ translate.instant('COMMON.CHOOSE_FILE') }}
+                </button>
+                <span class="text-sm text-muted-foreground">
+                  {{ categoryForm.imageFile?.name || translate.instant('COMMON.NO_FILE_CHOSEN') }}
+                </span>
+              </div>
               @if (categoryForm.imagePreview) {
                 <div class="mt-2">
                   <p class="text-xs text-gray-500 mb-1">
                     @if (categoryForm.imageFile) {
-                      Nowe zdjęcie:
+                      {{ translate.instant('ADMIN.NEW_IMAGE') }}
                     } @else {
-                      Obecne zdjęcie:
+                      {{ translate.instant('ADMIN.CURRENT_IMAGE') }}
                     }
                   </p>
-                  <img [src]="categoryForm.imagePreview" alt="Podgląd" class="h-32 w-32 object-cover rounded">
+                  <img [src]="categoryForm.imagePreview" [alt]="translate.instant('ADMIN.IMAGE_PREVIEW')" class="h-32 w-32 object-cover rounded">
                 </div>
               }
             </div>
@@ -1240,13 +1266,13 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 (click)="closeCategoryModal()"
                 class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
               >
-                Anuluj
+                {{ translate.instant('COMMON.CANCEL') }}
               </button>
               <button 
                 type="submit"
                 class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
               >
-                {{ editingCategory ? 'Zapisz' : 'Dodaj' }}
+                {{ editingCategory ? translate.instant('COMMON.SAVE') : translate.instant('COMMON.ADD') }}
               </button>
             </div>
           </form>
@@ -1259,7 +1285,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
       <div class="bg-background rounded-lg max-w-lg w-full" (click)="$event.stopPropagation()">
         <div class="p-6">
           <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-semibold">{{ editingAttribute ? 'Edytuj Atrybut' : 'Dodaj Atrybut' }}</h2>
+            <h2 class="text-2xl font-semibold">{{ editingAttribute ? translate.instant('ADMIN.EDIT_ATTRIBUTE') : translate.instant('ADMIN.ADD_ATTRIBUTE_TITLE') }}</h2>
             <button (click)="closeAttributeModal()" class="text-muted-foreground hover:text-foreground">
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -1269,17 +1295,17 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
           <form (submit)="saveAttribute($event)" class="space-y-4">
             <div>
-              <label class="block text-sm font-medium mb-2">Nazwa atrybutu *</label>
+              <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.ATTRIBUTE_NAME') }} *</label>
               <input 
                 type="text" 
                 [(ngModel)]="attributeForm.name" 
                 name="name"
                 required
-                placeholder="np. Kolor, Rozmiar, Materiał"
+                [placeholder]="translate.instant('ADMIN.ATTRIBUTE_NAME_PLACEHOLDER')"
                 class="w-full px-3 py-2 border border-border rounded-lg bg-background"
               />
               <p class="text-xs text-muted-foreground mt-1">
-                Nazwa atrybutu (np. "Kolor", "Rozmiar", "Materiał"). Będzie wyświetlana w konfiguracjach produktów.
+                {{ translate.instant('ADMIN.ATTRIBUTE_NAME_HINT') }}
               </p>
             </div>
 
@@ -1289,13 +1315,13 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 (click)="closeAttributeModal()"
                 class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
               >
-                Anuluj
+                {{ translate.instant('COMMON.CANCEL') }}
               </button>
               <button 
                 type="submit"
                 class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
               >
-                {{ editingAttribute ? 'Zapisz zmiany' : 'Dodaj atrybut' }}
+                {{ editingAttribute ? translate.instant('COMMON.SAVE') : translate.instant('COMMON.ADD') }}
               </button>
             </div>
           </form>
@@ -1309,8 +1335,8 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
         <div class="p-6">
           <div class="flex justify-between items-center mb-6">
             <div>
-              <h2 class="text-2xl font-semibold">Wartości atrybutu: {{ selectedAttributeForValues.name }}</h2>
-              <p class="text-sm text-muted-foreground mt-1">Zarządzaj możliwymi wartościami dla tego atrybutu</p>
+              <h2 class="text-2xl font-semibold">{{ translate.instant('ADMIN.ATTRIBUTE_VALUES_TITLE') }} {{ selectedAttributeForValues.name }}</h2>
+              <p class="text-sm text-muted-foreground mt-1">{{ translate.instant('ADMIN.MANAGE_ATTRIBUTE_VALUES') }}</p>
             </div>
             <button (click)="closeAttributeValueModal()" class="text-muted-foreground hover:text-foreground">
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1328,7 +1354,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                   [(ngModel)]="attributeValueForm.value" 
                   name="value"
                   required
-                  placeholder="Nowa wartość (np. Czerwony, XL, Bawełna)"
+                  [placeholder]="translate.instant('ADMIN.NEW_VALUE_PLACEHOLDER')"
                   class="w-full px-3 py-2 border border-border rounded-lg bg-background"
                 />
               </div>
@@ -1336,14 +1362,14 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 type="submit"
                 class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors whitespace-nowrap"
               >
-                + Dodaj wartość
+                {{ translate.instant('ADMIN.ADD_VALUE') }}
               </button>
             </div>
           </form>
 
           <!-- Values List -->
           <div class="space-y-2">
-            <h3 class="font-semibold text-sm mb-3">Istniejące wartości:</h3>
+            <h3 class="font-semibold text-sm mb-3">{{ translate.instant('ADMIN.EXISTING_VALUES') }}</h3>
             <div *ngIf="selectedAttributeForValues.values && selectedAttributeForValues.values.length > 0" class="space-y-2">
               <div 
                 *ngFor="let value of selectedAttributeForValues.values"
@@ -1353,7 +1379,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 <button
                   (click)="deleteAttributeValue(value.id)"
                   class="p-2 hover:bg-red-50 text-red-600 rounded-md transition-colors"
-                  title="Usuń wartość"
+                  [title]="translate.instant('COMMON.DELETE')"
                 >
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -1362,7 +1388,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               </div>
             </div>
             <div *ngIf="!selectedAttributeForValues.values || selectedAttributeForValues.values.length === 0" class="text-center py-8 text-muted-foreground">
-              Brak wartości. Dodaj pierwszą wartość powyżej.
+              {{ translate.instant('ADMIN.NO_VALUES_YET') }}
             </div>
           </div>
 
@@ -1372,7 +1398,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               (click)="closeAttributeValueModal()"
               class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
-              Zamknij
+              {{ translate.instant('ADMIN.CLOSE') }}
             </button>
           </div>
         </div>
@@ -1384,23 +1410,23 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
       <div class="bg-background rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
         <div class="p-6">
           <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-semibold">Szczegóły zamówienia #{{ selectedOrder.id }}</h2>
+            <h2 class="text-2xl font-semibold">{{ translate.instant('ADMIN.ORDER_DETAILS') }} #{{ selectedOrder.id }}</h2>
             <div class="flex items-center gap-2">
               <button 
                 (click)="downloadInvoice(selectedOrder.id)"
                 class="px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center gap-2"
-                title="Pobierz fakturę PDF"
+                [title]="translate.instant('ADMIN.INVOICE_PDF')"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
                 </svg>
-                Faktura PDF
+                {{ translate.instant('ADMIN.INVOICE_PDF') }}
               </button>
               <button 
                 (click)="openOrderEditModal()"
                 class="px-3 py-1 text-sm border border-border rounded hover:bg-muted transition-colors"
               >
-                Edytuj
+                {{ translate.instant('COMMON.EDIT') }}
               </button>
               <button (click)="closeOrderModal()" class="text-muted-foreground hover:text-foreground">
                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1413,38 +1439,38 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
           <div class="space-y-6">
             <!-- Customer Info -->
             <div class="bg-muted/50 rounded-lg p-4">
-              <h3 class="font-semibold mb-3">Informacje o kliencie</h3>
+              <h3 class="font-semibold mb-3">{{ translate.instant('ADMIN.CUSTOMER_INFO') }}</h3>
               <div class="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <span class="text-muted-foreground">Imię i nazwisko:</span>
+                  <span class="text-muted-foreground">{{ translate.instant('ADMIN.FULL_NAME') }}:</span>
                   <p class="font-medium">{{ selectedOrder.customerName }}</p>
                 </div>
                 <div>
-                  <span class="text-muted-foreground">Email:</span>
+                  <span class="text-muted-foreground">{{ translate.instant('ADMIN.EMAIL') }}:</span>
                   <p class="font-medium">{{ selectedOrder.email }}</p>
                 </div>
                 <div>
-                  <span class="text-muted-foreground">Telefon:</span>
+                  <span class="text-muted-foreground">{{ translate.instant('ADMIN.PHONE') }}:</span>
                   <p class="font-medium">{{ selectedOrder.phone }}</p>
                 </div>
                 <div>
-                  <span class="text-muted-foreground">Adres:</span>
+                  <span class="text-muted-foreground">{{ translate.instant('ADMIN.ADDRESS_LABEL') }}:</span>
                   <p class="font-medium">{{ selectedOrder.address }}, {{ selectedOrder.city }}, {{ selectedOrder.postalCode }}</p>
                 </div>
                 <div>
-                  <span class="text-muted-foreground">Status płatności:</span>
+                  <span class="text-muted-foreground">{{ translate.instant('ADMIN.PAYMENT_STATUS') }}:</span>
                   <p class="font-medium">
                     <span 
                       [class]="selectedOrder.paid 
                         ? 'bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium'
                         : 'bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium'"
                     >
-                      {{ selectedOrder.paid ? 'Opłacone' : 'Nieopłacone' }}
+                      {{ selectedOrder.paid ? translate.instant('ADMIN.PAID') : translate.instant('ADMIN.UNPAID') }}
                     </span>
                   </p>
                 </div>
                 <div *ngIf="selectedOrder.trackingNumber">
-                  <span class="text-muted-foreground">Numer przesyłki:</span>
+                  <span class="text-muted-foreground">{{ translate.instant('ADMIN.TRACKING_NUMBER') }}:</span>
                   <p class="font-medium font-mono">{{ selectedOrder.trackingNumber }}</p>
                 </div>
               </div>
@@ -1452,7 +1478,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
             <!-- Order Items -->
             <div>
-              <h3 class="font-semibold mb-3">Produkty</h3>
+              <h3 class="font-semibold mb-3">{{ translate.instant('ADMIN.PRODUCTS') }}</h3>
               <div class="space-y-2">
                 <div *ngFor="let item of orderItems" 
                      class="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
@@ -1468,14 +1494,14 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             <!-- Order Summary -->
             <div class="border-t border-border pt-4">
               <div class="flex justify-between items-center text-lg font-bold">
-                <span>Wartość całkowita:</span>
+                <span>{{ translate.instant('ADMIN.TOTAL_VALUE') }}:</span>
                 <span>{{ parseFloat(selectedOrder.totalPrice) | number:'1.2-2' }} PLN</span>
               </div>
             </div>
 
             <!-- Notes -->
             <div *ngIf="selectedOrder.notes" class="bg-muted/50 rounded-lg p-4">
-              <h3 class="font-semibold mb-2">Uwagi</h3>
+              <h3 class="font-semibold mb-2">{{ translate.instant('ADMIN.NOTES') }}</h3>
               <p class="text-sm">{{ selectedOrder.notes }}</p>
             </div>
           </div>
@@ -1488,7 +1514,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
       <div class="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
         <div class="p-6">
           <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-semibold">Edytuj zamówienie</h2>
+            <h2 class="text-2xl font-semibold">{{ translate.instant('ADMIN.EDIT_ORDER') }}</h2>
             <button (click)="closeOrderEditModal()" class="text-muted-foreground hover:text-foreground">
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -1498,7 +1524,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
           <form (submit)="saveOrderEdit($event)" class="space-y-4">
             <div>
-              <label class="block text-sm font-medium mb-2">Imię i nazwisko</label>
+              <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.FULL_NAME') }}</label>
               <input 
                 type="text" 
                 [(ngModel)]="orderEditForm.customerName" 
@@ -1510,7 +1536,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium mb-2">Email</label>
+                <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.EMAIL') }}</label>
                 <input 
                   type="email" 
                   [(ngModel)]="orderEditForm.email" 
@@ -1520,7 +1546,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium mb-2">Telefon</label>
+                <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.PHONE') }}</label>
                 <input 
                   type="tel" 
                   [(ngModel)]="orderEditForm.phone" 
@@ -1532,7 +1558,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-2">Adres</label>
+              <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.ADDRESS_LABEL') }}</label>
               <input 
                 type="text" 
                 [(ngModel)]="orderEditForm.address" 
@@ -1544,7 +1570,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium mb-2">Miasto</label>
+                <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.CITY') }}</label>
                 <input 
                   type="text" 
                   [(ngModel)]="orderEditForm.city" 
@@ -1554,7 +1580,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium mb-2">Kod pocztowy</label>
+                <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.POSTAL_CODE') }}</label>
                 <input 
                   type="text" 
                   [(ngModel)]="orderEditForm.postalCode" 
@@ -1567,12 +1593,12 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium mb-2">Numer przesyłki</label>
+                <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.TRACKING_NUMBER') }}</label>
                 <input 
                   type="text" 
                   [(ngModel)]="orderEditForm.trackingNumber" 
                   name="trackingNumber"
-                  placeholder="np. 1234567890"
+                  [placeholder]="translate.instant('ADMIN.TRACKING_NUMBER_PLACEHOLDER')"
                   class="w-full px-3 py-2 border border-border rounded-lg bg-background"
                 />
               </div>
@@ -1584,13 +1610,13 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                     name="paid"
                     class="w-4 h-4 text-primary border-border rounded focus:ring-primary"
                   />
-                  <span class="ml-2 text-sm font-medium">Zamówienie opłacone</span>
+                  <span class="ml-2 text-sm font-medium">{{ translate.instant('ADMIN.ORDER_PAID') }}</span>
                 </label>
               </div>
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-2">Uwagi</label>
+              <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.NOTES') }}</label>
               <textarea 
                 [(ngModel)]="orderEditForm.notes" 
                 name="notes"
@@ -1605,13 +1631,13 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 (click)="closeOrderEditModal()"
                 class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
               >
-                Anuluj
+                {{ translate.instant('COMMON.CANCEL') }}
               </button>
               <button 
                 type="submit"
                 class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
               >
-                Zapisz
+                {{ translate.instant('COMMON.SAVE') }}
               </button>
             </div>
           </form>
@@ -1639,7 +1665,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 </span>
               </div>
               <div class="flex items-center gap-4 text-sm text-muted-foreground">
-                <span>Zgłoszenie #{{ selectedTicket.id }}</span>
+                <span>{{ translate.instant('ADMIN.TICKET_NUMBER') }}{{ selectedTicket.id }}</span>
                 <span>{{ selectedTicket.user.firstName }} {{ selectedTicket.user.lastName }}</span>
                 <span>{{ selectedTicket.created_at | date:'dd.MM.yyyy HH:mm' }}</span>
               </div>
@@ -1674,7 +1700,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
           <!-- Messages -->
           <div class="space-y-4 mb-6 max-h-96 overflow-y-auto">
-            <h3 class="font-semibold">Historia konwersacji</h3>
+            <h3 class="font-semibold">{{ translate.instant('ADMIN.CONVERSATION_HISTORY') }}</h3>
             <div
               *ngFor="let message of selectedTicket.messages"
               class="flex"
@@ -1702,14 +1728,14 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
           <div class="border-t border-border pt-4">
             <form (ngSubmit)="replyToSupportTicket()" class="space-y-4">
               <div>
-                <label class="block text-sm font-medium mb-2">Odpowiedź administratora</label>
+                <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.ADMIN_REPLY') }}</label>
                 <textarea
                   [(ngModel)]="ticketReplyText"
                   name="reply"
                   required
                   rows="4"
                   class="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                  placeholder="Napisz odpowiedź dla klienta..."
+                  [placeholder]="translate.instant('ADMIN.REPLY_PLACEHOLDER_ADMIN')"
                 ></textarea>
               </div>
               <div class="flex justify-end">
@@ -1718,7 +1744,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                   [disabled]="!ticketReplyText.trim()"
                   class="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
-                  Wyślij odpowiedź
+                  {{ translate.instant('ADMIN.SEND_REPLY_BTN') }}
                 </button>
               </div>
             </form>
@@ -1732,7 +1758,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
       <div class="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
         <div class="p-6">
           <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-semibold">{{ editingReward ? 'Edytuj Nagrodę' : 'Dodaj Nagrodę' }}</h2>
+            <h2 class="text-2xl font-semibold">{{ editingReward ? translate.instant('ADMIN.EDIT_REWARD') : translate.instant('ADMIN.ADD_REWARD') }}</h2>
             <button (click)="closeRewardModal()" class="text-muted-foreground hover:text-foreground">
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -1742,7 +1768,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
           <form (submit)="saveReward($event)" class="space-y-4">
             <div>
-              <label class="block text-sm font-medium mb-2">Nazwa nagrody</label>
+              <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.REWARD_NAME') }}</label>
               <input 
                 type="text" 
                 [(ngModel)]="rewardForm.name" 
@@ -1753,7 +1779,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-2">Opis</label>
+              <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.REWARD_DESCRIPTION') }}</label>
               <textarea 
                 [(ngModel)]="rewardForm.description" 
                 name="description"
@@ -1764,7 +1790,7 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium mb-2">Koszt w punktach</label>
+                <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.POINTS_COST') }}</label>
                 <input 
                   type="number" 
                   [(ngModel)]="rewardForm.pointsCost" 
@@ -1776,17 +1802,17 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               </div>
 
               <div>
-                <label class="block text-sm font-medium mb-2">Typ nagrody</label>
+                <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.REWARD_TYPE') }}</label>
                 <select 
                   [(ngModel)]="rewardForm.rewardType" 
                   name="rewardType"
                   required
                   class="w-full px-3 py-2 border border-border rounded-lg bg-background"
                 >
-                  <option value="discount_percentage">Zniżka procentowa</option>
-                  <option value="discount_fixed">Zniżka stała (PLN)</option>
-                  <option value="free_shipping">Darmowa dostawa</option>
-                  <option value="free_product">Darmowy produkt</option>
+                  <option value="discount_percentage">{{ translate.instant('ADMIN.PERCENTAGE_DISCOUNT') }}</option>
+                  <option value="discount_fixed">{{ translate.instant('ADMIN.FIXED_DISCOUNT') }}</option>
+                  <option value="free_shipping">{{ translate.instant('ADMIN.FREE_SHIPPING_REWARD') }}</option>
+                  <option value="free_product">{{ translate.instant('ADMIN.FREE_PRODUCT') }}</option>
                 </select>
               </div>
             </div>
@@ -1794,9 +1820,9 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium mb-2">
-                  {{ rewardForm.rewardType === 'discount_percentage' ? 'Wartość (%)' : 
-                     rewardForm.rewardType === 'discount_fixed' ? 'Wartość (PLN)' : 
-                     rewardForm.rewardType === 'free_product' ? 'ID produktu' : 'Wartość' }}
+                  {{ rewardForm.rewardType === 'discount_percentage' ? translate.instant('ADMIN.REWARD_VALUE_PERCENT') : 
+                     rewardForm.rewardType === 'discount_fixed' ? translate.instant('ADMIN.REWARD_VALUE_PLN') : 
+                     rewardForm.rewardType === 'free_product' ? translate.instant('ADMIN.PRODUCT_ID') : translate.instant('ADMIN.VALUE_LABEL') }}
                 </label>
                 <input 
                   type="number" 
@@ -1811,21 +1837,21 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
               </div>
 
               <div>
-                <label class="block text-sm font-medium mb-2">Limit użyć (opcjonalne)</label>
+                <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.USAGE_LIMIT_OPTIONAL') }}</label>
                 <input 
                   type="number" 
                   [(ngModel)]="rewardForm.usageLimit" 
                   name="usageLimit"
                   min="1"
                   class="w-full px-3 py-2 border border-border rounded-lg bg-background"
-                  placeholder="Brak limitu"
+                  [placeholder]="translate.instant('ADMIN.NO_LIMIT_PLACEHOLDER')"
                 />
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium mb-2">Ważne do (opcjonalne)</label>
+                <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.VALID_UNTIL_OPTIONAL') }}</label>
                 <input 
                   type="date" 
                   [(ngModel)]="rewardForm.validUntilString" 
@@ -1842,13 +1868,13 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                     name="isActive"
                     class="w-4 h-4 text-primary border-border rounded focus:ring-primary"
                   />
-                  <span class="ml-2 text-sm font-medium">Nagroda aktywna</span>
+                  <span class="ml-2 text-sm font-medium">{{ translate.instant('ADMIN.REWARD_ACTIVE') }}</span>
                 </label>
               </div>
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-2">URL obrazka (opcjonalne)</label>
+              <label class="block text-sm font-medium mb-2">{{ translate.instant('ADMIN.IMAGE_URL_OPTIONAL') }}</label>
               <input 
                 type="text" 
                 [(ngModel)]="rewardForm.image" 
@@ -1864,13 +1890,13 @@ type TabType = 'products' | 'categories' | 'orders' | 'lowStock' | 'statistics' 
                 (click)="closeRewardModal()"
                 class="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
               >
-                Anuluj
+                {{ translate.instant('COMMON.CANCEL') }}
               </button>
               <button 
                 type="submit"
                 class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
               >
-                {{ editingReward ? 'Zapisz zmiany' : 'Dodaj nagrodę' }}
+                {{ editingReward ? translate.instant('COMMON.SAVE') : translate.instant('COMMON.ADD') }}
               </button>
             </div>
           </form>
@@ -2098,26 +2124,26 @@ export class AdminComponent implements OnInit {
       // Update existing attribute
       this.apiService.updateAttribute(this.editingAttribute.id, attributeData).subscribe({
         next: () => {
-          this.modalService.showSuccess('Atrybut zaktualizowany pomyślnie!');
+          this.modalService.showSuccess(this.translate.instant('ADMIN.ATTRIBUTE_UPDATED'));
           this.loadAttributes();
           this.closeAttributeModal();
         },
         error: (err) => {
           console.error('Błąd aktualizacji atrybutu:', err);
-          this.modalService.showError('Błąd podczas aktualizacji atrybutu');
+          this.modalService.showError(this.translate.instant('ADMIN.ATTRIBUTE_UPDATE_ERROR'));
         }
       });
     } else {
       // Create new attribute
       this.apiService.createAttribute(attributeData).subscribe({
         next: () => {
-          this.modalService.showSuccess('Atrybut utworzony pomyślnie!');
+          this.modalService.showSuccess(this.translate.instant('ADMIN.ATTRIBUTE_CREATED'));
           this.loadAttributes();
           this.closeAttributeModal();
         },
         error: (err) => {
           console.error('Błąd tworzenia atrybutu:', err);
-          this.modalService.showError('Błąd podczas tworzenia atrybutu');
+          this.modalService.showError(this.translate.instant('ADMIN.ATTRIBUTE_CREATE_ERROR'));
         }
       });
     }
@@ -2125,19 +2151,19 @@ export class AdminComponent implements OnInit {
 
   async deleteAttribute(id: number): Promise<void> {
     const confirmed = await this.modalService.showConfirm(
-      'Czy na pewno chcesz usunąć ten atrybut? Zostaną usunięte wszystkie jego wartości.',
-      'Potwierdź usunięcie'
+      this.translate.instant('ADMIN.CONFIRM_DELETE_ATTRIBUTE'),
+      this.translate.instant('ADMIN.CONFIRM_DELETE_TITLE')
     );
     
     if (confirmed) {
       this.apiService.deleteAttribute(id).subscribe({
         next: () => {
-          this.modalService.showSuccess('Atrybut usunięty pomyślnie!');
+          this.modalService.showSuccess(this.translate.instant('ADMIN.ATTRIBUTE_DELETED'));
           this.loadAttributes();
         },
         error: (err) => {
           console.error('Błąd usuwania atrybutu:', err);
-          this.modalService.showError('Błąd podczas usuwania atrybutu');
+          this.modalService.showError(this.translate.instant('ADMIN.ATTRIBUTE_DELETE_ERROR'));
         }
       });
     }
@@ -2170,7 +2196,7 @@ export class AdminComponent implements OnInit {
 
     this.apiService.createAttributeValue(valueData).subscribe({
       next: () => {
-        this.modalService.showSuccess('Wartość dodana pomyślnie!');
+        this.modalService.showSuccess(this.translate.instant('ADMIN.VALUE_ADDED'));
         this.attributeValueForm.value = '';
         
         // Refresh the current attribute to show new value
@@ -2181,21 +2207,21 @@ export class AdminComponent implements OnInit {
       },
       error: (err) => {
         console.error('Błąd dodawania wartości:', err);
-        this.modalService.showError('Błąd podczas dodawania wartości');
+        this.modalService.showError(this.translate.instant('ADMIN.VALUE_ADD_ERROR'));
       }
     });
   }
 
   async deleteAttributeValue(valueId: number): Promise<void> {
     const confirmed = await this.modalService.showConfirm(
-      'Czy na pewno chcesz usunąć tę wartość?',
-      'Potwierdź usunięcie'
+      this.translate.instant('ADMIN.CONFIRM_DELETE_VALUE'),
+      this.translate.instant('ADMIN.CONFIRM_DELETE_TITLE')
     );
     
     if (confirmed) {
       this.apiService.deleteAttributeValue(valueId).subscribe({
         next: () => {
-          this.modalService.showSuccess('Wartość usunięta pomyślnie!');
+          this.modalService.showSuccess(this.translate.instant('ADMIN.VALUE_DELETED'));
           
           // Refresh the current attribute
           if (this.selectedAttributeForValues) {
@@ -2207,7 +2233,7 @@ export class AdminComponent implements OnInit {
         },
         error: (err) => {
           console.error('Błąd usuwania wartości:', err);
-          this.modalService.showError('Błąd podczas usuwania wartości');
+          this.modalService.showError(this.translate.instant('ADMIN.VALUE_DELETE_ERROR'));
         }
       });
     }
@@ -2308,11 +2334,11 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.products$ = this.apiService.getProducts();
           this.closeProductModal();
-          this.modalService.showSuccess('Produkt zaktualizowany pomyślnie!');
+          this.modalService.showSuccess(this.translate.instant('ADMIN.PRODUCT_UPDATED'));
         },
         error: (err) => {
           console.error('Błąd aktualizacji produktu:', err);
-          this.modalService.showError('Błąd podczas aktualizacji produktu');
+          this.modalService.showError(this.translate.instant('ADMIN.PRODUCT_UPDATE_ERROR'));
         }
       });
     } else {
@@ -2320,11 +2346,11 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.products$ = this.apiService.getProducts();
           this.closeProductModal();
-          this.modalService.showSuccess('Produkt dodany pomyślnie!');
+          this.modalService.showSuccess(this.translate.instant('ADMIN.PRODUCT_CREATED'));
         },
         error: (err) => {
           console.error('Błąd dodawania produktu:', err);
-          this.modalService.showError('Błąd podczas dodawania produktu');
+          this.modalService.showError(this.translate.instant('ADMIN.PRODUCT_CREATE_ERROR'));
         }
       });
     }
@@ -2332,19 +2358,19 @@ export class AdminComponent implements OnInit {
 
   async deleteProduct(id: string): Promise<void> {
     const confirmed = await this.modalService.showConfirm(
-      'Czy na pewno chcesz usunąć ten produkt?',
-      'Potwierdź usunięcie'
+      this.translate.instant('ADMIN.CONFIRM_DELETE'),
+      this.translate.instant('ADMIN.CONFIRM_DELETE_TITLE')
     );
     
     if (confirmed) {
       this.apiService.deleteProduct(id).subscribe({
         next: () => {
           this.products$ = this.apiService.getProducts();
-          this.modalService.showSuccess('Produkt usunięty pomyślnie!');
+          this.modalService.showSuccess(this.translate.instant('ADMIN.PRODUCT_DELETED'));
         },
         error: (err) => {
           console.error('Błąd usuwania produktu:', err);
-          this.modalService.showError('Błąd podczas usuwania produktu');
+          this.modalService.showError(this.translate.instant('ADMIN.PRODUCT_DELETE_ERROR'));
         }
       });
     }
@@ -2458,7 +2484,7 @@ export class AdminComponent implements OnInit {
 
       this.apiService.updateVariant(this.editingSkuVariant.id, updates).subscribe({
         next: () => {
-          this.modalService.showSuccess('Wariant zaktualizowany pomyślnie!');
+          this.modalService.showSuccess(this.translate.instant('ADMIN.VARIANT_UPDATED'));
           this.closeVariantModal();
           // Refresh product to get updated variants
           if (this.editingProduct?.numericId) {
@@ -2473,13 +2499,13 @@ export class AdminComponent implements OnInit {
         },
         error: (err) => {
           console.error('Błąd aktualizacji wariantu:', err);
-          this.modalService.showError('Błąd podczas aktualizacji wariantu');
+          this.modalService.showError(this.translate.instant('ADMIN.VARIANT_UPDATE_ERROR'));
         }
       });
     } else {
       // Create new variant
       if (!this.editingProduct?.numericId) {
-        this.modalService.showError('Brak ID produktu');
+        this.modalService.showError(this.translate.instant('ADMIN.NO_PRODUCT_ID'));
         return;
       }
 
@@ -2495,7 +2521,7 @@ export class AdminComponent implements OnInit {
 
       this.apiService.createVariant(this.editingProduct.numericId, variantData).subscribe({
         next: () => {
-          this.modalService.showSuccess('Wariant utworzony pomyślnie!');
+          this.modalService.showSuccess(this.translate.instant('ADMIN.VARIANT_CREATED'));
           this.closeVariantModal();
           // Refresh product to get new variant
           if (this.editingProduct?.numericId) {
@@ -2510,7 +2536,7 @@ export class AdminComponent implements OnInit {
         },
         error: (err) => {
           console.error('Błąd tworzenia wariantu:', err);
-          this.modalService.showError('Błąd podczas tworzenia wariantu');
+          this.modalService.showError(this.translate.instant('ADMIN.VARIANT_CREATE_ERROR'));
         }
       });
     }
@@ -2518,8 +2544,8 @@ export class AdminComponent implements OnInit {
 
   async deleteSkuVariant(variant: ProductSkuVariant): Promise<void> {
     const confirmed = await this.modalService.showConfirm(
-      `Czy na pewno chcesz usunąć wariant ${variant.sku}?`,
-      'Potwierdź usunięcie'
+      this.translate.instant('ADMIN.CONFIRM_DELETE_VARIANT'),
+      this.translate.instant('ADMIN.CONFIRM_DELETE_TITLE')
     );
     
     if (!confirmed) {
@@ -2528,7 +2554,7 @@ export class AdminComponent implements OnInit {
 
     this.apiService.deleteVariant(variant.id).subscribe({
       next: () => {
-        this.modalService.showSuccess('Wariant usunięty pomyślnie!');
+        this.modalService.showSuccess(this.translate.instant('ADMIN.VARIANT_DELETED'));
         // Refresh product to remove deleted variant
         if (this.editingProduct?.numericId) {
           this.apiService.getProduct(this.editingProduct.numericId.toString()).subscribe({
@@ -2542,7 +2568,7 @@ export class AdminComponent implements OnInit {
       },
       error: (err) => {
         console.error('Błąd usuwania wariantu:', err);
-        this.modalService.showError('Błąd podczas usuwania wariantu');
+        this.modalService.showError(this.translate.instant('ADMIN.VARIANT_DELETE_ERROR'));
       }
     });
   }
@@ -2589,11 +2615,11 @@ export class AdminComponent implements OnInit {
           this.categories$ = this.apiService.getCategories();
           this.categories$.subscribe(cats => this.allCategories = cats);
           this.closeCategoryModal();
-          this.modalService.showSuccess('Kategoria zaktualizowana pomyślnie!');
+          this.modalService.showSuccess(this.translate.instant('ADMIN.CATEGORY_UPDATED'));
         },
         error: (err) => {
           console.error('Błąd aktualizacji kategorii:', err);
-          this.modalService.showError('Błąd podczas aktualizacji kategorii');
+          this.modalService.showError(this.translate.instant('ADMIN.CATEGORY_UPDATE_ERROR'));
         }
       });
     } else {
@@ -2602,11 +2628,11 @@ export class AdminComponent implements OnInit {
           this.categories$ = this.apiService.getCategories();
           this.categories$.subscribe(cats => this.allCategories = cats);
           this.closeCategoryModal();
-          this.modalService.showSuccess('Kategoria dodana pomyślnie!');
+          this.modalService.showSuccess(this.translate.instant('ADMIN.CATEGORY_CREATED'));
         },
         error: (err) => {
           console.error('Błąd dodawania kategorii:', err);
-          this.modalService.showError('Błąd podczas dodawania kategorii');
+          this.modalService.showError(this.translate.instant('ADMIN.CATEGORY_CREATE_ERROR'));
         }
       });
     }
@@ -2614,8 +2640,8 @@ export class AdminComponent implements OnInit {
 
   async deleteCategory(id: string): Promise<void> {
     const confirmed = await this.modalService.showConfirm(
-      'Czy na pewno chcesz usunąć tę kategorię?',
-      'Potwierdź usunięcie'
+      this.translate.instant('ADMIN.CONFIRM_DELETE_CATEGORY'),
+      this.translate.instant('ADMIN.CONFIRM_DELETE_TITLE')
     );
     
     if (confirmed) {
@@ -2623,11 +2649,11 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.categories$ = this.apiService.getCategories();
           this.categories$.subscribe(cats => this.allCategories = cats);
-          this.modalService.showSuccess('Kategoria usunięta pomyślnie!');
+          this.modalService.showSuccess(this.translate.instant('ADMIN.CATEGORY_DELETED'));
         },
         error: (err) => {
           console.error('Błąd usuwania kategorii:', err);
-          this.modalService.showError('Błąd podczas usuwania kategorii');
+          this.modalService.showError(this.translate.instant('ADMIN.CATEGORY_DELETE_ERROR'));
         }
       });
     }
@@ -2640,11 +2666,11 @@ export class AdminComponent implements OnInit {
     this.apiService.updateOrderStatus(orderId, status).subscribe({
       next: () => {
         this.orders$ = this.apiService.getOrders();
-        this.modalService.showSuccess('Status zamówienia zaktualizowany!');
+        this.modalService.showSuccess(this.translate.instant('ADMIN.ORDER_STATUS_UPDATED'));
       },
       error: (err) => {
         console.error('Błąd aktualizacji statusu:', err);
-        this.modalService.showError('Błąd podczas aktualizacji statusu');
+        this.modalService.showError(this.translate.instant('ADMIN.ORDER_STATUS_UPDATE_ERROR'));
       }
     });
   }
@@ -2662,7 +2688,7 @@ export class AdminComponent implements OnInit {
         console.error('Błąd pobierania szczegółów zamówienia:', err);
         console.error('Status:', err.status);
         console.error('Szczegóły:', err.error);
-        this.modalService.showError(`Błąd podczas pobierania szczegółów zamówienia.\nStatus: ${err.status}\nSprawdź konsolę przeglądarki (F12) po więcej szczegółów.`);
+        this.modalService.showError(this.translate.instant('ADMIN.ORDER_DETAILS_ERROR'));
       }
     });
   }
@@ -2724,11 +2750,11 @@ export class AdminComponent implements OnInit {
         };
         this.orders$ = this.apiService.getOrders();
         this.closeOrderEditModal();
-        this.modalService.showSuccess('Zamówienie zaktualizowane pomyślnie!');
+        this.modalService.showSuccess(this.translate.instant('ADMIN.ORDER_UPDATED'));
       },
       error: (err) => {
         console.error('Błąd aktualizacji zamówienia:', err);
-        this.modalService.showError('Błąd podczas aktualizacji zamówienia');
+        this.modalService.showError(this.translate.instant('ADMIN.ORDER_UPDATE_ERROR'));
       }
     });
   }
@@ -2759,26 +2785,33 @@ export class AdminComponent implements OnInit {
   }
 
   async autoOrderVariant(variantAlert: LowStockVariantAlert): Promise<void> {
+    const newStock = variantAlert.currentStock + variantAlert.suggestedOrder;
     const confirmed = await this.modalService.showConfirm(
-      `Czy chcesz automatycznie zamówić ${variantAlert.suggestedOrder} sztuk wariantu?\n\n` +
-      `Produkt: ${variantAlert.productName}\n` +
+      this.translate.instant('ADMIN.AUTO_ORDER_CONFIRM', { 
+        qty: variantAlert.suggestedOrder 
+      }) + `\n\n` +
+      `${this.translate.instant('ADMIN.PRODUCT')}: ${variantAlert.productName}\n` +
       `SKU: ${variantAlert.variant.sku}\n` +
-      `Obecny stan: ${variantAlert.currentStock} szt.\n` +
-      `Nowy stan: ${variantAlert.currentStock + variantAlert.suggestedOrder} szt.`,
-      'Potwierdź zamówienie'
+      `${this.translate.instant('ADMIN.CURRENT_STOCK')}: ${variantAlert.currentStock} ${this.translate.instant('ADMIN.PIECES')}\n` +
+      `${this.translate.instant('ADMIN.STOCK_STATUS')}: ${newStock} ${this.translate.instant('ADMIN.PIECES')}`,
+      this.translate.instant('ADMIN.CONFIRM_DELETE_TITLE')
     );
     
     if (confirmed) {
-      const newStock = variantAlert.currentStock + variantAlert.suggestedOrder;
       this.apiService.updateVariant(variantAlert.variant.id, { stock: newStock }).subscribe({
         next: () => {
           this.loadLowStockAlerts();
           this.products$ = this.apiService.getProducts();
-          this.modalService.showSuccess(`Zamówiono ${variantAlert.suggestedOrder} sztuk.\nNowy stan: ${newStock} szt.`);
+          this.modalService.showSuccess(
+            this.translate.instant('ADMIN.AUTO_ORDER_SUCCESS', { 
+              qty: variantAlert.suggestedOrder,
+              newStock: newStock 
+            })
+          );
         },
         error: (err) => {
           console.error('Błąd automatycznego zamawiania:', err);
-          this.modalService.showError('Błąd podczas automatycznego zamawiania');
+          this.modalService.showError(this.translate.instant('ADMIN.AUTO_ORDER_ERROR'));
         }
       });
     }
@@ -2787,11 +2820,11 @@ export class AdminComponent implements OnInit {
   async bulkOrderGroup(group: GroupedLowStockAlert): Promise<void> {
     const totalToOrder = group.variants.reduce((sum, v) => sum + v.suggestedOrder, 0);
     const confirmed = await this.modalService.showConfirm(
-      `Czy chcesz zamówić wszystkie warianty produktu "${group.productName}"?\n\n` +
-      `Liczba wariantów: ${group.totalVariantsAffected}\n` +
-      `Łączna ilość do zamówienia: ${totalToOrder} szt.\n\n` +
-      `To zaktualizuje stan magazynowy wszystkich wariantów.`,
-      'Potwierdź masowe zamówienie'
+      this.translate.instant('ADMIN.BULK_ORDER_CONFIRM', {
+        totalQty: totalToOrder,
+        variantsCount: group.totalVariantsAffected
+      }),
+      this.translate.instant('ADMIN.CONFIRM_DELETE_TITLE')
     );
     
     if (confirmed) {
@@ -2806,7 +2839,12 @@ export class AdminComponent implements OnInit {
             if (completedCount + errorCount === group.variants.length) {
               this.loadLowStockAlerts();
               this.products$ = this.apiService.getProducts();
-              this.modalService.showSuccess(`Zamówienie zakończone!\n\nZaktualizowano: ${completedCount} wariantów\nBłędy: ${errorCount}`);
+              this.modalService.showSuccess(
+                this.translate.instant('ADMIN.BULK_ORDER_SUCCESS', {
+                  completed: completedCount,
+                  errors: errorCount
+                })
+              );
             }
           },
           error: (err) => {
@@ -2814,7 +2852,12 @@ export class AdminComponent implements OnInit {
             errorCount++;
             if (completedCount + errorCount === group.variants.length) {
               this.loadLowStockAlerts();
-              this.modalService.showError(`Zamówienie zakończone z błędami.\n\nZaktualizowano: ${completedCount} wariantów\nBłędy: ${errorCount}`);
+              this.modalService.showError(
+                this.translate.instant('ADMIN.BULK_ORDER_ERROR', {
+                  completed: completedCount,
+                  errors: errorCount
+                })
+              );
             }
           }
         });
@@ -2835,18 +2878,20 @@ export class AdminComponent implements OnInit {
     if (newThreshold !== null) {
       const threshold = parseInt(newThreshold, 10);
       if (isNaN(threshold) || threshold < 0) {
-        this.modalService.showError('Nieprawidłowa wartość progu');
+        this.modalService.showError(this.translate.instant('ADMIN.THRESHOLD_INVALID'));
         return;
       }
       
       this.apiService.updateVariant(variantAlert.variant.id, { low_stock_threshold: threshold }).subscribe({
         next: () => {
           this.loadLowStockAlerts();
-          this.modalService.showSuccess(`Próg zaktualizowany do ${threshold} szt.`);
+          this.modalService.showSuccess(
+            this.translate.instant('ADMIN.THRESHOLD_UPDATED', { threshold: threshold })
+          );
         },
         error: (err) => {
           console.error('Błąd aktualizacji progu:', err);
-          this.modalService.showError('Błąd podczas aktualizacji progu');
+          this.modalService.showError(this.translate.instant('ADMIN.THRESHOLD_UPDATE_ERROR'));
         }
       });
     }
@@ -2866,7 +2911,7 @@ export class AdminComponent implements OnInit {
       error: (err) => {
         console.error('Błąd wyzwalania alertu:', err);
         this.sendingAlert = false;
-        this.modalService.showError('Błąd podczas wyzwalania alertu');
+        this.modalService.showError(this.translate.instant('ADMIN.ALERT_TRIGGER_ERROR'));
       }
     });
   }
@@ -2874,7 +2919,7 @@ export class AdminComponent implements OnInit {
   exportLowStockToCSV(): void {
     this.groupedLowStockAlerts$.subscribe(groups => {
       if (groups.length === 0) {
-        this.modalService.showError('Brak danych do eksportu');
+        this.modalService.showError(this.translate.instant('ADMIN.NO_EXPORT_DATA'));
         return;
       }
 
@@ -2922,15 +2967,15 @@ export class AdminComponent implements OnInit {
       link.click();
       document.body.removeChild(link);
       
-      this.modalService.showSuccess('Plik CSV został pobrany');
+      this.modalService.showSuccess(this.translate.instant('ADMIN.CSV_DOWNLOADED'));
     });
   }
 
   // Legacy method for backward compatibility
   async autoOrderProduct(stockAlert: LowStockAlert): Promise<void> {
     const confirmed = await this.modalService.showConfirm(
-      `Czy chcesz automatycznie zamówić ${stockAlert.suggestedOrder} sztuk produktu "${stockAlert.product.name}"?`,
-      'Potwierdź zamówienie'
+      this.translate.instant('ADMIN.AUTO_ORDER_CONFIRM', { qty: stockAlert.suggestedOrder }),
+      this.translate.instant('ADMIN.CONFIRM_DELETE_TITLE')
     );
     
     if (confirmed) {
@@ -2939,11 +2984,16 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.products$ = this.apiService.getProducts();
           this.loadLowStockAlerts();
-          this.modalService.showSuccess(`Zamówiono ${stockAlert.suggestedOrder} sztuk. Nowy stan: ${newStock} szt.`);
+          this.modalService.showSuccess(
+            this.translate.instant('ADMIN.AUTO_ORDER_SUCCESS', { 
+              qty: stockAlert.suggestedOrder,
+              newStock: newStock 
+            })
+          );
         },
         error: (err) => {
           console.error('Błąd automatycznego zamawiania:', err);
-          this.modalService.showError('Błąd podczas automatycznego zamawiania');
+          this.modalService.showError(this.translate.instant('ADMIN.AUTO_ORDER_ERROR'));
         }
       });
     }
@@ -2972,7 +3022,7 @@ export class AdminComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error loading tickets:', err);
-        this.modalService.showError('Błąd podczas ładowania zgłoszeń');
+        this.modalService.showError(this.translate.instant('ADMIN.TICKETS_LOAD_ERROR'));
         this.loadingTickets = false;
       }
     });
@@ -3004,7 +3054,7 @@ export class AdminComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error loading ticket details:', err);
-        this.modalService.showError('Błąd podczas ładowania szczegółów zgłoszenia');
+        this.modalService.showError(this.translate.instant('ADMIN.TICKET_DETAILS_ERROR'));
         this.loadingTickets = false;
       }
     });
@@ -3025,7 +3075,7 @@ export class AdminComponent implements OnInit {
 
     this.apiService.updateTicketStatus(this.selectedTicket.id, statusUpdate).subscribe({
       next: (updatedTicket) => {
-        this.modalService.showSuccess('Status zgłoszenia został zaktualizowany');
+        this.modalService.showSuccess(this.translate.instant('ADMIN.TICKET_STATUS_UPDATED'));
         this.loadSupportTickets();
         if (this.selectedTicket) {
           this.selectedTicket.status = updatedTicket.status;
@@ -3033,7 +3083,7 @@ export class AdminComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error updating ticket status:', err);
-        this.modalService.showError('Błąd podczas aktualizacji statusu zgłoszenia');
+        this.modalService.showError(this.translate.instant('ADMIN.TICKET_STATUS_UPDATE_ERROR'));
       }
     });
   }
@@ -3047,7 +3097,7 @@ export class AdminComponent implements OnInit {
 
     this.apiService.adminReplyToTicket(this.selectedTicket.id, reply).subscribe({
       next: () => {
-        this.modalService.showSuccess('Odpowiedź została wysłana');
+        this.modalService.showSuccess(this.translate.instant('ADMIN.REPLY_SENT'));
         this.ticketReplyText = '';
         // Reload ticket details
         if (this.selectedTicket) {
@@ -3056,7 +3106,7 @@ export class AdminComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error replying to ticket:', err);
-        this.modalService.showError('Błąd podczas wysyłania odpowiedzi');
+        this.modalService.showError(this.translate.instant('ADMIN.REPLY_SEND_ERROR'));
       }
     });
   }
@@ -3163,11 +3213,11 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.loyaltyRewards$ = this.apiService.getLoyaltyRewards();
           this.closeRewardModal();
-          this.modalService.showSuccess('Nagroda została zaktualizowana');
+          this.modalService.showSuccess(this.translate.instant('ADMIN.REWARD_UPDATED'));
         },
         error: (err) => {
           console.error('Error updating reward:', err);
-          this.modalService.showError('Błąd podczas aktualizacji nagrody');
+          this.modalService.showError(this.translate.instant('ADMIN.REWARD_UPDATE_ERROR'));
         }
       });
     } else {
@@ -3176,28 +3226,31 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.loyaltyRewards$ = this.apiService.getLoyaltyRewards();
           this.closeRewardModal();
-          this.modalService.showSuccess('Nagroda została dodana');
+          this.modalService.showSuccess(this.translate.instant('ADMIN.REWARD_CREATED'));
         },
         error: (err) => {
           console.error('Error creating reward:', err);
-          this.modalService.showError('Błąd podczas tworzenia nagrody');
+          this.modalService.showError(this.translate.instant('ADMIN.REWARD_CREATE_ERROR'));
         }
       });
     }
   }
 
   async deleteReward(rewardId: string): Promise<void> {
-    const confirmed = await this.modalService.showConfirm('Czy na pewno chcesz usunąć tę nagrodę?', 'Usuń nagrodę');
+    const confirmed = await this.modalService.showConfirm(
+      this.translate.instant('ADMIN.CONFIRM_DELETE_REWARD'),
+      this.translate.instant('ADMIN.DELETE_REWARD_TITLE')
+    );
     if (!confirmed) return;
 
     this.apiService.deleteLoyaltyReward(rewardId).subscribe({
       next: () => {
         this.loyaltyRewards$ = this.apiService.getLoyaltyRewards();
-        this.modalService.showSuccess('Nagroda została usunięta');
+        this.modalService.showSuccess(this.translate.instant('ADMIN.REWARD_DELETED'));
       },
       error: (err) => {
         console.error('Error deleting reward:', err);
-        this.modalService.showError('Błąd podczas usuwania nagrody');
+        this.modalService.showError(this.translate.instant('ADMIN.REWARD_DELETE_ERROR'));
       }
     });
   }
