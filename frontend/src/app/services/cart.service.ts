@@ -12,7 +12,6 @@ export class CartService {
   private itemAddedSubject = new Subject<Product>();
 
   constructor() {
-    // Subscribe to cart changes and save to localStorage
     this.cartSubject.subscribe(items => {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(items));
     });
@@ -51,7 +50,6 @@ export class CartService {
       this.cartSubject.next([...currentItems, { product, quantity }]);
     }
     
-    // Emit event that item was added
     this.itemAddedSubject.next(product);
   }
 

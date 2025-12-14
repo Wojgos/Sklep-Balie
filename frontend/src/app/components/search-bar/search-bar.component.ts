@@ -91,7 +91,6 @@ export class SearchBarComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Re-search when language changes
     this.languageService.currentLanguage$.pipe(
       takeUntil(this.destroy$)
     ).subscribe(() => {

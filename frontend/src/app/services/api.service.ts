@@ -129,7 +129,7 @@ interface BackendOrderResponse {
   providedIn: 'root'
 })
 export class ApiService {
-  private readonly apiUrl = 'http://localhost:8000/api/v1'; // Django backend URL
+  private readonly apiUrl = 'http://localhost:8000/api/v1'; 
   private readonly apiBaseUrl = 'http://localhost:8000';
   private readonly defaultCategoryVisual: CategoryVisual = {
     image: 'assets/Wooden_garden_barrel_hero_26de98c6.png',
@@ -291,7 +291,7 @@ export class ApiService {
       categoryId: this.resolveCategoryIdFromApi(product),
       image,
       stock: primaryVariant?.stock ?? 0,
-      variantId: primaryVariant?.id, // ID wariantu potrzebne do zamówienia
+      variantId: primaryVariant?.id, 
       createdAt: product.created_at ? new Date(product.created_at) : new Date(),
       available_attributes: product.available_attributes,
       variants: product.variants,
@@ -371,7 +371,6 @@ export class ApiService {
       updatedAt: order.updated_at ? new Date(order.updated_at) : undefined
     };
 
-    // Map items if they exist in the response (from list endpoint)
     if (order.items && order.items.length > 0) {
       mappedOrder.items = order.items.map(item => ({
         id: item.id ? item.id.toString() : '',
@@ -386,7 +385,6 @@ export class ApiService {
     return mappedOrder;
   }
 
-  // Categories
   getCategories(page: number = 1, pageSize: number = 10): Observable<PaginatedResponse<Category>> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -462,7 +460,6 @@ export class ApiService {
     );
   }
 
-  // Products
   getProducts(page: number = 1, pageSize: number = 10): Observable<PaginatedResponse<Product>> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -638,7 +635,6 @@ export class ApiService {
   }
 
   createProduct(product: any): Observable<Product> {
-    // Check if we have a file to upload
     if (product.imageFile && product.imageFile instanceof File) {
       const formData = new FormData();
       formData.append('name', product.name);
@@ -658,7 +654,6 @@ export class ApiService {
         })
       );
     } else {
-      // Fallback to JSON payload if no file
       const payload: any = {
         name: product.name,
         description: product.description || '',
@@ -681,7 +676,6 @@ export class ApiService {
   }
 
   updateProduct(id: string, product: any): Observable<Product> {
-    // Check if we have a file to upload
     if (product.imageFile && product.imageFile instanceof File) {
       const formData = new FormData();
       if (product.name) formData.append('name', product.name);
@@ -701,7 +695,6 @@ export class ApiService {
         })
       );
     } else {
-      // Fallback to JSON payload if no file
       const payload: any = {};
       if (product.name) payload.name = product.name;
       if (product.description !== undefined) payload.description = product.description;
@@ -731,7 +724,6 @@ export class ApiService {
     );
   }
 
-  // Product Variants
   deleteVariant(variantId: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/shop/variants/${variantId}/`).pipe(
       catchError(error => {
@@ -762,11 +754,9 @@ export class ApiService {
     );
   }
 
-  // Product Attributes
   getAttributes(): Observable<any[]> {
     return this.http.get<any>(`${this.apiUrl}/shop/attributes/`).pipe(
       map(response => {
-        // Handle both array and paginated response
         const attributes = Array.isArray(response) ? response : (response.results || []);
         return attributes;
       }),
@@ -840,7 +830,6 @@ export class ApiService {
     );
   }
 
-  // Orders
   getOrders(page: number = 1, pageSize: number = 10): Observable<PaginatedResponse<Order>> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -908,10 +897,9 @@ export class ApiService {
   }
 
   createOrder(order: InsertOrder & { items: Omit<InsertOrderItem, 'orderId'>[] }): Observable<Order> {
-    // Split customer name into first_name and last_name
-    const nameParts = order.customerName.trim().split(/\s+/); // Split by whitespace
+    const nameParts = order.customerName.trim().split(/\s+/);
     const firstName = nameParts[0] || order.customerName;
-    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName; // Use firstName as fallback
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName;
     
     const payload: any = {
       first_name: firstName,
@@ -923,7 +911,7 @@ export class ApiService {
       postal_code: order.postalCode,
       notes: order.notes || '',
       items: order.items.map(item => ({
-        variant_id: item.variantId || item.productNumericId, // Backend expects variant_id
+        variant_id: item.variantId || item.productNumericId,
         quantity: item.quantity
       }))
     };
@@ -941,7 +929,6 @@ export class ApiService {
         console.error('Status:', error.status);
         console.error('Szczegóły błędu:', error.error);
         
-        // Provide helpful error message
         if (error.error?.error) {
           console.error('💡 Komunikat:', error.error.error);
         }
@@ -968,7 +955,6 @@ export class ApiService {
     if (updates.paid !== undefined) payload.paid = updates.paid;
     if (updates.trackingNumber !== undefined) payload.tracking_number = updates.trackingNumber;
     
-    // Map frontend Order fields to backend fields
     if (updates.customerName) {
       const [first_name, ...lastNameParts] = updates.customerName.split(' ');
       payload.first_name = first_name;
@@ -994,9 +980,7 @@ export class ApiService {
     );
   }
 
-  // Category management
   createCategory(category: any): Observable<Category> {
-    // Check if we have a file to upload
     if (category.imageFile && category.imageFile instanceof File) {
       const formData = new FormData();
       formData.append('name', category.name);
@@ -1013,7 +997,6 @@ export class ApiService {
         })
       );
     } else {
-      // Fallback to JSON payload if no file
       console.log('Creating category with JSON payload');
       
       return this.http.post<BackendCategoryResponse>(`${this.apiUrl}/shop/categories/`, category).pipe(
@@ -1027,7 +1010,6 @@ export class ApiService {
   }
 
   updateCategory(id: string, category: any): Observable<Category> {
-    // Check if we have a file to upload
     if (category.imageFile && category.imageFile instanceof File) {
       const formData = new FormData();
       if (category.name) formData.append('name', category.name);
@@ -1044,7 +1026,6 @@ export class ApiService {
         })
       );
     } else {
-      // Fallback to JSON payload if no file
       console.log('Updating category with JSON payload');
       
       return this.http.patch<BackendCategoryResponse>(`${this.apiUrl}/shop/categories/${id}/`, category).pipe(
@@ -1066,9 +1047,7 @@ export class ApiService {
     );
   }
 
-  // Statistics
   getSalesStatistics(startDate?: Date, endDate?: Date): Observable<SalesStatistics> {
-    // Format dates to YYYY-MM-DD format for backend
     const formatDate = (date: Date): string => {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -1076,14 +1055,12 @@ export class ApiService {
       return `${year}-${month}-${day}`;
     };
 
-    // Set default dates if not provided (last 30 days)
     const end = endDate || new Date();
     const start = startDate || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     const startDateStr = formatDate(start);
     const endDateStr = formatDate(end);
 
-    // Call backend endpoint with query parameters
     const url = `${this.apiUrl}/reports/sales/?start_date=${startDateStr}&end_date=${endDateStr}`;
     
     return forkJoin({
@@ -1101,16 +1078,13 @@ export class ApiService {
         const totalOrders = salesStats.summary.total_orders;
         const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-        // Format period for display
         const periodText = `${salesStats.period.start_date} - ${salesStats.period.end_date}`;
 
-        // Filter orders by date range for detailed stats
         const filteredOrders = orders.filter(order => {
           const orderDate = new Date(order.createdAt);
           return orderDate >= start && orderDate <= end && order.paid;
         });
 
-        // Calculate top products (client-side for now)
         const productStats = new Map<string, { product: Product; quantity: number; revenue: number }>();
         filteredOrders.forEach(order => {
           if (order.items) {
@@ -1137,7 +1111,6 @@ export class ApiService {
           .sort((a, b) => b.revenue - a.revenue)
           .slice(0, 5);
 
-        // Calculate revenue by category (client-side for now)
         const categoryStats = new Map<string, { category: Category; revenue: number }>();
         filteredOrders.forEach(order => {
           if (order.items) {
@@ -1164,7 +1137,6 @@ export class ApiService {
         const revenueByCategory = Array.from(categoryStats.values())
           .sort((a, b) => b.revenue - a.revenue);
 
-        // Calculate orders by status (client-side for now)
         const statusCounts = new Map<string, number>();
         filteredOrders.forEach(order => {
           statusCounts.set(order.status, (statusCounts.get(order.status) || 0) + 1);
@@ -1187,7 +1159,6 @@ export class ApiService {
       }),
       catchError((error) => {
         console.error('Błąd pobierania statystyk sprzedażowych:', error);
-        // Return empty statistics on error
         return of({
           period: 'brak danych',
           totalRevenue: 0,
@@ -1203,7 +1174,6 @@ export class ApiService {
   }
 
   downloadStatisticsPDF(startDate?: Date, endDate?: Date): void {
-    // Format dates to YYYY-MM-DD format for backend
     const formatDate = (date: Date): string => {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -1211,36 +1181,29 @@ export class ApiService {
       return `${year}-${month}-${day}`;
     };
 
-    // Set default dates if not provided (last 30 days)
     const end = endDate || new Date();
     const start = startDate || new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     const startDateStr = formatDate(start);
     const endDateStr = formatDate(end);
 
-    // Build URL for PDF endpoint
     const url = `${this.apiUrl}/reports/sales/pdf/?start_date=${startDateStr}&end_date=${endDateStr}`;
 
-    // Use blob response type to download PDF
     this.http.get(url, { 
       responseType: 'blob',
       observe: 'response'
     }).subscribe({
       next: (response) => {
-        // Create blob from response
         const blob = new Blob([response.body as Blob], { type: 'application/pdf' });
         
-        // Create download link
         const downloadUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = downloadUrl;
         link.download = `raport_statystyk_${startDateStr}_${endDateStr}.pdf`;
         
-        // Trigger download
         document.body.appendChild(link);
         link.click();
         
-        // Cleanup
         document.body.removeChild(link);
         window.URL.revokeObjectURL(downloadUrl);
       },
@@ -1251,9 +1214,7 @@ export class ApiService {
     });
   }
 
-  // Advanced Analytics Methods
   
-  // Get monthly statistics
   getMonthlyStatistics(startDate?: Date, endDate?: Date): Observable<MonthlyStatistics> {
     const formatDate = (date: Date): string => {
       const year = date.getFullYear();
@@ -1284,7 +1245,6 @@ export class ApiService {
     );
   }
 
-  // Get quarterly statistics
   getQuarterlyStatistics(year?: number): Observable<QuarterlyStatistics> {
     const selectedYear = year || new Date().getFullYear();
     const url = `${this.apiUrl}/reports/quarterly/?year=${selectedYear}`;
@@ -1300,7 +1260,6 @@ export class ApiService {
     );
   }
 
-  // Get yearly statistics (last 5 years)
   getYearlyStatistics(): Observable<YearlyStatistics> {
     const url = `${this.apiUrl}/reports/yearly/`;
     
@@ -1314,7 +1273,6 @@ export class ApiService {
     );
   }
 
-  // Compare two periods
   comparePeriods(
     period1Start: Date, 
     period1End: Date, 
@@ -1342,7 +1300,6 @@ export class ApiService {
     );
   }
 
-  // Get top products for a period
   getTopProducts(startDate?: Date, endDate?: Date, limit: number = 10): Observable<TopProductsReport> {
     const formatDate = (date: Date): string => {
       const year = date.getFullYear();
@@ -1373,7 +1330,6 @@ export class ApiService {
     );
   }
 
-  // Get category performance
   getCategoryPerformance(startDate?: Date, endDate?: Date): Observable<CategoryPerformanceReport> {
     const formatDate = (date: Date): string => {
       const year = date.getFullYear();
@@ -1404,7 +1360,6 @@ export class ApiService {
     );
   }
 
-  // Get dashboard overview
   getDashboardOverview(): Observable<DashboardOverview> {
     const url = `${this.apiUrl}/reports/dashboard/`;
     
@@ -1421,9 +1376,7 @@ export class ApiService {
     );
   }
 
-  // Low stock alerts (legacy - simple product-based)
   getLowStockAlerts(threshold: number = 10): Observable<LowStockAlert[]> {
-    // Client-side filtering based on products from backend
     return this.getAllProducts().pipe(
       map(products => {
         return products
@@ -1443,18 +1396,15 @@ export class ApiService {
     );
   }
 
-  // Enhanced Low Stock Alerts - Variant-based from backend
   getLowStockVariants(severity?: 'critical' | 'warning' | 'all'): Observable<LowStockVariantAlert[]> {
     const params = severity && severity !== 'all' ? `?severity=${severity}` : '';
     return this.http.get<any>(`${this.apiUrl}/shop/low-stock-variants/${params}`).pipe(
       map(response => {
-        // Handle both array and paginated response
         const variants = Array.isArray(response) ? response : (response.results || []);
         return variants.map((variant: ProductSkuVariant) => {
           const difference = variant.low_stock_threshold - variant.stock;
           const suggestedOrder = Math.max(20, difference + 10);
           
-          // Determine severity
           let severityLevel: 'critical' | 'warning' | 'info';
           if (variant.stock === 0) {
             severityLevel = 'critical';
@@ -1484,7 +1434,6 @@ export class ApiService {
     );
   }
 
-  // Get low stock statistics
   getLowStockStatistics(): Observable<LowStockStatistics> {
     return this.http.get<LowStockStatistics>(`${this.apiUrl}/shop/low-stock-variants/statistics/`).pipe(
       catchError((error) => {
@@ -1500,7 +1449,6 @@ export class ApiService {
     );
   }
 
-  // Trigger manual low stock alert email
   triggerLowStockAlert(): Observable<{ success: boolean; message: string }> {
     return this.http.post<{ success: boolean; message: string }>(
       `${this.apiUrl}/shop/low-stock-variants/trigger_alert/`,
@@ -1516,7 +1464,6 @@ export class ApiService {
     );
   }
 
-  // Group low stock variants by product
   getGroupedLowStockAlerts(severity?: 'critical' | 'warning' | 'all'): Observable<GroupedLowStockAlert[]> {
     return this.getLowStockVariants(severity).pipe(
       map(alerts => {
@@ -1547,7 +1494,6 @@ export class ApiService {
         });
         
         return Array.from(grouped.values()).sort((a, b) => {
-          // Critical first, then by number of affected variants
           if (a.hasCritical && !b.hasCritical) return -1;
           if (!a.hasCritical && b.hasCritical) return 1;
           return b.totalVariantsAffected - a.totalVariantsAffected;
@@ -1556,7 +1502,6 @@ export class ApiService {
     );
   }
 
-  // Update variant stock and threshold
   updateVariant(variantId: number, updates: Partial<ProductSkuVariant>): Observable<ProductSkuVariant> {
     return this.http.patch<ProductSkuVariant>(
       `${this.apiUrl}/shop/variants/${variantId}/`,
@@ -1569,12 +1514,9 @@ export class ApiService {
     );
   }
 
-  // Support Tickets - Client API
   getMyTickets(): Observable<Ticket[]> {
-    // Using backend if authenticated, else mock or empty
     return this.http.get<any>(`${this.apiUrl}/support/tickets/`).pipe(
       map(response => {
-        // Handle both array and paginated response
         const tickets = Array.isArray(response) ? response : (response.results || []);
         return tickets;
       }),
@@ -1615,11 +1557,9 @@ export class ApiService {
     );
   }
 
-  // Support Tickets - Admin API
   getAllTickets(): Observable<Ticket[]> {
     return this.http.get<any>(`${this.apiUrl}/support/admin/tickets/`).pipe(
       map(response => {
-        // Handle both array and paginated response
         const tickets = Array.isArray(response) ? response : (response.results || []);
         return tickets;
       }),
@@ -1657,7 +1597,6 @@ export class ApiService {
     );
   }
 
-  // PDF Generation (mock for now - shows alert)
   generateInvoicePdf(orderId: string): Observable<Blob> {
     return this.http.get<Blob>(`${this.apiUrl}/orders/${orderId}/invoice/`, {
       responseType: 'blob' as 'json'
@@ -1681,22 +1620,17 @@ export class ApiService {
     });
   }
 
-  // Loyalty Program - Admin API
   getLoyaltyProgram(): Observable<LoyaltyProgram | null> {
-    // Backend doesn't have this endpoint yet, using mock data
     return this.mockDataService.getLoyaltyProgram();
   }
 
   createOrUpdateLoyaltyProgram(program: InsertLoyaltyProgram): Observable<LoyaltyProgram> {
-    // Backend doesn't have this endpoint yet, using mock data
     return this.mockDataService.createOrUpdateLoyaltyProgram(program);
   }
 
-  // Loyalty Rewards - Admin API
   getLoyaltyRewards(): Observable<LoyaltyReward[]> {
     return this.http.get<any>(`${this.apiUrl}/promotions/rewards/`).pipe(
       map(response => {
-        // Handle both array and paginated response
         const rewards = Array.isArray(response) ? response : (response.results || []);
         return rewards.map((reward: any) => {
           const pointsRequired = reward.points_required || 0;
@@ -1777,11 +1711,9 @@ export class ApiService {
     return this.http.delete<void>(`${this.apiUrl}/promotions/rewards/${id}/`);
   }
 
-  // Loyalty - User API
   getUserLoyaltyPoints(): Observable<UserLoyaltyPoints> {
     return this.http.get<any>(`${this.apiUrl}/users/loyalty-points/`).pipe(
       switchMap(response => {
-        // Pobierz historię realizacji aby obliczyć wykorzystane punkty
         return this.http.get<any[]>(`${this.apiUrl}/promotions/loyalty/my-rewards/`).pipe(
           map(rewards => {
             const totalSpent = rewards.reduce((sum, r) => sum + (r.points_spent || 0), 0);
@@ -1803,7 +1735,6 @@ export class ApiService {
   getLoyaltyOffers(): Observable<LoyaltyReward[]> {
     return this.http.get<any>(`${this.apiUrl}/promotions/loyalty/offers/`).pipe(
       map(response => {
-        // Handle both array and paginated response
         const rewards = Array.isArray(response) ? response : (response.results || []);
         return rewards.map((reward: any) => {
           const pointsRequired = reward.points_required || 0;
@@ -1814,7 +1745,7 @@ export class ApiService {
             id: reward.id.toString(),
             name: reward.name,
             description: reward.description,
-            pointsCost: pointsRequired, // Unified field for frontend
+            pointsCost: pointsRequired,
             pointsRequired: pointsRequired,
             rewardType: isPercentage ? 'discount_percentage' : 'discount_fixed',
             rewardValue: rewardValue,
@@ -1858,7 +1789,6 @@ export class ApiService {
   getMyRedeemedRewards(): Observable<RedeemedReward[]> {
     return this.http.get<any>(`${this.apiUrl}/promotions/loyalty/my-rewards/`).pipe(
       map(response => {
-        // Handle both array and paginated response
         const rewards = Array.isArray(response) ? response : (response.results || []);
         return rewards.map((r: any) => ({
           id: r.id?.toString() || '',

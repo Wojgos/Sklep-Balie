@@ -20,7 +20,6 @@ import { ProductCardComponent } from '../../components/product-card/product-card
       <div class="flex-1 py-12 bg-background">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <!-- Product Image -->
             <div class="space-y-4">
               <div class="aspect-square overflow-hidden rounded-lg bg-card border border-card-border">
                 <img 
@@ -337,7 +336,6 @@ export class ProductDetailsComponent implements OnInit, OnDestroy {
   product: Product | null = null;
   isAdding = false;
   
-  // New state for attributes and variants
   selectedAttributes: { [key: string]: string } = {};
   currentVariant: ProductSkuVariant | null = null;
   showAllVariants = false;
@@ -366,7 +364,6 @@ export class ProductDetailsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const productId = this.route.snapshot.paramMap.get('id');
     if (productId) {
-      // Auto-reload product on language change
       this.product$ = this.languageService.currentLanguage$.pipe(
         takeUntil(this.destroy$),
         switchMap(() => this.apiService.getProduct(productId!))
@@ -422,42 +419,32 @@ export class ProductDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Select a variant from the list and update all attribute selections
-   */
+  
   selectVariant(variant: ProductSkuVariant): void {
-    // Clear current selections
     this.selectedAttributes = {};
     
-    // Set all attributes from the selected variant
     if (variant.attributes_details) {
       variant.attributes_details.forEach(attr => {
         this.selectedAttributes[attr.attribute] = attr.value;
       });
     }
     
-    // Update the current variant
     this.currentVariant = variant;
     
-    // Scroll to configuration section
     const configSection = document.querySelector('.border-t.pt-6');
     if (configSection) {
       configSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }
 
-  /**
-   * Check if a specific attribute value is available given the current selection
-   */
+
   isAttributeValueAvailable(attributeKey: string, value: string): boolean {
     if (!this.product?.variants || this.product.variants.length === 0) {
       return true;
     }
 
-    // Create a temporary selection with this value
     const testSelection = { ...this.selectedAttributes, [attributeKey]: value };
 
-    // Check if any variant matches this partial selection
     return this.product.variants.some(variant => {
       return Object.keys(testSelection).every(key => {
         const variantAttr = variant.attributes_details.find(a => a.attribute === key);
@@ -472,7 +459,6 @@ export class ProductDetailsComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Find variant that matches all selected attributes
     this.currentVariant = product.variants.find(variant => {
       return Object.keys(this.selectedAttributes).every(attrKey => {
         const selectedValue = this.selectedAttributes[attrKey];
@@ -483,12 +469,10 @@ export class ProductDetailsComponent implements OnInit, OnDestroy {
   }
 
   getCurrentPrice(): number {
-    // Jeśli produkt ma attributes (konfiguracje z panelu admina), oblicz cenę z modyfikatorami
     if (this.product?.attributes && Array.isArray(this.product.attributes) && this.product.attributes.length > 0) {
       const basePrice = parseFloat(this.product?.price || '0');
       let totalModifier = 0;
 
-      // Dla każdej konfiguracji sprawdź wybraną wartość i jej priceModifier
       this.product.attributes.forEach((attr: any) => {
         const selectedValue = this.selectedAttributes[attr.name];
         if (selectedValue) {
@@ -502,7 +486,6 @@ export class ProductDetailsComponent implements OnInit, OnDestroy {
       return basePrice + totalModifier;
     }
 
-    // Fallback: użyj wariantu jeśli istnieje
     if (this.currentVariant) {
       return parseFloat(this.currentVariant.price);
     }
@@ -535,7 +518,6 @@ export class ProductDetailsComponent implements OnInit, OnDestroy {
   }
 
   getPriceModifier(attributeName: string, variantName: string): number {
-    // Check if attributes exist and is an array
     if (!this.product?.attributes || !Array.isArray(this.product.attributes) || this.product.attributes.length === 0) {
       return 0;
     }
@@ -556,15 +538,13 @@ export class ProductDetailsComponent implements OnInit, OnDestroy {
     
     this.isAdding = true;
 
-    // Construct product object for cart (using variant details if available)
     const productToAdd: Product = this.currentVariant ? {
       ...product,
-      id: this.currentVariant.id.toString(), // Use variant ID for cart uniqueness
+      id: this.currentVariant.id.toString(), 
       numericId: this.currentVariant.id,
       name: `${product.name} (${Object.values(this.selectedAttributes).join(', ')})`,
       price: this.currentVariant.price,
       stock: this.currentVariant.stock,
-      // Keep original slug to allow navigation back to main product page
     } : product;
     
     this.cartService.addItem(productToAdd);

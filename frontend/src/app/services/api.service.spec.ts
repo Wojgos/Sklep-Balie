@@ -14,7 +14,6 @@ describe('ApiService', () => {
 
   const apiUrl = 'http://localhost:8000/api/v1';
 
-  // Mock data
   const mockBackendProduct = {
     id: 1,
     name: 'Test Product',
@@ -196,7 +195,7 @@ describe('ApiService', () => {
         previous: null,
         results: [
           mockBackendProduct,
-          mockBackendProduct // Duplikat
+          mockBackendProduct 
         ]
       };
 
@@ -272,7 +271,6 @@ describe('ApiService', () => {
     });
 
     it('powinien obsłużyć błąd 404 przez fallback do mock data', (done) => {
-      // Mock fallback data
       mockDataService.getProduct.and.returnValue(of({
         id: 'non-existent',
         name: 'Mock Product',
@@ -282,7 +280,6 @@ describe('ApiService', () => {
 
       service.getProduct('non-existent').subscribe({
         next: (product) => {
-          // ApiService ma fallback, więc dostaniemy mock data zamiast błędu
           expect(product).toBeDefined();
           expect(product.name).toBe('Mock Product');
           done();
@@ -362,7 +359,6 @@ describe('ApiService', () => {
 
   describe('Filtrowanie produktów - getProductsByCategory()', () => {
     it('powinien filtrować produkty po kategorii', (done) => {
-      // Mock getProducts to return products
       const mockResponse: PaginatedResponse<any> = {
         count: 1,
         next: null,
@@ -370,7 +366,6 @@ describe('ApiService', () => {
         results: [mockBackendProduct]
       };
 
-      // Setup fallback for getProductsByCategory
       mockDataService.getProductsByCategory.and.returnValue(of([{
         id: '1',
         name: 'Electronics Product',
@@ -393,7 +388,6 @@ describe('ApiService', () => {
 
   describe('Obsługa błędów HTTP', () => {
     it('powinien obsłużyć błąd serwera 500 przez fallback do mock data', (done) => {
-      // Mock fallback data
       mockDataService.getProduct.and.returnValue(of({
         id: 'test',
         name: 'Mock Product',
@@ -403,7 +397,6 @@ describe('ApiService', () => {
 
       service.getProduct('test').subscribe({
         next: (product) => {
-          // ApiService ma fallback, więc zamiast błędu dostaniemy mock data
           expect(product).toBeDefined();
           expect(product.name).toBe('Mock Product');
           done();
@@ -415,7 +408,6 @@ describe('ApiService', () => {
     });
 
     it('powinien obsłużyć błąd sieci przez fallback do mock data', (done) => {
-      // Mock fallback data
       mockDataService.getProduct.and.returnValue(of({
         id: 'test',
         name: 'Mock Product',
@@ -495,12 +487,10 @@ describe('ApiService', () => {
         }
       });
 
-      // Symuluj pierwsze nieudane żądanie
       const req1 = httpMock.expectOne(req => req.url.includes('/shop/products/'));
       attemptCount++;
       req1.flush('Error', { status: 500, statusText: 'Server Error' });
 
-      // Drugie żądanie zakończy się sukcesem
       setTimeout(() => {
         const req2 = httpMock.expectOne(req => req.url.includes('/shop/products/'));
         attemptCount++;
@@ -511,6 +501,6 @@ describe('ApiService', () => {
           results: [mockBackendProduct]
         });
       }, 2100);
-    }, 10000); // Zwiększony timeout dla retry
+    }, 10000); 
   });
 });

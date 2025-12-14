@@ -40,14 +40,12 @@ export class RegisterComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Redirect if already logged in
     if (this.authService.isAuthenticated) {
       this.Router.navigate(['/account']);
     }
   }
 
   onSubmit(): void {
-    // Validate required fields
     if (!this.userData.username || !this.userData.email || 
         !this.userData.password || !this.userData.confirmPassword ||
         !this.userData.firstName || !this.userData.lastName) {
@@ -58,7 +56,6 @@ export class RegisterComponent implements OnInit {
       return;
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(this.userData.email)) {
       this.notificationService.show(
@@ -68,7 +65,6 @@ export class RegisterComponent implements OnInit {
       return;
     }
 
-    // Validate password length
     if (this.userData.password.length < 6) {
       this.notificationService.show(
         this.translate.instant('AUTH.PASSWORD_MIN_LENGTH'), 
@@ -77,7 +73,6 @@ export class RegisterComponent implements OnInit {
       return;
     }
 
-    // Validate passwords match
     if (this.userData.password !== this.userData.confirmPassword) {
       this.notificationService.show(
         this.translate.instant('AUTH.PASSWORDS_NOT_MATCH'), 
@@ -90,21 +85,18 @@ export class RegisterComponent implements OnInit {
 
     this.authService.register(this.userData).subscribe({
       next: (response) => {
-        // If we got a user object back, use it for greeting
         const name = response.user?.firstName || this.userData.firstName;
         
         this.notificationService.show(
           this.translate.instant('AUTH.REGISTER_SUCCESS', { name }),
           NotificationType.SUCCESS
         );
-        // Navigate to login instead of account since email verification is likely needed
         this.Router.navigate(['/login']);
       },
       error: (error) => {
         this.isLoading = false;
         console.error('Registration error:', error);
         
-        // Try to extract meaningful error message
         let errorMessage = this.translate.instant('AUTH.REGISTER_ERROR');
         if (error.error) {
             if (typeof error.error === 'string') {
@@ -112,7 +104,6 @@ export class RegisterComponent implements OnInit {
             } else if (error.error.detail) {
                 errorMessage = error.error.detail;
             } else {
-                // Handle field-specific errors (e.g. { email: ["Invalid"] })
                 const firstKey = Object.keys(error.error)[0];
                 if (firstKey && Array.isArray(error.error[firstKey])) {
                     errorMessage = `${firstKey}: ${error.error[firstKey][0]}`;

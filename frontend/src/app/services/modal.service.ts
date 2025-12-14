@@ -43,7 +43,6 @@ export class ModalService {
     };
     this.addModal(modal);
     
-    // Auto-close after 3 seconds
     setTimeout(() => this.closeModal(modal.id), 3000);
   }
 
@@ -57,7 +56,6 @@ export class ModalService {
     };
     this.addModal(modal);
     
-    // Auto-close after 5 seconds
     setTimeout(() => this.closeModal(modal.id), 5000);
   }
 
@@ -71,7 +69,6 @@ export class ModalService {
     };
     this.addModal(modal);
     
-    // Auto-close after 3 seconds
     setTimeout(() => this.closeModal(modal.id), 3000);
   }
 

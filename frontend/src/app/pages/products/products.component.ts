@@ -303,7 +303,6 @@ export class ProductsComponent implements OnInit, OnDestroy {
   paginatedProducts: Product[] = [];
   categories: Category[] = [];
 
-  // Filter values
   searchTerm: string = '';
   selectedCategory: string = '';
   minPrice: number | null = null;
@@ -311,7 +310,6 @@ export class ProductsComponent implements OnInit, OnDestroy {
   sortOption: SortOption = 'newest';
   viewMode: 'grid' | 'list' = 'grid';
 
-  // Pagination
   currentPage: number = 1;
   pageSize: number = 12;
   totalItems: number = 0;
@@ -326,7 +324,6 @@ export class ProductsComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Load products and categories with auto-reload on language change
     this.languageService.currentLanguage$.pipe(
       takeUntil(this.destroy$),
       switchMap(() => combineLatest([
@@ -337,7 +334,6 @@ export class ProductsComponent implements OnInit, OnDestroy {
       this.allProducts = products;
       this.categories = categories;
       
-      // Check for category filter in query params
       this.route.queryParams.pipe(
         takeUntil(this.destroy$)
       ).subscribe(params => {
@@ -357,7 +353,6 @@ export class ProductsComponent implements OnInit, OnDestroy {
   applyFilters(): void {
     let filtered = [...this.allProducts];
 
-    // Search filter
     if (this.searchTerm.trim()) {
       const term = this.searchTerm.toLowerCase();
       filtered = filtered.filter(p => 
@@ -366,13 +361,11 @@ export class ProductsComponent implements OnInit, OnDestroy {
       );
     }
 
-    // Category filter
     if (this.selectedCategory) {
       const allowedCategories = this.getDescendantCategoryIds(this.selectedCategory);
       filtered = filtered.filter(p => allowedCategories.has(p.categoryId));
     }
 
-    // Price range filter
     if (this.minPrice !== null && this.minPrice > 0) {
       filtered = filtered.filter(p => parseFloat(p.price) >= this.minPrice!);
     }
@@ -380,13 +373,11 @@ export class ProductsComponent implements OnInit, OnDestroy {
       filtered = filtered.filter(p => parseFloat(p.price) <= this.maxPrice!);
     }
 
-    // Apply sorting
     filtered = this.sortProducts(filtered, this.sortOption);
 
     this.filteredProducts = filtered;
     this.totalItems = filtered.length;
     
-    // Reset to page 1 when filters change
     this.currentPage = 1;
     this.updatePaginatedProducts();
   }
@@ -400,7 +391,6 @@ export class ProductsComponent implements OnInit, OnDestroy {
   onPageChange(page: number): void {
     this.currentPage = page;
     this.updatePaginatedProducts();
-    // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 

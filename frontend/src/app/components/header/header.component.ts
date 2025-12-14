@@ -339,7 +339,6 @@ export class HeaderComponent implements OnInit {
     this.itemCount$ = this.cartService.itemCount$;
     this.currentUser$ = this.authService.currentUser$;
     
-    // Subscribe to item added events to trigger animation
     this.cartService.itemAdded$.subscribe(() => {
       this.cartPulse = true;
       setTimeout(() => {

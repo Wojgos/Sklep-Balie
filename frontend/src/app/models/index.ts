@@ -1,4 +1,3 @@
-// Pagination models
 export interface PaginatedResponse<T> {
   count: number;
   next: string | null;
@@ -6,7 +5,6 @@ export interface PaginatedResponse<T> {
   results: T[];
 }
 
-// User models
 export interface User {
   id: string;
   username: string;
@@ -56,7 +54,6 @@ export interface RegisterRequest {
   postalCode?: string;
 }
 
-// Category models
 export interface Category {
   id: string;
   name: string;
@@ -76,7 +73,6 @@ export interface InsertCategory {
   productCount?: number;
 }
 
-// Product Variant models
 export interface ProductVariant {
   id: string;
   name: string;
@@ -86,12 +82,11 @@ export interface ProductVariant {
 
 export interface ProductAttribute {
   id: string;
-  name: string; // np. "Kolor", "Rozmiar"
+  name: string; 
   type: 'color' | 'size' | 'text';
   variants: ProductVariant[];
 }
 
-// Product models
 export interface Product {
   id: string;
   numericId?: number;
@@ -102,18 +97,18 @@ export interface Product {
   oldPrice: string | null;
   rating: number;
   categoryId: string;
-  category?: string; // slug kategorii z backendu
-  category_id?: number; // ID kategorii z backendu
-  category_name?: string; // Nazwa kategorii z backendu
+  category?: string; 
+  category_id?: number; 
+  category_name?: string; 
   image: string;
-  images?: any[]; // Zdjęcia produktu z backendu
+  images?: any[]; 
   stock: number;
   createdAt: Date;
-  created_at?: string; // Format z backendu
+  created_at?: string; 
   updatedAt?: Date;
-  updated_at?: string; // Format z backendu
-  available?: boolean; // Dostępność z backendu
-  attributes?: ProductAttribute[]; // Opcjonalne atrybuty z wariantami
+  updated_at?: string;
+  available?: boolean; 
+  attributes?: ProductAttribute[]; 
   variantSummary?: string;
   variantCount?: number;
   variantId?: number;
@@ -147,7 +142,6 @@ export interface InsertProduct {
   stock?: number;
 }
 
-// Order models
 export interface Order {
   id: string;
   customerName: string;
@@ -163,7 +157,7 @@ export interface Order {
   notes: string | null;
   createdAt: Date;
   updatedAt?: Date;
-  items?: OrderItem[]; // Optional items from backend
+  items?: OrderItem[]; 
 }
 
 export interface InsertOrder {
@@ -179,7 +173,6 @@ export interface InsertOrder {
   discountAmount?: number;
 }
 
-// Order Item models
 export interface OrderItem {
   id: string;
   orderId: string;
@@ -199,13 +192,11 @@ export interface InsertOrderItem {
   price: string;
 }
 
-// Cart models
 export interface CartItem {
   product: Product;
   quantity: number;
 }
 
-// Notification models
 export enum NotificationType {
   SUCCESS = 'success',
   ERROR = 'error',
@@ -217,11 +208,10 @@ export interface Notification {
   id: string;
   message: string;
   type: NotificationType;
-  duration?: number; // Auto-dismiss duration in milliseconds (null for manual dismiss only)
+  duration?: number; 
   createdAt: Date;
 }
 
-// Chatbot models
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -257,7 +247,6 @@ export interface ChatAction {
   data?: any;
 }
 
-// Sales Statistics models
 export interface SalesStatistics {
   period: string;
   totalRevenue: number;
@@ -279,15 +268,14 @@ export interface SalesStatistics {
   }[];
 }
 
-// Advanced Analytics models
 export interface MonthlyData {
-  month: string; // YYYY-MM
-  month_name: string; // "January 2025"
+  month: string; 
+  month_name: string; 
   revenue: number;
   orders_count: number;
   avg_order_value: number;
-  growth_rate: number | null; // % wzrost względem poprzedniego miesiąca
-  growth_amount: number | null; // kwota wzrostu/spadku
+  growth_rate: number | null; 
+  growth_amount: number | null; 
 }
 
 export interface MonthlyStatistics {
@@ -307,8 +295,8 @@ export interface MonthlyStatistics {
 }
 
 export interface QuarterlyData {
-  quarter: string; // "2025-Q1"
-  quarter_name: string; // "Q1"
+  quarter: string;
+  quarter_name: string; 
   year: number;
   revenue: number;
   orders_count: number;
@@ -417,7 +405,6 @@ export interface DashboardOverview {
   };
 }
 
-// Low Stock Alert models
 export interface LowStockAlert {
   product: Product;
   currentStock: number;
@@ -425,7 +412,6 @@ export interface LowStockAlert {
   suggestedOrder: number;
 }
 
-// Enhanced Low Stock Variant Alert models
 export interface LowStockVariantAlert {
   variant: ProductSkuVariant;
   productName: string;
@@ -433,7 +419,7 @@ export interface LowStockVariantAlert {
   categoryName: string;
   currentStock: number;
   threshold: number;
-  difference: number; // ile brakuje do progu
+  difference: number;
   suggestedOrder: number;
   severity: 'critical' | 'warning' | 'info';
 }
@@ -456,7 +442,6 @@ export interface GroupedLowStockAlert {
   hasCritical: boolean;
 }
 
-// Support Ticket models
 export interface TicketMessage {
   id: string;
   author_id: number;
@@ -473,7 +458,7 @@ export interface Ticket {
   updated_at: Date;
   messages?: TicketMessage[];
   participants?: User[];
-  message_count?: number;  // Available in list view
+  message_count?: number;  
 }
 
 export interface InsertTicket {
@@ -489,12 +474,11 @@ export interface TicketStatusUpdate {
   status: 'new' | 'in_progress' | 'closed';
 }
 
-// Loyalty Program models
 export interface LoyaltyProgram {
   id: string;
   name: string;
   description: string;
-  pointsPerZloty: number; // Ile punktów za 1 PLN
+  pointsPerZloty: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -504,21 +488,21 @@ export interface LoyaltyReward {
   id: string;
   name: string;
   description: string;
-  pointsCost: number; // Frontend unified field
-  pointsRequired: number; // Backend field (will be mapped to pointsCost)
-  points_required?: number; // Backend snake_case (raw response)
+  pointsCost: number; 
+  pointsRequired: number; 
+  points_required?: number; 
   rewardType: 'discount_percentage' | 'discount_fixed' | 'free_product' | 'free_shipping';
-  rewardValue: number; // Frontend camelCase
-  reward_value?: string; // Backend snake_case (raw response)
-  isActive: boolean; // Frontend camelCase
-  is_percentage?: boolean; // Backend snake_case (raw response)
-  isPercentage: boolean; // Frontend camelCase
-  active?: boolean; // Backend field (raw response)
+  rewardValue: number; 
+  reward_value?: string; 
+  isActive: boolean; 
+  is_percentage?: boolean; 
+  isPercentage: boolean;
+  active?: boolean; 
   image?: string;
   validUntil?: Date;
-  usageLimit?: number; // Limit użyć na użytkownika (null = bez limitu)
+  usageLimit?: number; 
   createdAt?: Date;
-  created_at?: string; // Backend snake_case (raw response)
+  created_at?: string; 
 }
 
 export interface UserLoyaltyPoints {
@@ -527,7 +511,7 @@ export interface UserLoyaltyPoints {
   availablePoints: number;
   usedPoints: number;
   currentTier?: string;
-  tierProgress?: number; // Procent do następnego poziomu
+  tierProgress?: number; 
   history: LoyaltyTransaction[];
 }
 
@@ -546,11 +530,11 @@ export interface RedeemedReward {
   id: string;
   userId: string;
   rewardId: string;
-  rewardName?: string; // Backend field
+  rewardName?: string; 
   reward?: LoyaltyReward;
   pointsSpent: number;
-  code?: string; // Kod kuponu jeśli applicable
-  couponCode?: string; // Backend response field
+  code?: string; 
+  couponCode?: string; 
   isUsed: boolean;
   usedAt?: Date;
   expiresAt?: Date;

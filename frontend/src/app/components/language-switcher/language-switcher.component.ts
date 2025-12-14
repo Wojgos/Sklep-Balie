@@ -90,7 +90,6 @@ export class LanguageSwitcherComponent {
     this.currentLanguage = this.languageService.getCurrentLanguage();
     this.languages = this.languageService.getSupportedLanguages();
 
-    // Subscribe to language changes
     this.languageService.currentLanguage$.subscribe(lang => {
       this.currentLanguage = lang;
     });

@@ -1949,28 +1949,24 @@ export class AdminComponent implements OnInit {
   lowStockStats$: Observable<LowStockStatistics>;
   statistics$: Observable<SalesStatistics>;
 
-  // Pagination for products
   allProducts: Product[] = [];
   paginatedProducts: Product[] = [];
   productsCurrentPage: number = 1;
   productsPageSize: number = 10;
   productsTotalItems: number = 0;
 
-  // Pagination for categories
   allCategories: Category[] = [];
   paginatedCategories: Category[] = [];
   categoriesCurrentPage: number = 1;
   categoriesPageSize: number = 10;
   categoriesTotalItems: number = 0;
 
-  // Pagination for orders
   allOrders: Order[] = [];
   paginatedOrders: Order[] = [];
   ordersCurrentPage: number = 1;
   ordersPageSize: number = 10;
   ordersTotalItems: number = 0;
 
-  // Modals
   showProductModal = false;
   showCategoryModal = false;
   showOrderModal = false;
@@ -1982,7 +1978,6 @@ export class AdminComponent implements OnInit {
   orderItems: OrderItem[] = [];
   orderEditForm: Partial<Order> = {};
 
-  // Attributes management
   attributesList$: Observable<any[]> = of([]);
   showAttributeModal: boolean = false;
   showAttributeValueModal: boolean = false;
@@ -1992,8 +1987,7 @@ export class AdminComponent implements OnInit {
   attributeValueForm: Partial<{ value: string; attribute: number }> = {};
   selectedAttributeForValues: any = null;
 
-  // Forms
-  // Note: Product form only contains basic info. Price/stock are managed via SKU variants
+ 
   productForm: Partial<{
     name: string;
     description: string;
@@ -2004,23 +1998,19 @@ export class AdminComponent implements OnInit {
   }> = {};
   categoryForm: Partial<InsertCategory & { imageFile?: File; imagePreview?: string }> = {};
 
-  // SKU Variant management
   showVariantModal: boolean = false;
   editingSkuVariant: ProductSkuVariant | null = null;
   variantForm: Partial<ProductSkuVariant & { 
     selectedAttributes?: { attributeId: number; valueId: number }[] 
   }> = {};
   
-  // Attributes for variant editing
   allAttributes: any[] = [];
   attributeValues: { [attributeId: number]: any[] } = {};
   selectedVariantAttributes: { [attributeName: string]: number } = {}; // attributeName -> valueId
 
-  // Statistics filters
   statsStartDate: string = '';
   statsEndDate: string = '';
 
-  // Low stock management
   lowStockThreshold: number = 10;
   selectedLowStockFilter: 'all' | 'critical' | 'warning' = 'all';
   loadingLowStock: boolean = false;
@@ -2028,7 +2018,6 @@ export class AdminComponent implements OnInit {
   expandedProducts: Set<number> = new Set();
   lowStockFilters: { label: string; value: 'all' | 'critical' | 'warning' }[] = [];
 
-  // Support tickets
   allTickets: Ticket[] = [];
   selectedTicket: Ticket | null = null;
   showTicketModal: boolean = false;
@@ -2038,7 +2027,6 @@ export class AdminComponent implements OnInit {
   ticketReplyText: string = '';
   supportStatusFilters: { label: string; value: string }[] = [];
 
-  // Loyalty Program variables
   loyaltyProgram: LoyaltyProgram | null = null;
   loyaltyRewards$: Observable<LoyaltyReward[]>;
   showRewardModal: boolean = false;
@@ -2074,7 +2062,6 @@ export class AdminComponent implements OnInit {
     this.initializeSupportFilters();
     this.initializeLowStockFilters();
     
-    // Load data with pagination
     this.reloadProducts();
     this.reloadCategories();
     this.reloadOrders();
@@ -2123,7 +2110,6 @@ export class AdminComponent implements OnInit {
     this.loadLowStockAlerts();
     this.loadAttributes();
     
-    // Re-initialize tabs and filters on language change
     this.languageService.currentLanguage$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
@@ -2138,7 +2124,6 @@ export class AdminComponent implements OnInit {
     this.destroy$.complete();
   }
 
-  // Attributes management methods
   loadAttributes(): void {
     this.attributesList$ = this.apiService.getAttributes();
   }
@@ -2170,7 +2155,6 @@ export class AdminComponent implements OnInit {
     };
 
     if (this.editingAttribute) {
-      // Update existing attribute
       this.apiService.updateAttribute(this.editingAttribute.id, attributeData).subscribe({
         next: () => {
           this.modalService.showSuccess(this.translate.instant('ADMIN.ATTRIBUTE_UPDATED'));
@@ -2183,7 +2167,6 @@ export class AdminComponent implements OnInit {
         }
       });
     } else {
-      // Create new attribute
       this.apiService.createAttribute(attributeData).subscribe({
         next: () => {
           this.modalService.showSuccess(this.translate.instant('ADMIN.ATTRIBUTE_CREATED'));
@@ -2230,7 +2213,7 @@ export class AdminComponent implements OnInit {
     this.showAttributeValueModal = false;
     this.selectedAttributeForValues = null;
     this.attributeValueForm = {};
-    this.loadAttributes(); // Refresh to get updated values
+    this.loadAttributes(); 
   }
 
   saveAttributeValue(event: Event): void {
@@ -2248,7 +2231,6 @@ export class AdminComponent implements OnInit {
         this.modalService.showSuccess(this.translate.instant('ADMIN.VALUE_ADDED'));
         this.attributeValueForm.value = '';
         
-        // Refresh the current attribute to show new value
         this.apiService.getAttribute(this.selectedAttributeForValues!.id).subscribe(updated => {
           this.selectedAttributeForValues = updated;
         });
@@ -2272,7 +2254,6 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.modalService.showSuccess(this.translate.instant('ADMIN.VALUE_DELETED'));
           
-          // Refresh the current attribute
           if (this.selectedAttributeForValues) {
             this.apiService.getAttribute(this.selectedAttributeForValues.id).subscribe(updated => {
               this.selectedAttributeForValues = updated;
@@ -2288,7 +2269,6 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  // Utility methods
   parseFloat(value: string): number {
     return parseFloat(value);
   }
@@ -2309,7 +2289,6 @@ export class AdminComponent implements OnInit {
     return statusMap[status] || status;
   }
 
-  // Product methods
   openProductModal(product?: Product): void {
     this.editingProduct = product || null;
     if (product) {
@@ -2318,7 +2297,7 @@ export class AdminComponent implements OnInit {
         description: product.description || '',
         categoryId: product.categoryId,
         image: product.image,
-        imagePreview: product.image // Show current image as preview
+        imagePreview: product.image 
       };
     } else {
       this.productForm = {};
@@ -2330,7 +2309,6 @@ export class AdminComponent implements OnInit {
     this.showProductModal = false;
     this.editingProduct = null;
     this.productForm = {};
-    // Clear file input
     const fileInput = document.querySelector('input[type="file"][name="imageFile"]') as HTMLInputElement;
     if (fileInput) {
       fileInput.value = '';
@@ -2343,7 +2321,6 @@ export class AdminComponent implements OnInit {
       const file = input.files[0];
       this.productForm.imageFile = file;
       
-      // Create preview
       const reader = new FileReader();
       reader.onload = (e: any) => {
         this.productForm.imagePreview = e.target.result;
@@ -2358,7 +2335,6 @@ export class AdminComponent implements OnInit {
       const file = input.files[0];
       this.categoryForm.imageFile = file;
       
-      // Create preview
       const reader = new FileReader();
       reader.onload = (e: any) => {
         this.categoryForm.imagePreview = e.target.result;
@@ -2375,7 +2351,6 @@ export class AdminComponent implements OnInit {
       description: this.productForm.description,
       categoryId: this.productForm.categoryId!,
       imageFile: this.productForm.imageFile
-      // Note: price, oldPrice, stock are now managed via SKU variants
     };
 
     if (this.editingProduct) {
@@ -2425,11 +2400,9 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  // SKU Variant methods
   openSkuVariantModal(variant: ProductSkuVariant | null): void {
     this.editingSkuVariant = variant;
     
-    // Prepare form first
     if (variant) {
       this.variantForm = {
         id: variant.id,
@@ -2441,7 +2414,6 @@ export class AdminComponent implements OnInit {
         available: variant.available
       };
     } else {
-      // Creating new variant
       const productId = this.editingProduct?.numericId;
       const timestamp = Date.now();
       this.variantForm = {
@@ -2454,30 +2426,24 @@ export class AdminComponent implements OnInit {
       };
     }
     
-    // Load attributes and their values BEFORE showing modal
     this.apiService.getAttributes().subscribe(attributes => {
       this.allAttributes = attributes;
       
-      // Load all attribute values in parallel
       if (attributes.length > 0) {
         const valueRequests = attributes.map(attr => 
           this.apiService.getAttributeValues(attr.id)
         );
         
         forkJoin(valueRequests).subscribe(valuesArrays => {
-          // Map values to attributes
           attributes.forEach((attr, index) => {
             this.attributeValues[attr.id] = valuesArrays[index];
           });
           
-          // Now map current variant attributes (after values are loaded)
           if (variant && variant.attributes_details) {
             this.selectedVariantAttributes = {};
             variant.attributes_details.forEach(attrDetail => {
-              // Find the attribute by name
               const attribute = this.allAttributes.find(a => a.name === attrDetail.attribute);
               if (attribute) {
-                // Find the value by name
                 const values = this.attributeValues[attribute.id] || [];
                 const value = values.find(v => v.value === attrDetail.value);
                 if (value) {
@@ -2489,11 +2455,9 @@ export class AdminComponent implements OnInit {
             this.selectedVariantAttributes = {};
           }
           
-          // Show modal AFTER all data is loaded and mapped
           this.showVariantModal = true;
         });
       } else {
-        // No attributes, just show modal
         this.selectedVariantAttributes = {};
         this.showVariantModal = true;
       }
@@ -2512,7 +2476,6 @@ export class AdminComponent implements OnInit {
   saveSkuVariant(event: Event): void {
     event.preventDefault();
     
-    // Collect selected attribute value IDs
     const attributeValueIds: number[] = [];
     Object.values(this.selectedVariantAttributes).forEach(valueId => {
       if (valueId) {
@@ -2521,7 +2484,6 @@ export class AdminComponent implements OnInit {
     });
     
     if (this.editingSkuVariant) {
-      // Update existing variant
       const updates: any = {
         name: this.variantForm.name,
         price: this.variantForm.price,
@@ -2535,7 +2497,6 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.modalService.showSuccess(this.translate.instant('ADMIN.VARIANT_UPDATED'));
           this.closeVariantModal();
-          // Refresh product to get updated variants
           if (this.editingProduct?.numericId) {
             this.apiService.getProduct(this.editingProduct.numericId.toString()).subscribe({
               next: (product) => {
@@ -2552,7 +2513,6 @@ export class AdminComponent implements OnInit {
         }
       });
     } else {
-      // Create new variant
       if (!this.editingProduct?.numericId) {
         this.modalService.showError(this.translate.instant('ADMIN.NO_PRODUCT_ID'));
         return;
@@ -2572,7 +2532,6 @@ export class AdminComponent implements OnInit {
         next: () => {
           this.modalService.showSuccess(this.translate.instant('ADMIN.VARIANT_CREATED'));
           this.closeVariantModal();
-          // Refresh product to get new variant
           if (this.editingProduct?.numericId) {
             this.apiService.getProduct(this.editingProduct.numericId.toString()).subscribe({
               next: (product) => {
@@ -2604,7 +2563,6 @@ export class AdminComponent implements OnInit {
     this.apiService.deleteVariant(variant.id).subscribe({
       next: () => {
         this.modalService.showSuccess(this.translate.instant('ADMIN.VARIANT_DELETED'));
-        // Refresh product to remove deleted variant
         if (this.editingProduct?.numericId) {
           this.apiService.getProduct(this.editingProduct.numericId.toString()).subscribe({
             next: (product) => {
@@ -2622,7 +2580,6 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  // Category methods
   openCategoryModal(category?: Category): void {
     this.editingCategory = category || null;
     if (category) {
@@ -2630,7 +2587,7 @@ export class AdminComponent implements OnInit {
         name: category.name,
         description: category.description || '',
         image: category.image,
-        imagePreview: category.image // Show current image as preview
+        imagePreview: category.image 
       };
     } else {
       this.categoryForm = {};
@@ -2642,7 +2599,6 @@ export class AdminComponent implements OnInit {
     this.showCategoryModal = false;
     this.editingCategory = null;
     this.categoryForm = {};
-    // Clear file input
     const fileInput = document.querySelector('input[type="file"][name="imageFile"]') as HTMLInputElement;
     if (fileInput) {
       fileInput.value = '';
@@ -2708,7 +2664,6 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  // Order methods
   updateOrderStatus(orderId: string, event: Event): void {
     const target = event.target as HTMLSelectElement;
     const status = target.value;
@@ -2791,11 +2746,10 @@ export class AdminComponent implements OnInit {
     
     this.apiService.updateOrder(orderId, updates).subscribe({
       next: (updatedOrder) => {
-        // Preserve the ID from the original order
         this.selectedOrder = { 
           ...this.selectedOrder!, 
           ...updatedOrder,
-          id: orderId // Ensure ID is preserved
+          id: orderId 
         };
         this.reloadOrders();
         this.closeOrderEditModal();
@@ -2808,7 +2762,6 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  // Low stock methods - Enhanced
   loadLowStockAlerts(): void {
     this.loadingLowStock = true;
     this.groupedLowStockAlerts$ = this.apiService.getGroupedLowStockAlerts(
@@ -2816,10 +2769,8 @@ export class AdminComponent implements OnInit {
     );
     this.lowStockStats$ = this.apiService.getLowStockStatistics();
     
-    // Also keep legacy alerts for backward compatibility
     this.lowStockAlerts$ = this.apiService.getLowStockAlerts(this.lowStockThreshold);
     
-    // Set loading to false after a short delay
     setTimeout(() => {
       this.loadingLowStock = false;
     }, 500);
@@ -2915,7 +2866,6 @@ export class AdminComponent implements OnInit {
   }
 
   editVariantThreshold(variantAlert: LowStockVariantAlert): void {
-    // Note: Using browser prompt for now - could be replaced with custom input modal
     const newThreshold = prompt(
       `Edytuj próg niskiego stanu dla wariantu:\n\n` +
       `Produkt: ${variantAlert.productName}\n` +
@@ -2972,11 +2922,9 @@ export class AdminComponent implements OnInit {
         return;
       }
 
-      // CSV header
       const headers = ['Produkt', 'Wariant', 'SKU', 'Atrybuty', 'Stan', 'Próg', 'Brakuje', 'Sugerowane zamówienie', 'Cena', 'Priorytet'];
       const rows: string[][] = [headers];
 
-      // CSV data
       groups.forEach(group => {
         group.variants.forEach(variantAlert => {
           const attributes = variantAlert.variant.attributes_details
@@ -2998,12 +2946,10 @@ export class AdminComponent implements OnInit {
         });
       });
 
-      // Generate CSV content
       const csvContent = rows.map(row => 
         row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')
       ).join('\n');
 
-      // Create and download file
       const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
@@ -3020,7 +2966,6 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  // Legacy method for backward compatibility
   async autoOrderProduct(stockAlert: LowStockAlert): Promise<void> {
     const confirmed = await this.modalService.showConfirm(
       this.translate.instant('ADMIN.AUTO_ORDER_CONFIRM', { qty: stockAlert.suggestedOrder }),
@@ -3048,7 +2993,6 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  // Statistics methods
   loadStatistics(): void {
     const startDate = this.statsStartDate ? new Date(this.statsStartDate) : undefined;
     const endDate = this.statsEndDate ? new Date(this.statsEndDate) : undefined;
@@ -3061,7 +3005,6 @@ export class AdminComponent implements OnInit {
     this.apiService.downloadStatisticsPDF(startDate, endDate);
   }
 
-  // Support ticket methods
   loadSupportTickets(): void {
     this.loadingTickets = true;
     this.apiService.getAllTickets().subscribe({
@@ -3154,7 +3097,6 @@ export class AdminComponent implements OnInit {
       next: () => {
         this.modalService.showSuccess(this.translate.instant('ADMIN.REPLY_SENT'));
         this.ticketReplyText = '';
-        // Reload ticket details
         if (this.selectedTicket) {
           this.viewSupportTicket(this.selectedTicket);
         }
@@ -3176,16 +3118,13 @@ export class AdminComponent implements OnInit {
   }
 
   isAdminMessage(authorId: number): boolean {
-    // Check if the message is from admin (not from the ticket creator)
     if (!this.selectedTicket) return false;
-    // Compare with ticket creator's user id
     return String(this.selectedTicket.user.id) !== String(authorId);
   }
 
   getTicketAuthorName(authorId: number): string {
     if (!this.selectedTicket) return 'Nieznany';
     
-    // Find participant by matching author_id
     const participant = this.selectedTicket.participants?.find(p => 
       String(p.id) === String(authorId)
     );
@@ -3201,7 +3140,6 @@ export class AdminComponent implements OnInit {
     this.apiService.downloadInvoice(orderId, `faktura_${orderId}.pdf`);
   }
 
-  // Loyalty Program methods
   loadLoyaltyProgram(): void {
     this.apiService.getLoyaltyProgram().subscribe({
       next: (program) => {
@@ -3213,7 +3151,6 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  // Reward methods
   openRewardModal(reward?: LoyaltyReward): void {
     if (reward) {
       this.editingReward = reward;
@@ -3263,7 +3200,6 @@ export class AdminComponent implements OnInit {
     };
 
     if (this.editingReward) {
-      // Update existing reward
       this.apiService.updateLoyaltyReward(this.editingReward.id, rewardData).subscribe({
         next: () => {
           this.loyaltyRewards$ = this.apiService.getLoyaltyRewards();
@@ -3276,7 +3212,6 @@ export class AdminComponent implements OnInit {
         }
       });
     } else {
-      // Create new reward
       this.apiService.createLoyaltyReward(rewardData).subscribe({
         next: () => {
           this.loyaltyRewards$ = this.apiService.getLoyaltyRewards();
@@ -3320,7 +3255,6 @@ export class AdminComponent implements OnInit {
     return labels[type] || type;
   }
 
-  // Reload methods with pagination
   reloadProducts(): void {
     this.apiService.getAllProducts().subscribe(products => {
       this.allProducts = products;
@@ -3348,7 +3282,6 @@ export class AdminComponent implements OnInit {
     this.orders$ = this.apiService.getAllOrders();
   }
 
-  // Pagination methods for Products
   updatePaginatedProducts(): void {
     const startIndex = (this.productsCurrentPage - 1) * this.productsPageSize;
     const endIndex = startIndex + this.productsPageSize;
@@ -3366,7 +3299,6 @@ export class AdminComponent implements OnInit {
     this.updatePaginatedProducts();
   }
 
-  // Pagination methods for Categories
   updatePaginatedCategories(): void {
     const startIndex = (this.categoriesCurrentPage - 1) * this.categoriesPageSize;
     const endIndex = startIndex + this.categoriesPageSize;
@@ -3384,7 +3316,6 @@ export class AdminComponent implements OnInit {
     this.updatePaginatedCategories();
   }
 
-  // Pagination methods for Orders
   updatePaginatedOrders(): void {
     const startIndex = (this.ordersCurrentPage - 1) * this.ordersPageSize;
     const endIndex = startIndex + this.ordersPageSize;

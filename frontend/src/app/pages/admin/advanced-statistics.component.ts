@@ -20,7 +20,6 @@ import {
 } from '../../models';
 import { Chart, registerables } from 'chart.js';
 
-// Rejestruj wszystkie komponenty Chart.js
 Chart.register(...registerables);
 
 @Component({
@@ -649,37 +648,31 @@ Chart.register(...registerables);
 export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
-  // ViewChild references for charts
   @ViewChild('monthlyRevenueChart') monthlyRevenueChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('monthlyGrowthChart') monthlyGrowthChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('yearlyRevenueChart') yearlyRevenueChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('categoryChart') categoryChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('topProductsChart') topProductsChartRef!: ElementRef<HTMLCanvasElement>;
 
-  // Chart instances
   monthlyRevenueChart?: Chart;
   monthlyGrowthChart?: Chart;
   yearlyRevenueChart?: Chart;
   categoryChart?: Chart;
   topProductsChart?: Chart;
 
-  // Data observables
   dashboardData$!: Observable<DashboardOverview>;
   monthlyStats$!: Observable<MonthlyStatistics>;
   yearlyStats$!: Observable<YearlyStatistics>;
   categoryPerformance$!: Observable<CategoryPerformanceReport>;
   topProducts$!: Observable<TopProductsReport>;
 
-  // Active tab
   activeAnalyticsTab: 'monthly' | 'yearly' | 'categories' | 'products' = 'monthly';
 
-  // View toggles for each section - defaultowo pokazujemy podstawowe widoki
   monthlyActiveViews: string[] = ['summary', 'revenueChart', 'table'];
   yearlyActiveViews: string[] = ['chart', 'table'];
   categoryActiveViews: string[] = ['summary', 'chart'];
   productActiveViews: string[] = ['summary', 'chart', 'table'];
 
-  // Date filters
   monthlyStartDate: string = '';
   monthlyEndDate: string = '';
   categoryStartDate: string = '';
@@ -696,7 +689,6 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
     private languageService: LanguageService
   ) {
     this.initializeAnalyticsTabs();
-    // Set default dates
     const today = new Date();
     const twelveMonthsAgo = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -719,22 +711,18 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
   }
 
   ngOnInit(): void {
-    // Subscribe to language changes
     this.languageService.currentLanguage$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
         this.initializeAnalyticsTabs();
-        // Reinitialize charts with new language
         this.reloadChartsWithNewLanguage();
       });
 
     this.loadDashboardData();
-    // Load data for initial tab
     this.loadDataForTab(this.activeAnalyticsTab);
   }
 
   reloadChartsWithNewLanguage(): void {
-    // Recreate charts when language changes
     if (this.activeAnalyticsTab === 'monthly' && this.monthlyRevenueChartRef) {
       this.monthlyStats$.subscribe(data => {
         this.createMonthlyRevenueChart(data);
@@ -756,7 +744,6 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
   }
 
   ngAfterViewInit(): void {
-    // Charts will be created when data is loaded
   }
 
   switchTab(tabId: 'monthly' | 'yearly' | 'categories' | 'products'): void {
@@ -791,7 +778,6 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
     
     this.monthlyStats$ = this.apiService.getMonthlyStatistics(startDate, endDate);
     
-    // Update charts after data loads
     setTimeout(() => {
       this.monthlyStats$.subscribe(data => {
         this.createMonthlyRevenueChart(data);
@@ -803,7 +789,6 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
   loadYearlyData(): void {
     this.yearlyStats$ = this.apiService.getYearlyStatistics();
     
-    // Update chart after data loads
     setTimeout(() => {
       this.yearlyStats$.subscribe(data => {
         this.createYearlyRevenueChart(data);
@@ -817,7 +802,6 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
     
     this.categoryPerformance$ = this.apiService.getCategoryPerformance(startDate, endDate);
     
-    // Update chart after data loads
     setTimeout(() => {
       this.categoryPerformance$.subscribe(data => {
         this.createCategoryChart(data);
@@ -831,7 +815,6 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
     
     this.topProducts$ = this.apiService.getTopProducts(startDate, endDate, this.topProductsLimit);
     
-    // Update chart after data loads
     setTimeout(() => {
       this.topProducts$.subscribe(data => {
         this.createTopProductsChart(data);
@@ -839,7 +822,6 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
     }, 100);
   }
 
-  // Chart creation methods
   createMonthlyRevenueChart(data: MonthlyStatistics): void {
     if (!this.monthlyRevenueChartRef) return;
 
@@ -1061,7 +1043,6 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
     const ctx = this.topProductsChartRef.nativeElement.getContext('2d');
     if (!ctx) return;
 
-    // Take only top 10 for the chart
     const topTen = data.top_products.slice(0, 10);
 
     this.topProductsChart = new Chart(ctx, {
@@ -1098,14 +1079,12 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
     });
   }
 
-  // View toggle methods for Monthly
   toggleMonthlyView(view: string): void {
     const index = this.monthlyActiveViews.indexOf(view);
     if (index > -1) {
       this.monthlyActiveViews.splice(index, 1);
     } else {
       this.monthlyActiveViews.push(view);
-      // Render charts after view becomes visible
       setTimeout(() => {
         this.monthlyStats$.subscribe(data => {
           if (view === 'revenueChart') {
@@ -1120,7 +1099,6 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
 
   showAllMonthlyViews(): void {
     this.monthlyActiveViews = ['summary', 'bestWorst', 'revenueChart', 'growthChart', 'table'];
-    // Render all charts
     setTimeout(() => {
       this.monthlyStats$.subscribe(data => {
         this.createMonthlyRevenueChart(data);
@@ -1133,14 +1111,12 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
     this.monthlyActiveViews = [];
   }
 
-  // View toggle methods for Yearly
   toggleYearlyView(view: string): void {
     const index = this.yearlyActiveViews.indexOf(view);
     if (index > -1) {
       this.yearlyActiveViews.splice(index, 1);
     } else {
       this.yearlyActiveViews.push(view);
-      // Render chart after view becomes visible
       if (view === 'chart') {
         setTimeout(() => {
           this.yearlyStats$.subscribe(data => {
@@ -1153,7 +1129,6 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
 
   showAllYearlyViews(): void {
     this.yearlyActiveViews = ['chart', 'table'];
-    // Render chart
     setTimeout(() => {
       this.yearlyStats$.subscribe(data => {
         this.createYearlyRevenueChart(data);
@@ -1165,14 +1140,12 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
     this.yearlyActiveViews = [];
   }
 
-  // View toggle methods for Categories
   toggleCategoryView(view: string): void {
     const index = this.categoryActiveViews.indexOf(view);
     if (index > -1) {
       this.categoryActiveViews.splice(index, 1);
     } else {
       this.categoryActiveViews.push(view);
-      // Render chart after view becomes visible
       if (view === 'chart') {
         setTimeout(() => {
           this.categoryPerformance$.subscribe(data => {
@@ -1185,7 +1158,6 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
 
   showAllCategoryViews(): void {
     this.categoryActiveViews = ['summary', 'chart', 'table'];
-    // Render chart
     setTimeout(() => {
       this.categoryPerformance$.subscribe(data => {
         this.createCategoryChart(data);
@@ -1197,14 +1169,12 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
     this.categoryActiveViews = [];
   }
 
-  // View toggle methods for Products
   toggleProductView(view: string): void {
     const index = this.productActiveViews.indexOf(view);
     if (index > -1) {
       this.productActiveViews.splice(index, 1);
     } else {
       this.productActiveViews.push(view);
-      // Render chart after view becomes visible
       if (view === 'chart') {
         setTimeout(() => {
           this.topProducts$.subscribe(data => {
@@ -1217,7 +1187,6 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
 
   showAllProductViews(): void {
     this.productActiveViews = ['summary', 'chart', 'table'];
-    // Render chart
     setTimeout(() => {
       this.topProducts$.subscribe(data => {
         this.createTopProductsChart(data);
@@ -1233,7 +1202,6 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
     this.destroy$.next();
     this.destroy$.complete();
     
-    // Destroy all chart instances
     this.monthlyRevenueChart?.destroy();
     this.monthlyGrowthChart?.destroy();
     this.yearlyRevenueChart?.destroy();

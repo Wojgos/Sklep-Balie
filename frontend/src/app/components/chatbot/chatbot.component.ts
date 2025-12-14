@@ -276,7 +276,6 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
   ) {}
 
   ngOnInit(): void {
-    // Subscribe to chat state
     this.subscriptions.push(
       this.chatbotService.isOpen$.subscribe(isOpen => {
         this.isOpen = isOpen;
@@ -286,7 +285,6 @@ export class ChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
       })
     );
 
-    // Subscribe to messages
     this.subscriptions.push(
       this.chatbotService.messages$.subscribe(messages => {
         this.messages = messages;

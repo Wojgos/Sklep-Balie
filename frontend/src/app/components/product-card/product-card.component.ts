@@ -150,11 +150,9 @@ export class ProductCardComponent {
     this.isAdding = true;
     this.cartService.addItem(this.product);
     
-    // Show success notification
     const message = this.translate.instant('CART.ADDED_TO_CART', { productName: this.product.name });
     this.notificationService.showSuccess(message);
     
-    // Reset button state after animation
     setTimeout(() => {
       this.isAdding = false;
     }, 500);

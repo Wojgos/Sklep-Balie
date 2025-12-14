@@ -8,7 +8,7 @@ import { ChatMessage, ChatResponse, ChatRequest } from '../models';
   providedIn: 'root'
 })
 export class ChatbotService {
-  private readonly apiUrl = 'http://localhost:8000/api/v1/chatbot/ask/'; // Django backend (trailing slash required)
+  private readonly apiUrl = 'http://localhost:8000/api/v1/chatbot/ask/'; // Wymagany slash na końcu dla Django
   private messagesSubject = new BehaviorSubject<ChatMessage[]>([]);
   private isOpenSubject = new BehaviorSubject<boolean>(false);
   private sessionId: string;
@@ -101,7 +101,6 @@ export class ChatbotService {
   }
 
   sendMessage(content: string, currentPage?: string): Observable<ChatResponse> {
-    // Add user message to chat
     const userMessage: ChatMessage = {
       id: this.generateMessageId(),
       role: 'user',
@@ -113,7 +112,6 @@ export class ChatbotService {
     const currentMessages = this.messagesSubject.value;
     this.messagesSubject.next([...currentMessages, userMessage]);
 
-    // Add typing indicator
     const typingMessage: ChatMessage = {
       id: 'typing',
       role: 'assistant',
@@ -124,15 +122,12 @@ export class ChatbotService {
     };
     this.messagesSubject.next([...this.messagesSubject.value, typingMessage]);
 
-    // Prepare simple request for Django backend
     const request = {
       message: content
     };
 
-    // Get auth headers with JWT token if available
     const headers = this.getAuthHeaders();
 
-    // Send to Django API
     return this.http.post<{response: string}>(this.apiUrl, request, { headers })
       .pipe(
         map((response: {response: string}) => ({
@@ -147,10 +142,8 @@ export class ChatbotService {
   }
 
   addBotResponse(response: ChatResponse): void {
-    // Remove typing indicator
     const messagesWithoutTyping = this.messagesSubject.value.filter(msg => msg.id !== 'typing');
     
-    // Add bot response
     const botMessage: ChatMessage = {
       id: this.generateMessageId(),
       role: 'assistant',
@@ -163,7 +156,6 @@ export class ChatbotService {
   }
 
   private getFallbackResponse(userMessage: string): Observable<ChatResponse> {
-    // Prosty fallback gdy backend jest niedostępny
     const response: ChatResponse = {
       message: 'Przepraszam, mam obecnie problem z połączeniem. Spróbuj ponownie za chwilę lub skontaktuj się z nami przez formularz wsparcia.',
       suggestions: ['Spróbuj ponownie', 'Formularz wsparcia', 'Kontakt']

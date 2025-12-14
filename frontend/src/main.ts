@@ -11,7 +11,6 @@ import { routes } from './app/app.routes';
 import { authInterceptor } from './app/interceptors/auth.interceptor';
 import { AuthService } from './app/services/auth.service';
 
-// Custom loader that loads JSON files directly
 export class CustomTranslateLoader implements TranslateLoader {
   constructor(private http: HttpClient) {}
 
@@ -20,12 +19,10 @@ export class CustomTranslateLoader implements TranslateLoader {
   }
 }
 
-// Factory function for TranslateLoader
 export function createTranslateLoader(http: HttpClient) {
   return new CustomTranslateLoader(http);
 }
 
-// Initialize TranslateService
 export function initializeTranslate(translate: TranslateService) {
   return (): Promise<any> => {
     translate.setDefaultLang('pl');

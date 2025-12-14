@@ -25,7 +25,6 @@ export class VerifyEmailComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Krok 3: Angular pobiera klucz z adresu URL
     const key = this.route.snapshot.paramMap.get('key');
 
     if (key) {
@@ -37,7 +36,6 @@ export class VerifyEmailComponent implements OnInit {
   }
 
   verifyEmail(key: string): void {
-    // Krok 4: Angular wysyła klucz do backendu
     this.authService.verifyEmail(key).subscribe({
       next: () => {
         this.isLoading = false;
@@ -47,7 +45,6 @@ export class VerifyEmailComponent implements OnInit {
           NotificationType.SUCCESS
         );
         
-        // Opcjonalne automatyczne przekierowanie po chwili
         setTimeout(() => {
           this.router.navigate(['/login']);
         }, 3000);

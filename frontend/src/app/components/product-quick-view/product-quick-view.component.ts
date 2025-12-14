@@ -187,7 +187,6 @@ export class ProductQuickViewComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Initialize default variants (first option for each attribute)
     if (this.product.attributes) {
       this.product.attributes.forEach(attr => {
         if (attr.variants.length > 0) {

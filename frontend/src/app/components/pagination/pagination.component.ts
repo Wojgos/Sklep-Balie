@@ -17,7 +17,6 @@ export class PaginationComponent {
   @Output() pageChange = new EventEmitter<number>();
   @Output() pageSizeChange = new EventEmitter<number>();
 
-  // Make Math available in template
   Math = Math;
 
   get totalPages(): number {

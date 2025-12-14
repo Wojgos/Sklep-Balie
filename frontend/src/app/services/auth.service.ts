@@ -22,7 +22,6 @@ export class AuthService {
     this.currentUser$ = this.currentUserSubject.asObservable();
   }
 
-  // Public method to initialize session - call after DI is complete
   public initializeSession(): void {
     this.restoreSessionFromStorage();
   }
@@ -40,15 +39,13 @@ export class AuthService {
   }
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
-    // Map username to email if the backend requires email
     const loginData = {
-      email: credentials.username, // Assuming username field contains email
+      email: credentials.username,
       password: credentials.password
     };
 
     return this.http.post<any>(`${this.AUTH_URL}/login/`, loginData).pipe(
       tap(response => {
-        // Store tokens
         const accessToken = this.extractAccessToken(response);
         const refreshToken = this.extractRefreshToken(response);
         
@@ -57,7 +54,6 @@ export class AuthService {
         }
       }),
       switchMap(response => {
-        // If backend returns user object, use it. Otherwise fetch it.
         if (response.user) {
           const transformedUser = this.transformBackendUser(response.user);
           this.setStoredUser(transformedUser);
@@ -76,8 +72,6 @@ export class AuthService {
         }
       }),
       catchError(error => {
-        // If we get a 400 Bad Request, it might be "Unable to log in with provided credentials."
-        // or "E-mail is not verified."
         if (error instanceof HttpErrorResponse && error.status === 400) {
             if (error.error?.non_field_errors) {
                  return throwError(() => new Error(error.error.non_field_errors[0]));
@@ -92,20 +86,17 @@ export class AuthService {
   }
 
   register(userData: RegisterRequest): Observable<any> {
-    // Map frontend model to backend expectations
     const registerData = {
       username: userData.username,
       email: userData.email,
-      password1: userData.password, // Changed from 'password' to 'password1' as per error message
-      password2: userData.confirmPassword, // dj-rest-auth expects password2 for confirmation
+      password1: userData.password, 
+      password2: userData.confirmPassword, 
       first_name: userData.firstName,
       last_name: userData.lastName
-      // Note: phone, address etc. are not currently supported by backend registration serializer
     };
 
     return this.http.post<any>(`${this.AUTH_URL}/registration/`, registerData).pipe(
       tap(response => {
-        // Store tokens if returned immediately (usually not for email verification flow)
         const accessToken = this.extractAccessToken(response);
         const refreshToken = this.extractRefreshToken(response);
         
@@ -114,7 +105,6 @@ export class AuthService {
         }
       }),
       switchMap(response => {
-         // If backend returns user object, use it. 
          if (response.user) {
             const transformedUser = this.transformBackendUser(response.user);
             this.setStoredUser(transformedUser);
@@ -124,16 +114,14 @@ export class AuthService {
               user: transformedUser
             });
          } else if (this.getToken()) {
-            // If we somehow got a token but no user, try to fetch user
             return this.loadCurrentUser().pipe(
               map(user => ({
                 token: this.getToken() || '',
                 user: user,
-                ...response // Keep original response data
+                ...response 
               }))
             );
          } else {
-            // If no token returned (email verification needed), just return the response
             return of(response);
          }
       }),
@@ -148,7 +136,6 @@ export class AuthService {
   }
 
   loadCurrentUser(): Observable<User> {
-    // Using USERS_URL/profile/ to get loyalty points and full profile
     return this.http.get<any>(`${this.USERS_URL}/profile/`, this.buildAuthHeaders()).pipe(
       map(backendUser => this.transformBackendUser(backendUser)),
       tap(user => {
@@ -166,10 +153,8 @@ export class AuthService {
   }
 
   updateUserProfile(userData: Partial<User>): Observable<User> {
-    // Transform frontend data to backend format
     const backendData = this.transformFrontendUser(userData);
     
-    // Using AUTH_URL/user/ for updates as profile view is read-only
     return this.http.patch<any>(`${this.AUTH_URL}/user/`, backendData, this.buildAuthHeaders()).pipe(
       map(backendUser => this.transformBackendUser(backendUser)),
       tap(updatedUser => {
@@ -303,9 +288,7 @@ export class AuthService {
     };
   }
 
-  /**
-   * Transform backend user data (snake_case) to frontend format (camelCase)
-   */
+
   private transformBackendUser(backendUser: any): User {
     return {
       id: backendUser.id?.toString() || '',
@@ -321,10 +304,7 @@ export class AuthService {
       createdAt: backendUser.date_joined ? new Date(backendUser.date_joined) : undefined
     };
   }
-
-  /**
-   * Transform frontend user data (camelCase) to backend format (snake_case)
-   */
+  
   private transformFrontendUser(frontendUser: Partial<User>): any {
     const backendData: any = {};
     

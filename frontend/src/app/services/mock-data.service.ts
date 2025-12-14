@@ -348,7 +348,6 @@ export class MockDataService {
     }
   ];
 
-  // Mock users for tickets
   private mockUsers: User[] = [
     {
       id: '1',
@@ -457,12 +456,11 @@ export class MockDataService {
   private ticketIdCounter = 4;
   private messageIdCounter = 8;
 
-  // Loyalty Program data
   private loyaltyProgram: LoyaltyProgram | null = {
     id: '1',
     name: 'Program Lojalnościowy BarrelGarden',
     description: 'Zbieraj punkty za każde zamówienie i wymieniaj je na atrakcyjne nagrody!',
-    pointsPerZloty: 1, // 1 punkt za każdą złotówkę
+    pointsPerZloty: 1,
     isActive: true,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01')
@@ -638,7 +636,6 @@ export class MockDataService {
   private transactionIdCounter = 7;
   private redeemedRewardIdCounter = 3;
 
-  // Categories methods
   getCategories(): Observable<Category[]> {
     return of(this.categories).pipe(delay(300));
   }
@@ -651,7 +648,6 @@ export class MockDataService {
     return of(category).pipe(delay(200));
   }
 
-  // Products methods
   getProducts(): Observable<Product[]> {
     return of(this.products).pipe(delay(400));
   }
@@ -750,7 +746,6 @@ export class MockDataService {
     return of(undefined).pipe(delay(300));
   }
 
-  // Orders methods
   getOrders(): Observable<Order[]> {
     return of(this.orders).pipe(delay(400));
   }
@@ -779,7 +774,6 @@ export class MockDataService {
       createdAt: new Date()
     };
     
-    // Add order items
     const newOrderItems: OrderItem[] = order.items.map((item, index) => ({
       id: (this.orderItems.length + index + 1).toString(),
       orderId: newOrder.id,
@@ -810,7 +804,6 @@ export class MockDataService {
     return of(order).pipe(delay(300));
   }
 
-  // Category management methods
   createCategory(category: InsertCategory): Observable<Category> {
     const newCategory: Category = {
       id: (this.categories.length + 1).toString(),
@@ -841,7 +834,6 @@ export class MockDataService {
     return of(undefined).pipe(delay(300));
   }
 
-  // Statistics methods
   getSalesStatistics(startDate?: Date, endDate?: Date): Observable<SalesStatistics> {
     const filteredOrders = this.orders.filter(order => {
       if (!startDate && !endDate) return true;
@@ -856,7 +848,6 @@ export class MockDataService {
     const totalOrders = filteredOrders.length;
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    // Top products
     const productSales = new Map<string, { product: Product, quantity: number, revenue: number }>();
     filteredOrders.forEach(order => {
       const items = this.orderItems.filter(item => item.orderId === order.id);
@@ -883,7 +874,6 @@ export class MockDataService {
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
-    // Revenue by category
     const categoryRevenue = new Map<string, number>();
     filteredOrders.forEach(order => {
       const items = this.orderItems.filter(item => item.orderId === order.id);
@@ -906,7 +896,6 @@ export class MockDataService {
       }))
       .filter(item => item.category);
 
-    // Orders by status
     const statusCounts = new Map<string, number>();
     filteredOrders.forEach(order => {
       statusCounts.set(order.status, (statusCounts.get(order.status) || 0) + 1);
@@ -933,7 +922,6 @@ export class MockDataService {
     return of(statistics).pipe(delay(600));
   }
 
-  // Low stock alerts
   getLowStockAlerts(threshold: number = 10): Observable<LowStockAlert[]> {
     const alerts: LowStockAlert[] = this.products
       .filter(product => product.stock <= threshold)
@@ -948,15 +936,12 @@ export class MockDataService {
     return of(alerts).pipe(delay(300));
   }
 
-  // Support Tickets methods
   getMyTickets(userId: string = '2'): Observable<Ticket[]> {
-    // Return tickets for current user (mock user id = 2)
     const userTickets = this.tickets.filter(t => t.user.id === userId);
     return of(userTickets).pipe(delay(400));
   }
 
   getAllTickets(): Observable<Ticket[]> {
-    // Admin endpoint - return all tickets
     return of(this.tickets).pipe(delay(400));
   }
 
@@ -1013,9 +998,8 @@ export class MockDataService {
     ticket.messages = ticket.messages || [];
     ticket.messages.push(newMessage);
     ticket.updated_at = new Date();
-    ticket.status = 'new'; // Set to 'new' when user replies
+    ticket.status = 'new';
 
-    // Add user to participants if not already there
     const user = this.mockUsers.find(u => u.id === userId);
     if (user && !ticket.participants?.some(p => p.id === userId)) {
       ticket.participants = ticket.participants || [];
@@ -1026,7 +1010,7 @@ export class MockDataService {
   }
 
   adminReplyToTicket(ticketId: string, reply: TicketReply): Observable<void> {
-    return this.replyToTicket(ticketId, reply, '1'); // Admin user id = 1
+    return this.replyToTicket(ticketId, reply, '1');
   }
 
   updateTicketStatus(ticketId: string, status: 'new' | 'in_progress' | 'closed'): Observable<Ticket> {
@@ -1041,21 +1025,18 @@ export class MockDataService {
     return of(ticket).pipe(delay(400));
   }
 
-  // Loyalty Program methods - Admin
   getLoyaltyProgram(): Observable<LoyaltyProgram | null> {
     return of(this.loyaltyProgram).pipe(delay(300));
   }
 
   createOrUpdateLoyaltyProgram(program: InsertLoyaltyProgram): Observable<LoyaltyProgram> {
     if (this.loyaltyProgram) {
-      // Update existing
       this.loyaltyProgram = {
         ...this.loyaltyProgram,
         ...program,
         updatedAt: new Date()
       };
     } else {
-      // Create new
       this.loyaltyProgram = {
         id: '1',
         ...program,
@@ -1066,7 +1047,6 @@ export class MockDataService {
     return of(this.loyaltyProgram).pipe(delay(500));
   }
 
-  // Loyalty Rewards methods - Admin
   getLoyaltyRewards(): Observable<LoyaltyReward[]> {
     return of(this.loyaltyRewards).pipe(delay(300));
   }
@@ -1103,12 +1083,10 @@ export class MockDataService {
     return of(undefined).pipe(delay(300));
   }
 
-  // Loyalty methods - User
   getUserLoyaltyPoints(userId: string): Observable<UserLoyaltyPoints> {
     let userPoints = this.userLoyaltyData.get(userId);
     
     if (!userPoints) {
-      // Initialize new user with 0 points
       userPoints = {
         userId,
         totalPoints: 0,
@@ -1144,11 +1122,9 @@ export class MockDataService {
       throw new Error('Insufficient points');
     }
 
-    // Deduct points
     userPoints.availablePoints -= pointsCost;
     userPoints.usedPoints += pointsCost;
 
-    // Add transaction
     const transaction: LoyaltyTransaction = {
       id: this.transactionIdCounter.toString(),
       userId,
@@ -1161,7 +1137,6 @@ export class MockDataService {
     this.transactionIdCounter++;
     userPoints.history.push(transaction);
 
-    // Create redeemed reward
     const code = `LOYALTY${reward.rewardValue}-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
     const redeemedReward: RedeemedReward = {
       id: this.redeemedRewardIdCounter.toString(),
@@ -1185,7 +1160,6 @@ export class MockDataService {
     return of(userRewards).pipe(delay(300));
   }
 
-  // Helper method to add loyalty points when order is created
   private addLoyaltyPointsForOrder(userId: string, orderId: string, totalPrice: number): void {
     if (!this.loyaltyProgram || !this.loyaltyProgram.isActive) {
       return;
@@ -1222,7 +1196,6 @@ export class MockDataService {
     this.transactionIdCounter++;
     userPoints.history.push(transaction);
 
-    // Calculate tier (simple calculation)
     if (userPoints.totalPoints >= 3000) {
       userPoints.currentTier = 'Gold';
       userPoints.tierProgress = Math.min(100, ((userPoints.totalPoints - 3000) / 2000) * 100);

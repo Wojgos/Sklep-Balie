@@ -34,7 +34,6 @@ export class NotificationService {
     const currentNotifications = this.notificationsSubject.value;
     this.notificationsSubject.next([...currentNotifications, notification]);
 
-    // Set auto-dismiss timer if duration is specified
     if (duration !== null && duration > 0) {
       const timeout = window.setTimeout(() => {
         this.dismiss(id);
@@ -81,7 +80,6 @@ export class NotificationService {
     const filteredNotifications = currentNotifications.filter(notification => notification.id !== id);
     this.notificationsSubject.next(filteredNotifications);
 
-    // Clear the timeout if it exists
     const timeout = this.timeouts.get(id);
     if (timeout) {
       window.clearTimeout(timeout);
@@ -95,7 +93,6 @@ export class NotificationService {
   dismissAll(): void {
     this.notificationsSubject.next([]);
     
-    // Clear all timeouts
     this.timeouts.forEach((timeout) => window.clearTimeout(timeout));
     this.timeouts.clear();
   }
