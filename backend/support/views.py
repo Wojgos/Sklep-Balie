@@ -35,7 +35,7 @@ class ClientTicketViewSet(viewsets.ModelViewSet):
             return TicketCreateSerializer
         if self.action == 'reply':
             return TicketReplySerializer
-        return TicketDetailSerializer  # dla 'retrieve'
+        return TicketDetailSerializer
 
     def get_permissions(self):
         """Używa dodatkowych uprawnień dla akcji na konkretnym obiekcie."""

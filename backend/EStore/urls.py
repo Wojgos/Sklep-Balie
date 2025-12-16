@@ -33,7 +33,6 @@ urlpatterns = [
     path('api/v1/shop/', include('products.urls')),
     path('api/v1/', include('orders.urls')),
     path('api/v1/auth/', include('dj_rest_auth.urls')),
-    # path('api/v1/auth/registration/', include('dj_rest_auth.registration.urls')),
     path('api/v1/auth/registration/', CustomRegisterView.as_view(), name='rest_register'),
     path('api/v1/auth/registration/verify-email/', VerifyEmailView.as_view(), name='rest_verify_email'),
     path('api/v1/auth/registration/resend-email/', ResendEmailVerificationView.as_view(), name='rest_resend_email'),

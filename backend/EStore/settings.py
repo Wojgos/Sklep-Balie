@@ -24,7 +24,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key')
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 SITE_ID = 1
 ADMIN_EMAIL = '85916@student.pb.edu.pl'
@@ -251,7 +250,7 @@ CELERY_BEAT_SCHEDULE = {
     'check-low-stock-every-hour': {
         'task': 'products.tasks.check_low_stock_levels',
         'schedule': crontab(minute='0', hour='*'),  # Uruchom co pełną godzinę
-        # 'schedule': crontab(minute='*/1'),  # (Do testów: uruchom co 5 minut)
+        # 'schedule': crontab(minute='*/1'),  # (Do testów: uruchom co minutę)
     },
 }
 

@@ -64,7 +64,6 @@ class TicketDetailSerializer(serializers.ModelSerializer):
         return UserProfileSerializer(authors, many=True).data
 
 
-# --- Serializery DANYCH WEJŚCIOWYCH ---
 
 class TicketCreateSerializer(serializers.ModelSerializer):
     """

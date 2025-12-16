@@ -6,7 +6,6 @@ from django.utils import translation
 class LoyaltyRewardSerializer(serializers.ModelSerializer):
     """Serializer dla nagród lojalnościowych z obsługą tłumaczeń."""
 
-    # Jawnie deklarujemy pola tłumaczone
     name = serializers.CharField()
     description = serializers.CharField(required=False, allow_blank=True)
 
@@ -14,19 +13,16 @@ class LoyaltyRewardSerializer(serializers.ModelSerializer):
         model = LoyaltyReward
         fields = [
             'id',
-            'name', 'description',  # Pola tłumaczone
-            'points_required', 'reward_value', 'is_percentage', 'active'  # Pola zwykłe
+            'name', 'description',
+            'points_required', 'reward_value', 'is_percentage', 'active'
         ]
 
     def create(self, validated_data):
-        # 1. Wyciągamy dane tekstowe (tłumaczone)
         name = validated_data.pop('name')
         description = validated_data.pop('description', '')
 
-        # 2. Tworzymy obiekt (tylko z polami nietłumaczonymi)
         instance = LoyaltyReward.objects.create(**validated_data)
 
-        # 3. Zapisujemy tłumaczenie dla aktualnego języka
         instance.set_current_language(translation.get_language())
         instance.name = name
         instance.description = description
@@ -35,15 +31,12 @@ class LoyaltyRewardSerializer(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
-        # 1. Wyciągamy dane tekstowe
         name = validated_data.pop('name', None)
         description = validated_data.pop('description', None)
 
-        # 2. Aktualizujemy pola nietłumaczone (np. punkty, wartość)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        # 3. Aktualizujemy tłumaczenie (jeśli podano nowe dane)
         if name is not None or description is not None:
             instance.set_current_language(translation.get_language())
             if name is not None:

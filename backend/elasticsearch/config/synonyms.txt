@@ -1,4 +1,4 @@
-# Format: słowo, synonim, synonim => wszystkie znaczą to samo
+# Format: słowo, synonim, synonim
 
 # Główne produkty
 balia, bania, jacuzzi, hot tub, spa, whirpool
@@ -13,5 +13,4 @@ hybrydowy, hybrid, mieszany
 schody, schodki, stairs, steps, ladder, drabinka
 zestaw, komplet, set, kit, bundle
 
-# Problematyczne
 akcesoria, accessories, dodatki

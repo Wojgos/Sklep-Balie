@@ -15,18 +15,14 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        # Pamiętaj, żeby 'image' i 'description' były tu wymienione
         fields = ['id', 'name', 'slug', 'description', 'image', 'product_count']
 
     def create(self, validated_data):
-        # Wyciągamy pola tłumaczone
         name = validated_data.pop('name')
         description = validated_data.pop('description', '')
 
-        # Tworzymy obiekt (tu zapisze się 'image' jeśli jest w validated_data)
         category = Category.objects.create(**validated_data)
 
-        # Zapisujemy tłumaczenia
         category.set_current_language(translation.get_language())
         category.name = name
         category.description = description
@@ -34,15 +30,12 @@ class CategorySerializer(serializers.ModelSerializer):
         return category
 
     def update(self, instance, validated_data):
-        # 1. Wyciągamy pola tłumaczone (name, description)
         name = validated_data.pop('name', None)
         description = validated_data.pop('description', None)
 
-        # 2. Aktualizujemy pola standardowe (np. image)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        # 3. Aktualizujemy tłumaczenia (jeśli zostały przesłane)
         if name is not None or description is not None:
             instance.set_current_language(translation.get_language())
             if name is not None:
@@ -143,37 +136,33 @@ class ProductVariantSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         name = validated_data.pop('name', '')
         attribute_values = validated_data.pop('attribute_values', [])
-        
+
         instance = ProductVariant.objects.create(**validated_data)
         instance.set_current_language(translation.get_language())
         instance.name = name
         instance.save()
-        
-        # Set attributes
+
         if attribute_values:
             instance.attributes.set(attribute_values)
-        
+
         return instance
 
     def update(self, instance, validated_data):
         name = validated_data.pop('name', None)
         attribute_values = validated_data.pop('attribute_values', None)
-        
-        # Update standard fields
+
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        
-        # Update translatable field if provided
+
         if name is not None:
             instance.set_current_language(translation.get_language())
             instance.name = name
-        
+
         instance.save()
-        
-        # Update attributes if provided
+
         if attribute_values is not None:
             instance.attributes.set(attribute_values)
-        
+
         return instance
 
 
@@ -336,24 +325,21 @@ class ProductSerializer(serializers.ModelSerializer):
         Returns the main image from the first variant or a placeholder.
         """
         representation = super().to_representation(instance)
-        
-        # Get main image from product images or first variant
+
         main_image = None
         product_images = instance.images.filter(is_main=True).first()
-        
+
         if product_images:
             main_image = product_images.image.url if product_images.image else None
         elif instance.variants.exists():
-            # Get image from first variant
             first_variant = instance.variants.first()
             variant_image = ProductImage.objects.filter(variant=first_variant, is_main=True).first()
             if variant_image and variant_image.image:
                 main_image = variant_image.image.url
-        
-        # Use placeholder if no image found
+
         if not main_image:
             from django.conf import settings
             main_image = settings.MEDIA_URL + 'product_images/placeholder.jpg'
-        
+
         representation['image'] = main_image
         return representation

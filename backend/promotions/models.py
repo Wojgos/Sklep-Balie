@@ -8,13 +8,11 @@ from parler.models import TranslatableModel, TranslatedFields
 class LoyaltyReward(TranslatableModel):
     """Nagroda w programie lojalnościowym (Tłumaczona)."""
 
-    # Pola wspólne (nietłumaczone)
     points_required = models.PositiveIntegerField(verbose_name="Wymagane punkty")
     reward_value = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Wartość nagrody")
     is_percentage = models.BooleanField(default=False, verbose_name="Czy procentowa?")
     active = models.BooleanField(default=True, verbose_name="Aktywna")
 
-    # Pola tłumaczone (zamiast w głównej klasie)
     translations = TranslatedFields(
         name=models.CharField(max_length=255, verbose_name="Nazwa nagrody"),
         description=models.CharField(max_length=255, verbose_name="Opis (dla klienta)")
@@ -23,13 +21,9 @@ class LoyaltyReward(TranslatableModel):
     class Meta:
         verbose_name = "Nagroda lojalnościowa"
         verbose_name_plural = "Nagrody lojalnościowe"
-        # UWAGA: Możesz sortować tylko po polach wspólnych (np. points_required).
-        # Nie możesz tu wpisać 'description', bo to pole jest w innej tabeli!
         ordering = ['points_required']
 
     def __str__(self):
-        # Używamy safe_translation_getter, żeby admin nie wybuchł,
-        # gdy brakuje tłumaczenia
         desc = self.safe_translation_getter('description', any_language=True) or "(brak opisu)"
         return f"{self.points_required} pkt -> {desc}"
 

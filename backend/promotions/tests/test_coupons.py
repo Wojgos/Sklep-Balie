@@ -1,4 +1,3 @@
-# backend/promotions/tests/test_coupons.py
 import pytest
 from decimal import Decimal
 from rest_framework.test import APIClient
@@ -16,7 +15,6 @@ def test_apply_valid_coupon_reduces_price():
     """
     Testuje, czy użycie ważnego kuponu obniża cenę zamówienia.
     """
-    # 1. SETUP
     client = APIClient()
     user = User.objects.create_user(username='test', password='pw', email='t@t.com')
     client.force_authenticate(user=user)
@@ -39,7 +37,6 @@ def test_apply_valid_coupon_reduces_price():
         usage_limit=10
     )
 
-    # 2. AKCJA
     payload = {
         "first_name": "Jan",
         "last_name": "Test",
@@ -47,17 +44,14 @@ def test_apply_valid_coupon_reduces_price():
         "address": "Ul 1",
         "postal_code": "00",
         "city": "M",
-        "coupon_code": "TEST20",  # <-- Używamy kuponu
+        "coupon_code": "TEST20",
         "items": [{"variant_id": variant.id, "quantity": 1}]
     }
 
     response = client.post('/api/v1/orders/', payload, format='json')
 
-    # 3. WERYFIKACJA
     assert response.status_code == 201
-    # Cena powinna wynosić 80.00 (100 - 20%)
     assert Decimal(response.data['total_price']) == Decimal("80.00")
 
-    # Sprawdź czy licznik użycia kuponu wzrósł
     coupon.refresh_from_db()
     assert coupon.usage_count == 1

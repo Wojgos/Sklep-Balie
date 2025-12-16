@@ -1,7 +1,8 @@
-from django_elasticsearch_dsl.registries import registry
 from django_elasticsearch_dsl.documents import Document
-from django_elasticsearch_dsl.fields import TextField, KeywordField
+from django_elasticsearch_dsl.fields import TextField
+from django_elasticsearch_dsl.registries import registry
 from elasticsearch_dsl import analyzer, token_filter
+
 from .models import Product, AttributeValue
 
 # --- 1. DEFINICJA FILTRÓW I ANALIZATORÓW ---

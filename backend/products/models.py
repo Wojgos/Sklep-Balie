@@ -86,7 +86,6 @@ class Product(TranslatableModel):
         return self.safe_translation_getter('name', any_language=True) or f"Produkt {self.id}"
 
 
-
 class ProductVariant(TranslatableModel):
     """Wariant Produktu (SKU)"""
     product = models.ForeignKey(

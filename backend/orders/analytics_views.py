@@ -3,23 +3,20 @@ Zaawansowane widoki analityczne dla statystyk sprzedażowych.
 Zawiera analizy miesięczne, kwartalne, roczne oraz porównania okresów.
 """
 
-from django.db.models import Sum, Count, Avg, F, Q
-from django.db.models.functions import TruncMonth, TruncYear, TruncQuarter
-from django.utils.dateparse import parse_date
-from django.utils import timezone
+from collections import defaultdict
+from datetime import datetime, timedelta
 
-from rest_framework.views import APIView
+from django.db.models import Sum, Count, Avg
+from django.db.models.functions import TruncMonth, TruncYear, TruncQuarter
+from django.utils import timezone
+from django.utils.dateparse import parse_date
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.views import APIView
 
 from EStore.permissions import IsAdminUser
-from .models import Order, OrderItem
-from products.models import Product, Category
-
-from datetime import datetime, timedelta
-from decimal import Decimal
-from collections import defaultdict
+from .models import Order
 
 
 class MonthlyStatisticsView(APIView):

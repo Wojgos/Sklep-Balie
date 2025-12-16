@@ -37,11 +37,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
         lookup_value = self.kwargs[lookup_url_kwarg]
 
-        # Jeśli przekazano ID (cyfry), szukaj po ID
         if lookup_value.isdigit():
             obj = get_object_or_404(self.get_queryset(), id=lookup_value)
         else:
-            # Jeśli przekazano tekst, szukaj w tłumaczeniach (translations__slug)
             obj = get_object_or_404(self.get_queryset(), translations__slug=lookup_value)
 
         self.check_object_permissions(self.request, obj)
@@ -49,13 +47,11 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 
 class ProductViewSet(viewsets.ModelViewSet):
-    # Dodajemy prefetch_related('translations'), żeby nie zarzynać bazy
     queryset = Product.objects.all().filter(available=True).distinct().prefetch_related('translations', 'variants')
     serializer_class = ProductSerializer
     lookup_field = 'slug'
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = ProductFilter
-    # Sortowanie też musi być po polu tłumaczenia!
     ordering_fields = ['translations__name', 'created_at', 'variants__price']
     ordering = ['-created_at']
     permission_classes = [IsAdminUserOrReadOnly]
@@ -64,17 +60,13 @@ class ProductViewSet(viewsets.ModelViewSet):
         """
         Wyszukiwanie produktu po slugu w tabeli tłumaczeń.
         """
-        # Pobieramy wartość sluga z URL-a
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
         lookup_value = self.kwargs[lookup_url_kwarg]
 
-        # Budujemy zapytanie do bazy: szukamy w translations__slug
         filter_kwargs = {f'translations__slug': lookup_value}
 
-        # Pobieramy obiekt (lub 404)
         obj = get_object_or_404(self.get_queryset(), **filter_kwargs)
 
-        # Sprawdzamy uprawnienia
         self.check_object_permissions(self.request, obj)
         return obj
 
@@ -133,14 +125,14 @@ class ProductSearchView(generics.ListAPIView):
         query = MultiMatch(
             query=query_string,
             fields=[
-                'name_pl^4',  # Polska nazwa (priorytet)
-                'name_en^4',  # Angielska nazwa (priorytet)
-                'description_pl',  # Polski opis
-                'description_en',  # Angielski opis
+                'name_pl^4',
+                'name_en^4',
+                'description_pl',
+                'description_en',
                 'attributes_flat^2',
                 'category^2'
             ],
-            fuzziness='AUTO'  # Obsługa literówek
+            fuzziness='AUTO'
         )
         search = search.query(query)
         return search.to_queryset()
@@ -213,7 +205,6 @@ class LowStockVariantsViewSet(viewsets.ReadOnlyModelViewSet):
             stock=0,
             available=True
         ).count()
-        # Warning variants - use ExpressionWrapper for division
         from django.db.models import ExpressionWrapper, IntegerField
         warning_variants = ProductVariant.objects.filter(
             stock__gt=0,
