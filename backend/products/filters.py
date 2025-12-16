@@ -17,8 +17,8 @@ class ProductFilter(filters.FilterSet):
         label='Filtruj po ID Wartości Atrybutu'
     )
 
-    category = filters.CharFilter(field_name='category__slug', lookup_expr='exact')
-    category__in = filters.BaseInFilter(field_name='category__slug')
+    category = filters.NumberFilter(field_name='category__id')
+    category__in = filters.BaseInFilter(field_name='category__id')
 
     class Meta:
         model = Product

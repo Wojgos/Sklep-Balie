@@ -23,7 +23,8 @@ class Category(TranslatableModel):
         verbose_name_plural = "Kategorie"
 
     def __str__(self):
-        return self.safe_translation_getter('name', any_language=True) or f"Kategoria {self.id}"
+        name = self.safe_translation_getter('name', any_language=True)
+        return name or f"Kategoria {self.id}"
 
 
 class ProductAttribute(TranslatableModel):
@@ -37,7 +38,8 @@ class ProductAttribute(TranslatableModel):
         verbose_name_plural = "Atrybuty"
 
     def __str__(self):
-        return self.safe_translation_getter('name', any_language=True) or f"Atrybut {self.id}"
+        name = self.safe_translation_getter('name', any_language=True)
+        return name or f"Atrybut {self.id}"
 
 
 class AttributeValue(TranslatableModel):
@@ -55,7 +57,10 @@ class AttributeValue(TranslatableModel):
         verbose_name_plural = "Wartości atrybutów"
 
     def __str__(self):
-        attr_name = self.attribute.safe_translation_getter('name', any_language=True)
+        attr_name = "Atrybut"
+        if self.attribute_id and self.attribute:
+            attr_name = self.attribute.safe_translation_getter('name', any_language=True) or "Atrybut"
+
         val_name = self.safe_translation_getter('value', any_language=True)
         return f'{attr_name}: {val_name}'
 
@@ -83,7 +88,8 @@ class Product(TranslatableModel):
         verbose_name_plural = "Produkty (Matki)"
 
     def __str__(self):
-        return self.safe_translation_getter('name', any_language=True) or f"Produkt {self.id}"
+        name = self.safe_translation_getter('name', any_language=True)
+        return name or f"Produkt {self.id}"
 
 
 class ProductVariant(TranslatableModel):
@@ -107,7 +113,10 @@ class ProductVariant(TranslatableModel):
         verbose_name_plural = "Warianty produktów"
 
     def __str__(self):
-        p_name = self.product.safe_translation_getter('name', any_language=True)
+        p_name = "Produkt"
+        if self.product_id and self.product:
+            p_name = self.product.safe_translation_getter('name', any_language=True) or f"Produkt {self.product_id}"
+
         v_name = self.safe_translation_getter('name', any_language=True)
         return f'{p_name} ({v_name or self.sku})'
 
@@ -128,4 +137,5 @@ class ProductImage(TranslatableModel):
         verbose_name_plural = "Zdjęcia produktów"
 
     def __str__(self):
-        return self.safe_translation_getter('alt_text', any_language=True) or f"Zdjęcie {self.id}"
+        alt = self.safe_translation_getter('alt_text', any_language=True)
+        return alt or f"Zdjęcie {self.id}"
