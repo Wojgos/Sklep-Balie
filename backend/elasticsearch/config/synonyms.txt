@@ -1,0 +1,17 @@
+# Format: słowo, synonim, synonim => wszystkie znaczą to samo
+
+# Główne produkty
+balia, bania, jacuzzi, hot tub, spa, whirpool
+wkład, insert, niecka, shell
+pokrywa, cover, lid, wieko, przykrycie
+piec, piecyk, heater, stove, furnace
+
+# Cechy
+drewno, drewniana, wood, wooden, timber, spruce, świerk
+elektryczny, electric, e-heater
+hybrydowy, hybrid, mieszany
+schody, schodki, stairs, steps, ladder, drabinka
+zestaw, komplet, set, kit, bundle
+
+# Problematyczne
+akcesoria, accessories, dodatki

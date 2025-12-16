@@ -33,6 +33,7 @@ services:
       - "9200:9200"
     volumes:
       - es_data:/usr/share/elasticsearch/data
+      - ./backend/elasticsearch/config/synonyms.txt:/usr/share/elasticsearch/config/analysis/synonyms.txt
 
   backend:
     build: ./backend

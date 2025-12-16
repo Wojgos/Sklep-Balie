@@ -1,3 +1,5 @@
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import viewsets, generics, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -45,6 +47,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         self.check_object_permissions(self.request, obj)
         return obj
 
+
 class ProductViewSet(viewsets.ModelViewSet):
     # Dodajemy prefetch_related('translations'), żeby nie zarzynać bazy
     queryset = Product.objects.all().filter(available=True).distinct().prefetch_related('translations', 'variants')
@@ -75,11 +78,12 @@ class ProductViewSet(viewsets.ModelViewSet):
         self.check_object_permissions(self.request, obj)
         return obj
 
+
 class ProductAttributeViewSet(viewsets.ModelViewSet):
     queryset = ProductAttribute.objects.all()
     serializer_class = ProductAttributeSerializer
     permission_classes = [IsAdminUserOrReadOnly]
-    
+
     @action(detail=True, methods=['get'], url_path='values')
     def values(self, request, pk=None):
         """Get all values for this attribute"""
@@ -107,6 +111,16 @@ class ProductImageViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUserOrReadOnly]
 
 
+@extend_schema(
+    parameters=[
+        OpenApiParameter(
+            name='q',
+            description='Fraza wyszukiwania (szuka w nazwie PL/EN, opisie, kategorii i atrybutach)',
+            required=True,
+            type=OpenApiTypes.STR
+        ),
+    ]
+)
 class ProductSearchView(generics.ListAPIView):
     serializer_class = ProductSerializer
 
@@ -118,8 +132,15 @@ class ProductSearchView(generics.ListAPIView):
         search = ProductDocument.search()
         query = MultiMatch(
             query=query_string,
-            fields=['name^3', 'description', 'category', 'attributes_flat^2'],
-            fuzziness='AUTO'
+            fields=[
+                'name_pl^4',  # Polska nazwa (priorytet)
+                'name_en^4',  # Angielska nazwa (priorytet)
+                'description_pl',  # Polski opis
+                'description_en',  # Angielski opis
+                'attributes_flat^2',
+                'category^2'
+            ],
+            fuzziness='AUTO'  # Obsługa literówek
         )
         search = search.query(query)
         return search.to_queryset()
