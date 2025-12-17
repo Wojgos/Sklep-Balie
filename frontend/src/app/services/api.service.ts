@@ -567,11 +567,11 @@ export class ApiService {
 
   searchProducts(query: string): Observable<Product[]> {
     return this.http
-      .get<BackendProductResponse[]>(`${this.apiUrl}/shop/search/?q=${encodeURIComponent(query)}`)
+      .get<PaginatedResponse<BackendProductResponse>>(`${this.apiUrl}/shop/search/?q=${encodeURIComponent(query)}`)
       .pipe(
-        map(products => {
+        map(response => {
           const uniqueProducts = new Map<string, Product>();
-          products.forEach(product => {
+          response.results.forEach(product => {
             const mapped = this.mapProductFromApi(product);
             const key = mapped.slug || mapped.id;
             if (!uniqueProducts.has(key)) {

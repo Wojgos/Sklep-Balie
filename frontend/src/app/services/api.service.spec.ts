@@ -329,7 +329,12 @@ describe('ApiService', () => {
 
   describe('Wyszukiwanie produktów - searchProducts()', () => {
     it('powinien wysłać zapytanie z parametrem search', (done) => {
-      const mockSearchResponse = [mockBackendProduct];
+      const mockSearchResponse: PaginatedResponse<any> = {
+        count: 1,
+        next: null,
+        previous: null,
+        results: [mockBackendProduct]
+      };
 
       service.searchProducts('laptop').subscribe(products => {
         expect(products.length).toBe(1);
@@ -343,7 +348,12 @@ describe('ApiService', () => {
     });
 
     it('powinien obsłużyć puste wyniki wyszukiwania', (done) => {
-      const mockSearchResponse: any[] = [];
+      const mockSearchResponse: PaginatedResponse<any> = {
+        count: 0,
+        next: null,
+        previous: null,
+        results: []
+      };
 
       service.searchProducts('nonexistent').subscribe(products => {
         expect(products.length).toBe(0);
