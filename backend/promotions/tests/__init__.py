@@ -1,0 +1,2 @@
+# Promotions app tests
+

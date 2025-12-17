@@ -18,11 +18,39 @@ from celery.schedules import crontab
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load environment variables from .env file if it exists
+try:
+    from dotenv import load_dotenv
+    env_path = BASE_DIR.parent / '.env'  # .env is in project root, not backend/
+    if env_path.exists():
+        load_dotenv(env_path)
+except ImportError:
+    # python-dotenv not installed, skip .env loading
+    pass
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key')
+# For tests, use a default test key (not for production!)
+import sys
+
+# Check if we're in test mode (before loading SECRET_KEY)
+is_testing = (
+    'test' in sys.argv or 
+    'pytest' in sys.modules or 
+    os.environ.get('USE_TEST_DB') == 'True' or
+    'pytest' in os.environ.get('_', '') or
+    any('pytest' in arg for arg in sys.argv)
+)
+
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if is_testing:
+        # Use a default test key for tests
+        SECRET_KEY = 'django-insecure-test-key-for-pytest-only'
+    else:
+        raise ValueError("SECRET_KEY environment variable must be set. Either set it in .env file or as environment variable.")
 
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 SITE_ID = 1
@@ -116,16 +144,36 @@ WSGI_APPLICATION = 'EStore.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB', 'estore_db'),
-        'USER': os.environ.get('POSTGRES_USER', 'postgres'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'supersecret123'),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
+# Use SQLite for tests (faster, no credentials needed)
+# For production/development, use PostgreSQL
+import sys
+
+# Check if we're running tests (pytest or Django test command)
+is_testing = (
+    'test' in sys.argv or 
+    'pytest' in sys.modules or 
+    os.environ.get('USE_TEST_DB') == 'True' or
+    'pytest' in os.environ.get('_', '')
+)
+
+if is_testing:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('POSTGRES_DB', 'estore_db'),
+            'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'supersecret123'),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

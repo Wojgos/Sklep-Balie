@@ -7,20 +7,7 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-
-@pytest.fixture
-def api_client():
-    return APIClient()
-
-
-@pytest.fixture
-def user(django_user_model):
-    return django_user_model.objects.create_user(
-        username="testuser",
-        email="test@example.com",
-        password="StrongPassword123!",
-        loyalty_points=150
-    )
+# Fixtures are now in conftest.py
 
 
 @pytest.mark.django_db
@@ -93,6 +80,7 @@ def test_user_profile_view_authenticated(api_client, user):
     response = api_client.get(url)
 
     assert response.status_code == status.HTTP_200_OK
+    # User from conftest has email="test@example.com" and username="testuser"
     assert response.data['email'] == "test@example.com"
     assert response.data['username'] == "testuser"
 
@@ -119,7 +107,7 @@ def test_user_loyalty_points_view_authenticated(api_client, user):
     response = api_client.get(url)
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.data['available_points'] == 150
+    assert response.data['available_points'] == 100  # From conftest.py fixture
     assert response.data['user_id'] == user.id
 
 
