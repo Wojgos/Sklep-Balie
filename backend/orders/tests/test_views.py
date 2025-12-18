@@ -18,50 +18,7 @@ Product.__str__ = lambda self: f"Product {self.pk}"
 
 # -------------------------------------
 
-# --- FIXTURY ---
-
-@pytest.fixture
-def api_client():
-    return APIClient()
-
-
-@pytest.fixture
-def user(django_user_model):
-    return django_user_model.objects.create_user(
-        username="client", password="password", email="client@test.com"
-    )
-
-
-@pytest.fixture
-def admin_user(django_user_model):
-    return django_user_model.objects.create_user(
-        username="admin", password="password", is_staff=True, is_superuser=True
-    )
-
-
-@pytest.fixture
-def variant():
-    # 1. Tworzymy Kategorię z tłumaczeniem
-    category = Category.objects.create(slug="cat")
-    category.set_current_language('pl')
-    category.name = "Kategoria Testowa"
-    category.save()
-
-    # 2. Tworzymy Produkt z tłumaczeniem
-    product = Product.objects.create(category=category, slug="prod")
-    product.set_current_language('pl')
-    product.name = "Produkt Testowy"
-    product.save()
-
-    # 3. Tworzymy Wariant z tłumaczeniem
-    variant = ProductVariant.objects.create(
-        product=product, sku="SKU1", price=100.00, stock=10, available=True
-    )
-    variant.set_current_language('pl')
-    variant.name = "Wariant Testowy"
-    variant.save()
-
-    return variant
+# Fixtures are now in conftest.py
 
 
 # --- TESTY ---
@@ -97,7 +54,8 @@ def test_create_order_success(api_client, user, variant):
     assert order.total_price == Decimal('200.00')
 
     variant.refresh_from_db()
-    assert variant.stock == 8
+    # Variant starts with 50 stock (from conftest), order takes 2, so 48 remaining
+    assert variant.stock == 48
 
 
 @pytest.mark.django_db

@@ -4,57 +4,9 @@ from datetime import timedelta
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.test import APIClient
 from promotions.models import DiscountCoupon, LoyaltyReward, RedeemedReward
 
-
-@pytest.fixture
-def api_client():
-    return APIClient()
-
-
-@pytest.fixture
-def user(django_user_model):
-    return django_user_model.objects.create_user(
-        username="client",
-        password="password",
-        email="client@test.com",
-        loyalty_points=100
-    )
-
-
-@pytest.fixture
-def admin_user(django_user_model):
-    return django_user_model.objects.create_user(
-        username="admin",
-        password="password",
-        is_staff=True,
-        is_superuser=True
-    )
-
-
-@pytest.fixture
-def active_reward():
-    return LoyaltyReward.objects.create(
-        name="Reward 1",
-        description="Desc",
-        points_required=50,
-        reward_value=10.00,
-        is_percentage=False,
-        active=True
-    )
-
-
-@pytest.fixture
-def discount_coupon():
-    return DiscountCoupon.objects.create(
-        code="TEST10",
-        value=10.00,
-        is_percentage=False,
-        active=True,
-        valid_from=timezone.now() - timedelta(days=1),
-        valid_to=timezone.now() + timedelta(days=1)
-    )
+# Fixtures are now in conftest.py
 
 
 @pytest.mark.django_db
@@ -85,8 +37,15 @@ def test_loyalty_reward_admin_viewset_permissions(api_client, user, admin_user):
 
 @pytest.mark.django_db
 def test_loyalty_offers_view(api_client, user):
-    LoyaltyReward.objects.create(name="Active", points_required=10, reward_value=5, active=True)
-    LoyaltyReward.objects.create(name="Inactive", points_required=10, reward_value=5, active=False)
+    reward1 = LoyaltyReward.objects.create(points_required=10, reward_value=5, active=True)
+    reward1.set_current_language('pl')
+    reward1.name = "Active"
+    reward1.save()
+    
+    reward2 = LoyaltyReward.objects.create(points_required=10, reward_value=5, active=False)
+    reward2.set_current_language('pl')
+    reward2.name = "Inactive"
+    reward2.save()
 
     url = reverse('promotions:loyalty-offers')
     api_client.force_authenticate(user=user)
@@ -98,11 +57,11 @@ def test_loyalty_offers_view(api_client, user):
 
 
 @pytest.mark.django_db
-def test_redeem_loyalty_points_success(api_client, user, active_reward):
+def test_redeem_loyalty_points_success(api_client, user, loyalty_reward):
     url = reverse('promotions:loyalty-redeem')
     api_client.force_authenticate(user=user)
 
-    data = {"reward_id": active_reward.id}
+    data = {"reward_id": loyalty_reward.id}
     response = api_client.post(url, data)
 
     assert response.status_code == status.HTTP_201_CREATED
@@ -115,14 +74,14 @@ def test_redeem_loyalty_points_success(api_client, user, active_reward):
 
 
 @pytest.mark.django_db
-def test_redeem_loyalty_points_insufficient_funds(api_client, user, active_reward):
+def test_redeem_loyalty_points_insufficient_funds(api_client, user, loyalty_reward):
     user.loyalty_points = 10
     user.save()
 
     url = reverse('promotions:loyalty-redeem')
     api_client.force_authenticate(user=user)
 
-    data = {"reward_id": active_reward.id}
+    data = {"reward_id": loyalty_reward.id}
     response = api_client.post(url, data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -190,10 +149,10 @@ def test_validate_coupon_failures(api_client, discount_coupon):
 
 
 @pytest.mark.django_db
-def test_my_redeemed_rewards_view(api_client, user, active_reward):
+def test_my_redeemed_rewards_view(api_client, user, loyalty_reward):
     RedeemedReward.objects.create(
         user=user,
-        reward=active_reward,
+        reward=loyalty_reward,
         reward_name="Test Reward",
         points_spent=50,
         coupon_code="ABC"
