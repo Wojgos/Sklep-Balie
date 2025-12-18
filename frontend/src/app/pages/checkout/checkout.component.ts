@@ -299,7 +299,6 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   isSubmitting = false;
   orderSuccess = false;
   
-  // Coupon functionality
   couponCode = '';
   appliedCoupon: any = null;
   couponError = '';
@@ -394,7 +393,6 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         }))
       };
       
-      // Add coupon if applied
       if (this.appliedCoupon) {
         orderData.couponCode = this.appliedCoupon.code;
         orderData.discountAmount = this.appliedCoupon.discount_amount;
@@ -414,13 +412,11 @@ export class CheckoutComponent implements OnInit, OnDestroy {
           console.error('Order creation failed:', error);
           this.isSubmitting = false;
           
-          // Show user-friendly error message
           let errorMessage = this.translate.instant('CHECKOUT.ORDER_ERROR') + ' ';
           
           if (error.error?.error) {
             errorMessage += error.error.error;
             
-            // If it's a product not found error, suggest clearing cart
             if (error.error.error.includes('nie istnieje') || error.error.error.includes('niedostępny')) {
               errorMessage += '\n\n' + this.translate.instant('CHECKOUT.CART_ERROR_SUGGESTION');
             }

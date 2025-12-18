@@ -266,7 +266,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     private languageService: LanguageService,
     private router: Router
   ) {
-    // Przeładuj dane po zmianie języka
     this.categoryCards$ = this.languageService.currentLanguage$.pipe(
       switchMap(() => this.apiService.getAllCategories()),
       map(categories => this.buildCategoryCards(categories))
@@ -333,7 +332,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       .sort((a, b) => b.totalProductCount - a.totalProductCount);
   }
 
-  // Test methods for notification service
   testSuccessNotification(): void {
     this.notificationService.showSuccess('Produkt został dodany do koszyka!');
   }

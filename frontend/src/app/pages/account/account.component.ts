@@ -23,12 +23,10 @@ export class AccountComponent implements OnInit, OnDestroy {
   currentUser: User | null = null;
   activeTab: 'profile' | 'orders' | 'settings' = 'profile';
   
-  // Profile edit
   isEditingProfile = false;
   editedUser: Partial<User> = {};
   isSavingProfile = false;
 
-  // Password change
   isChangingPassword = false;
   passwordData = {
     currentPassword: '',
@@ -39,7 +37,6 @@ export class AccountComponent implements OnInit, OnDestroy {
   showNewPassword = false;
   showConfirmPassword = false;
 
-  // Orders
   orders: Order[] = [];
   isLoadingOrders = false;
 
@@ -61,7 +58,6 @@ export class AccountComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Check for tab query parameter
     this.route.queryParams.subscribe(params => {
       const tab = params['tab'];
       if (tab && (tab === 'profile' || tab === 'orders' || tab === 'settings')) {
@@ -81,7 +77,6 @@ export class AccountComponent implements OnInit, OnDestroy {
     this.isLoadingOrders = true;
     this.apiService.getAllOrders().subscribe({
       next: (orders) => {
-        // Backend already filters orders for current user based on auth token
         this.orders = orders;
         console.log('📦 Loaded user orders:', orders.length);
         this.isLoadingOrders = false;
@@ -102,7 +97,6 @@ export class AccountComponent implements OnInit, OnDestroy {
 
   toggleEditProfile(): void {
     if (this.isEditingProfile) {
-      // Cancel editing - reset to current user data
       this.editedUser = { ...this.currentUser };
     }
     this.isEditingProfile = !this.isEditingProfile;
@@ -214,7 +208,7 @@ export class AccountComponent implements OnInit, OnDestroy {
       case 'shipped':
         return 'status-shipped';
       case 'completed':
-        return 'status-delivered'; // Keep CSS class name for styling
+        return 'status-delivered'; 
       case 'cancelled':
         return 'status-cancelled';
       default:

@@ -398,7 +398,6 @@ export class SupportComponent implements OnInit, OnDestroy {
   }
 
   isCurrentUser(authorId: number): boolean {
-    // Compare author_id (number) with user.id (can be string or number)
     if (!this.selectedTicket) return false;
     const userId = this.selectedTicket.user.id;
     return String(userId) === String(authorId);
@@ -407,7 +406,6 @@ export class SupportComponent implements OnInit, OnDestroy {
   getAuthorName(authorId: number): string {
     if (!this.selectedTicket) return this.translate.instant('SUPPORT.UNKNOWN');
     
-    // Find participant by matching author_id
     const participant = this.selectedTicket.participants?.find(p => 
       String(p.id) === String(authorId)
     );

@@ -33,13 +33,11 @@ export class LoginComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Redirect if already logged in
     if (this.authService.isAuthenticated) {
       this.router.navigate(['/account']);
       return;
     }
 
-    // Get return url from route parameters or default to home
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
   }
 

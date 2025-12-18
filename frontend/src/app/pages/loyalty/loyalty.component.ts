@@ -316,14 +316,12 @@ export class LoyaltyComponent implements OnInit {
   ngOnInit(): void {
     this.loadData();
     
-    // Subscribe to language changes to update loyalty program info
     this.translate.onLangChange.subscribe(() => {
       this.updateLoyaltyProgramTranslations();
     });
   }
 
   loadData(): void {
-    // Hardcoded loyalty program info (backend doesn't have this endpoint)
     this.loyaltyProgram = {
       id: '1',
       name: this.translate.instant('LOYALTY.PROGRAM_NAME'),
