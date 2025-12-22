@@ -368,18 +368,25 @@ export interface TopProductsReport {
 }
 
 export interface CategoryPerformance {
-  category_id: string;
+  category_id: number;
   category_name: string;
   quantity_sold: number;
   revenue: number;
   orders_count: number;
   revenue_percentage: number;
+  products_count?: number;
+  revenue_share?: number;
 }
 
 export interface CategoryPerformanceReport {
   period: {
     start_date: string;
     end_date: string;
+  };
+  summary?: {
+    total_revenue: number;
+    active_categories: number;
+    total_orders: number;
   };
   total_revenue: number;
   categories: CategoryPerformance[];

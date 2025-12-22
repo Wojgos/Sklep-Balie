@@ -1330,6 +1330,71 @@ export class ApiService {
     );
   }
 
+  // Statistics PDF Generation
+  generateStatisticsPDF(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/reports/statistics/pdf/`, {
+      responseType: 'blob'
+    });
+  }
+
+  generateMonthlyStatisticsPDF(startDate: Date, endDate: Date): Observable<Blob> {
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    return this.http.get(`${this.apiUrl}/reports/monthly/pdf/`, {
+      params: {
+        start_date: formatDate(startDate),
+        end_date: formatDate(endDate)
+      },
+      responseType: 'blob'
+    });
+  }
+
+  generateYearlyStatisticsPDF(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/reports/yearly/pdf/`, {
+      responseType: 'blob'
+    });
+  }
+
+  generateCategoryPerformancePDF(startDate: Date, endDate: Date): Observable<Blob> {
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    return this.http.get(`${this.apiUrl}/reports/category-performance/pdf/`, {
+      params: {
+        start_date: formatDate(startDate),
+        end_date: formatDate(endDate)
+      },
+      responseType: 'blob'
+    });
+  }
+
+  generateTopProductsPDF(startDate: Date, endDate: Date, limit: number): Observable<Blob> {
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    return this.http.get(`${this.apiUrl}/reports/top-products/pdf/`, {
+      params: {
+        start_date: formatDate(startDate),
+        end_date: formatDate(endDate),
+        limit: limit.toString()
+      },
+      responseType: 'blob'
+    });
+  }
+
   getCategoryPerformance(startDate?: Date, endDate?: Date): Observable<CategoryPerformanceReport> {
     const formatDate = (date: Date): string => {
       const year = date.getFullYear();
@@ -1352,6 +1417,11 @@ export class ApiService {
           period: {
             start_date: formatDate(start),
             end_date: formatDate(end)
+          },
+          summary: {
+            total_revenue: 0,
+            active_categories: 0,
+            total_orders: 0
           },
           total_revenue: 0,
           categories: []

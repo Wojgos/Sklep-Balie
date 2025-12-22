@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Raport Statystyk Rocznych</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            font-size: 11px;
+            color: #333;
+            line-height: 1.6;
+            padding: 1.5cm;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 1.5cm;
+            border-bottom: 3px solid #7c3aed;
+            padding-bottom: 0.8cm;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #6d28d9;
+            margin-bottom: 0.3cm;
+        }
+
+        .company-info {
+            font-size: 10px;
+            color: #666;
+            margin-top: 0.3cm;
+        }
+
+        .summary-cards {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1cm;
+            gap: 0.4cm;
+        }
+
+        .summary-card {
+            flex: 1;
+            background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+            border-left: 4px solid #7c3aed;
+            padding: 0.4cm;
+            border-radius: 6px;
+        }
+
+        .summary-card h3 {
+            font-size: 9px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.2cm;
+            font-weight: 500;
+        }
+
+        .summary-card .value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #6d28d9;
+        }
+
+        .best-worst-section {
+            display: flex;
+            gap: 0.5cm;
+            margin-bottom: 1cm;
+        }
+
+        .best-year, .worst-year {
+            flex: 1;
+            padding: 0.5cm;
+            border-radius: 6px;
+        }
+
+        .best-year {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            border-left: 4px solid #16a34a;
+        }
+
+        .worst-year {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border-left: 4px solid #dc2626;
+        }
+
+        .best-year h3 {
+            color: #166534;
+            font-size: 12px;
+            margin-bottom: 0.3cm;
+        }
+
+        .worst-year h3 {
+            color: #991b1b;
+            font-size: 12px;
+            margin-bottom: 0.3cm;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.5cm;
+            font-size: 10px;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            color: white;
+        }
+
+        th {
+            padding: 0.3cm;
+            text-align: left;
+            font-weight: 600;
+            font-size: 10px;
+        }
+
+        th.text-right {
+            text-align: right;
+        }
+
+        td {
+            padding: 0.25cm;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        td.text-right {
+            text-align: right;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+
+        .growth-positive {
+            color: #16a34a;
+            font-weight: 600;
+        }
+
+        .growth-negative {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .footer {
+            margin-top: 1.5cm;
+            text-align: center;
+            font-size: 9px;
+            color: #888;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 0.5cm;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Raport Statystyk Rocznych</h1>
+        <div class="company-info">
+            <strong>{{ company.name }}</strong><br>
+            {{ company.address }}, {{ company.zip_city }}<br>
+            NIP: {{ company.nip }} | Email: {{ company.email }}
+        </div>
+    </div>
+
+    <div class="summary-cards">
+        <div class="summary-card">
+            <h3>Całkowity Przychód</h3>
+            <div class="value">{{ data.summary.total_revenue|floatformat:2 }} PLN</div>
+        </div>
+        <div class="summary-card">
+            <h3>Wszystkie Zamówienia</h3>
+            <div class="value">{{ data.summary.total_orders }}</div>
+        </div>
+        <div class="summary-card">
+            <h3>Średni Rok</h3>
+            <div class="value">{{ data.summary.avg_yearly_revenue|floatformat:2 }} PLN</div>
+        </div>
+        <div class="summary-card">
+            <h3>Lata</h3>
+            <div class="value">{{ data.summary.years_count }}</div>
+        </div>
+    </div>
+
+    {% if data.best_year and data.worst_year %}
+    <div class="best-worst-section">
+        <div class="best-year">
+            <h3>🏆 Najlepszy Rok</h3>
+            <strong>{{ data.best_year.year }}</strong><br>
+            Przychód: <strong>{{ data.best_year.revenue|floatformat:2 }} PLN</strong><br>
+            Zamówienia: {{ data.best_year.orders_count }}
+        </div>
+        <div class="worst-year">
+            <h3>📉 Najsłabszy Rok</h3>
+            <strong>{{ data.worst_year.year }}</strong><br>
+            Przychód: <strong>{{ data.worst_year.revenue|floatformat:2 }} PLN</strong><br>
+            Zamówienia: {{ data.worst_year.orders_count }}
+        </div>
+    </div>
+    {% endif %}
+
+    <h2 style="font-size: 14px; color: #6d28d9; margin-bottom: 0.5cm;">Dane Roczne (ostatnie 5 lat)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Rok</th>
+                <th class="text-right">Przychód (PLN)</th>
+                <th class="text-right">Zamówienia</th>
+                <th class="text-right">Śr. Wartość Zamówienia</th>
+                <th class="text-right">Wzrost (%)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for year in data.yearly_data %}
+            <tr>
+                <td><strong>{{ year.year }}</strong></td>
+                <td class="text-right">{{ year.revenue|floatformat:2 }}</td>
+                <td class="text-right">{{ year.orders_count }}</td>
+                <td class="text-right">{{ year.avg_order_value|floatformat:2 }}</td>
+                <td class="text-right">
+                    {% if year.growth_rate %}
+                        <span class="{% if year.growth_rate >= 0 %}growth-positive{% else %}growth-negative{% endif %}">
+                            {{ year.growth_rate|floatformat:1 }}%
+                        </span>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        Wygenerowano: {{ now|date:"Y-m-d H:i" }}<br>
+        {{ company.name }} - System Zarządzania Sprzedażą
+    </div>
+</body>
+</html>

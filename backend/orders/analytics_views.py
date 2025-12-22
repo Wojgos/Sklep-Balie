@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from django.db.models import Sum, Count, Avg
 from django.db.models.functions import TruncMonth, TruncYear, TruncQuarter
+from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework import status
@@ -17,6 +18,13 @@ from rest_framework.views import APIView
 
 from EStore.permissions import IsAdminUser
 from .models import Order
+from .pdf_generator import (
+    generate_monthly_statistics_pdf,
+    generate_yearly_statistics_pdf,
+    generate_category_performance_pdf,
+    generate_top_products_pdf,
+    generate_statistics_pdf
+)
 
 
 class MonthlyStatisticsView(APIView):
@@ -235,7 +243,24 @@ class YearlyStatisticsView(APIView):
             
             prev_revenue = revenue
 
+        # Oblicz statystyki całościowe
+        total_revenue = sum(r['revenue'] for r in results)
+        total_orders = sum(r['orders_count'] for r in results)
+        avg_yearly_revenue = total_revenue / len(results) if results else 0
+
+        # Najlepszy i najgorszy rok
+        best_year = max(results, key=lambda x: x['revenue']) if results else None
+        worst_year = min(results, key=lambda x: x['revenue']) if results else None
+
         return Response({
+            'summary': {
+                'total_revenue': round(total_revenue, 2),
+                'total_orders': total_orders,
+                'avg_yearly_revenue': round(avg_yearly_revenue, 2),
+                'years_count': len(results),
+            },
+            'best_year': best_year,
+            'worst_year': worst_year,
             'yearly_data': results,
         })
 
@@ -462,10 +487,32 @@ class CategoryPerformanceView(APIView):
         # Sortuj po przychodzie
         results.sort(key=lambda x: x['revenue'], reverse=True)
 
+        # Policz produkty w kategorii (dla każdej kategorii)
+        from products.models import Product
+        for result in results:
+            products_count = Product.objects.filter(
+                category_id=result['category_id'],
+                available=True
+            ).count()
+            result['products_count'] = products_count
+            result['revenue_share'] = result['revenue_percentage']  # Alias dla spójności
+
+        # Policz unikalne zamówienia
+        total_orders = Order.objects.filter(
+            paid=True,
+            created_at__gte=start_date,
+            created_at__lte=end_date + timedelta(days=1)
+        ).count()
+
         return Response({
             'period': {
                 'start_date': start_date.strftime('%Y-%m-%d'),
                 'end_date': end_date.strftime('%Y-%m-%d'),
+            },
+            'summary': {
+                'total_revenue': round(total_revenue, 2),
+                'active_categories': len(results),
+                'total_orders': total_orders,
             },
             'total_revenue': round(total_revenue, 2),
             'categories': results,
@@ -554,3 +601,179 @@ class DashboardOverviewView(APIView):
                 'orders_count': prev_month_stats['orders_count'] or 0,
             }
         })
+
+
+class MonthlyStatisticsPDFView(APIView):
+    """
+    Generuje raport PDF dla statystyk miesięcznych.
+    GET /api/v1/reports/monthly/pdf/?start_date=RRRR-MM-DD&end_date=RRRR-MM-DD
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request):
+        # Użyj tej samej logiki co MonthlyStatisticsView
+        monthly_view = MonthlyStatisticsView()
+        monthly_view.request = request
+        response = monthly_view.get(request)
+        
+        if response.status_code != 200:
+            return response
+        
+        # Wygeneruj PDF
+        try:
+            pdf_file = generate_monthly_statistics_pdf(response.data)
+            
+            http_response = HttpResponse(pdf_file, content_type='application/pdf')
+            http_response['Content-Disposition'] = f'attachment; filename="raport_miesięczny_{timezone.now().strftime("%Y%m%d")}.pdf"'
+            return http_response
+        except Exception as e:
+            return Response(
+                {"error": f"Błąd generowania PDF: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class YearlyStatisticsPDFView(APIView):
+    """
+    Generuje raport PDF dla statystyk rocznych.
+    GET /api/v1/reports/yearly/pdf/
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request):
+        # Użyj tej samej logiki co YearlyStatisticsView
+        yearly_view = YearlyStatisticsView()
+        yearly_view.request = request
+        response = yearly_view.get(request)
+        
+        if response.status_code != 200:
+            return response
+        
+        # Wygeneruj PDF
+        try:
+            pdf_file = generate_yearly_statistics_pdf(response.data)
+            
+            http_response = HttpResponse(pdf_file, content_type='application/pdf')
+            http_response['Content-Disposition'] = f'attachment; filename="raport_roczny_{timezone.now().strftime("%Y%m%d")}.pdf"'
+            return http_response
+        except Exception as e:
+            return Response(
+                {"error": f"Błąd generowania PDF: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class CategoryPerformancePDFView(APIView):
+    """
+    Generuje raport PDF dla wydajności kategorii.
+    GET /api/v1/reports/category-performance/pdf/?start_date=RRRR-MM-DD&end_date=RRRR-MM-DD
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request):
+        # Użyj tej samej logiki co CategoryPerformanceView
+        category_view = CategoryPerformanceView()
+        category_view.request = request
+        response = category_view.get(request)
+        
+        if response.status_code != 200:
+            return response
+        
+        # Wygeneruj PDF
+        try:
+            pdf_file = generate_category_performance_pdf(response.data)
+            
+            http_response = HttpResponse(pdf_file, content_type='application/pdf')
+            http_response['Content-Disposition'] = f'attachment; filename="raport_kategorii_{timezone.now().strftime("%Y%m%d")}.pdf"'
+            return http_response
+        except Exception as e:
+            return Response(
+                {"error": f"Błąd generowania PDF: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class TopProductsPDFView(APIView):
+    """
+    Generuje raport PDF dla top produktów.
+    GET /api/v1/reports/top-products/pdf/?start_date=RRRR-MM-DD&end_date=RRRR-MM-DD&limit=10
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request):
+        # Użyj tej samej logiki co TopProductsView
+        products_view = TopProductsView()
+        products_view.request = request
+        response = products_view.get(request)
+        
+        if response.status_code != 200:
+            return response
+        
+        # Wygeneruj PDF
+        try:
+            pdf_file = generate_top_products_pdf(response.data)
+            
+            http_response = HttpResponse(pdf_file, content_type='application/pdf')
+            http_response['Content-Disposition'] = f'attachment; filename="raport_top_produkty_{timezone.now().strftime("%Y%m%d")}.pdf"'
+            return http_response
+        except Exception as e:
+            return Response(
+                {"error": f"Błąd generowania PDF: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class DashboardPDFView(APIView):
+    """
+    Generuje ogólny raport PDF ze statystykami.
+    GET /api/v1/reports/statistics/pdf/
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request):
+        # Pobierz dane z różnych widoków
+        today = timezone.now().date()
+        thirty_days_ago = today - timedelta(days=30)
+        
+        # Dashboard overview
+        dashboard_view = DashboardOverviewView()
+        dashboard_view.request = request
+        dashboard_data = dashboard_view.get(request).data
+        
+        # Top products (ostatnie 30 dni)
+        top_products_view = TopProductsView()
+        top_products_view.request = request
+        request.query_params._mutable = True
+        request.query_params['start_date'] = thirty_days_ago.strftime('%Y-%m-%d')
+        request.query_params['end_date'] = today.strftime('%Y-%m-%d')
+        request.query_params['limit'] = '10'
+        request.query_params._mutable = False
+        top_products_data = top_products_view.get(request).data
+        
+        # Category performance (ostatnie 30 dni)
+        category_view = CategoryPerformanceView()
+        category_view.request = request
+        category_data = category_view.get(request).data
+        
+        statistics_data = {
+            'dashboard': dashboard_data,
+            'top_products': top_products_data,
+            'categories': category_data,
+            'period': {
+                'start_date': thirty_days_ago.strftime('%Y-%m-%d'),
+                'end_date': today.strftime('%Y-%m-%d')
+            }
+        }
+        
+        # Wygeneruj PDF
+        try:
+            pdf_file = generate_statistics_pdf(statistics_data)
+            
+            http_response = HttpResponse(pdf_file, content_type='application/pdf')
+            http_response['Content-Disposition'] = f'attachment; filename="raport_statystyki_{timezone.now().strftime("%Y%m%d")}.pdf"'
+            return http_response
+        except Exception as e:
+            return Response(
+                {"error": f"Błąd generowania PDF: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

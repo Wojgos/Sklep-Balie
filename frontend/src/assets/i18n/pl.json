@@ -790,7 +790,11 @@
     "AVERAGE_PRICE": "Śr. cena",
     "REVENUE_PLN": "Przychód (PLN)",
     "YEARLY_REVENUE_PLN": "Przychód roczny (PLN)",
-    "GROWTH_RATE_PERCENT": "Wzrost/Spadek (%)"
+    "GROWTH_RATE_PERCENT": "Wzrost/Spadek (%)",
+    "EXPORT_PDF": "Eksportuj PDF",
+    "GENERATING_PDF": "Generowanie...",
+    "PDF_SUCCESS": "PDF został wygenerowany i pobrany pomyślnie",
+    "PDF_ERROR": "Wystąpił błąd podczas generowania PDF"
   },
   "LOYALTY": {
     "TITLE": "Program Lojalnościowy",

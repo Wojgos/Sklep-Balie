@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Raport Top Produktów</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            font-size: 11px;
+            color: #333;
+            line-height: 1.6;
+            padding: 1.5cm;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 1.5cm;
+            border-bottom: 3px solid #16a34a;
+            padding-bottom: 0.8cm;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #15803d;
+            margin-bottom: 0.3cm;
+        }
+
+        .company-info {
+            font-size: 10px;
+            color: #666;
+            margin-top: 0.3cm;
+        }
+
+        .period-info {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            color: white;
+            padding: 0.4cm;
+            border-radius: 6px;
+            text-align: center;
+            margin-bottom: 1cm;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.5cm;
+            font-size: 10px;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            color: white;
+        }
+
+        th {
+            padding: 0.3cm;
+            text-align: left;
+            font-weight: 600;
+            font-size: 10px;
+        }
+
+        th.text-right {
+            text-align: right;
+        }
+
+        td {
+            padding: 0.25cm;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        td.text-right {
+            text-align: right;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+
+        .rank {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        .rank-1 { 
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
+            box-shadow: 0 2px 4px rgba(251, 191, 36, 0.3);
+        }
+        .rank-2 { 
+            background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);
+            color: white;
+            box-shadow: 0 2px 4px rgba(209, 213, 219, 0.3);
+        }
+        .rank-3 { 
+            background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+            color: white;
+            box-shadow: 0 2px 4px rgba(251, 146, 60, 0.3);
+        }
+        .rank-other { 
+            background: #e5e7eb;
+            color: #666;
+        }
+
+        .top-3-highlight {
+            font-weight: 600;
+            color: #15803d;
+        }
+
+        .footer {
+            margin-top: 1.5cm;
+            text-align: center;
+            font-size: 9px;
+            color: #888;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 0.5cm;
+        }
+
+        .total-row {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            font-weight: 700;
+            border-top: 2px solid #16a34a;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏆 Raport Top Produktów</h1>
+        <div class="company-info">
+            <strong>{{ company.name }}</strong><br>
+            {{ company.address }}, {{ company.zip_city }}<br>
+            NIP: {{ company.nip }} | Email: {{ company.email }}
+        </div>
+    </div>
+
+    <div class="period-info">
+        Okres: {{ data.period.start_date }} - {{ data.period.end_date }}
+    </div>
+
+    <h2 style="font-size: 14px; color: #15803d; margin-bottom: 0.5cm;">Najlepiej Sprzedające się Produkty</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Pozycja</th>
+                <th>Nazwa Produktu</th>
+                <th class="text-right">Przychód (PLN)</th>
+                <th class="text-right">Sprzedano</th>
+                <th class="text-right">Zamówienia</th>
+                <th class="text-right">Śr. Cena</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in data.top_products %}
+            <tr {% if forloop.counter <= 3 %}class="top-3-highlight"{% endif %}>
+                <td>
+                    <span class="rank rank-{% if forloop.counter <= 3 %}{{ forloop.counter }}{% else %}other{% endif %}">
+                        {{ forloop.counter }}
+                    </span>
+                </td>
+                <td><strong>{{ product.product_name }}</strong></td>
+                <td class="text-right">{{ product.revenue|floatformat:2 }}</td>
+                <td class="text-right">{{ product.quantity_sold }}</td>
+                <td class="text-right">{{ product.orders_count }}</td>
+                <td class="text-right">{{ product.avg_price|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            
+            <tr class="total-row">
+                <td colspan="2" style="text-align: right;"><strong>SUMA:</strong></td>
+                <td class="text-right">
+                    <strong>{{ data.totals.total_revenue|floatformat:2 }}</strong>
+                </td>
+                <td class="text-right">
+                    <strong>{{ data.totals.total_quantity }}</strong>
+                </td>
+                <td colspan="2"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        Wygenerowano: {{ now|date:"Y-m-d H:i" }}<br>
+        {{ company.name }} - System Zarządzania Sprzedażą
+    </div>
+</body>
+</html>

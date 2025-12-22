@@ -790,7 +790,11 @@
     "AVERAGE_PRICE": "Avg. price",
     "REVENUE_PLN": "Revenue (PLN)",
     "YEARLY_REVENUE_PLN": "Yearly Revenue (PLN)",
-    "GROWTH_RATE_PERCENT": "Growth/Decline (%)"
+    "GROWTH_RATE_PERCENT": "Growth/Decline (%)",
+    "EXPORT_PDF": "Export PDF",
+    "GENERATING_PDF": "Generating...",
+    "PDF_SUCCESS": "PDF has been generated and downloaded successfully",
+    "PDF_ERROR": "An error occurred while generating PDF"
   },
   "LOYALTY": {
     "TITLE": "Loyalty Program",

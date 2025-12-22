@@ -2116,6 +2116,8 @@ export class AdminComponent implements OnInit {
         this.initializeTabs();
         this.initializeSupportFilters();
         this.initializeLowStockFilters();
+        this.reloadProducts();
+        this.reloadCategories();
       });
   }
   

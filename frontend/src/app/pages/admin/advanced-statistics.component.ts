@@ -30,8 +30,26 @@ Chart.register(...registerables);
     <div class="space-y-6">
       <!-- Header with Quick Stats -->
       <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
-        <h2 class="text-3xl font-bold mb-4">📊 {{ 'STATISTICS.TITLE' | translate }}</h2>
-        <p class="text-blue-100">{{ 'STATISTICS.SUBTITLE' | translate }}</p>
+        <div class="flex justify-between items-start">
+          <div>
+            <h2 class="text-3xl font-bold mb-4">📊 {{ 'STATISTICS.TITLE' | translate }}</h2>
+            <p class="text-blue-100">{{ 'STATISTICS.SUBTITLE' | translate }}</p>
+          </div>
+          <button
+            (click)="generatePDF()"
+            [disabled]="isGeneratingPDF"
+            class="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg *ngIf="!isGeneratingPDF" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <svg *ngIf="isGeneratingPDF" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ isGeneratingPDF ? ('STATISTICS.GENERATING_PDF' | translate) : ('STATISTICS.EXPORT_PDF' | translate) }}
+          </button>
+        </div>
       </div>
 
       <!-- Dashboard Overview -->
@@ -126,6 +144,16 @@ Chart.register(...registerables);
               class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg font-semibold transition-colors"
             >
               {{ 'STATISTICS.GENERATE_ANALYSIS' | translate }}
+            </button>
+            <button
+              (click)="generateMonthlyPDF()"
+              [disabled]="isGeneratingPDF || !(monthlyStats$ | async)"
+              class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              PDF
             </button>
           </div>
         </div>
@@ -296,12 +324,24 @@ Chart.register(...registerables);
       <div *ngIf="activeAnalyticsTab === 'yearly'" class="space-y-6">
         <div class="flex justify-between items-center">
           <h3 class="text-2xl font-semibold">Analiza Roczna (ostatnie 5 lat)</h3>
-          <button
-            (click)="loadYearlyData()"
-            class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg font-semibold transition-colors"
-          >
-            Odśwież
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              (click)="loadYearlyData()"
+              class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg font-semibold transition-colors"
+            >
+              Odśwież
+            </button>
+            <button
+              (click)="generateYearlyPDF()"
+              [disabled]="isGeneratingPDF || !(yearlyStats$ | async)"
+              class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              PDF
+            </button>
+          </div>
         </div>
 
         <div *ngIf="yearlyStats$ | async as yearly">
@@ -407,6 +447,16 @@ Chart.register(...registerables);
             >
               {{ 'STATISTICS.APPLY_FILTERS' | translate }}
             </button>
+            <button
+              (click)="generateCategoryPDF()"
+              [disabled]="isGeneratingPDF || !(categoryPerformance$ | async)"
+              class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              PDF
+            </button>
           </div>
         </div>
 
@@ -460,8 +510,24 @@ Chart.register(...registerables);
           <!-- Summary Card -->
           <div *ngIf="categoryActiveViews.includes('summary')" class="bg-card border border-card-border rounded-lg p-6 mt-6">
             <h4 class="text-lg font-semibold mb-4">{{ 'STATISTICS.CATEGORY_SUMMARY' | translate }}</h4>
-            <p class="text-sm text-muted-foreground">{{ 'STATISTICS.TOTAL_CATEGORY_REVENUE' | translate }}: <span class="font-bold text-foreground">{{ categories.total_revenue | number:'1.2-2' }} PLN</span></p>
-            <p class="text-sm text-muted-foreground mt-2">{{ 'STATISTICS.ACTIVE_CATEGORIES' | translate }}: <span class="font-bold text-foreground">{{ categories.categories.length }}</span></p>
+            <p class="text-sm text-muted-foreground">
+              {{ 'STATISTICS.TOTAL_CATEGORY_REVENUE' | translate }}: 
+              <span class="font-bold text-foreground">
+                {{ (categories.summary?.total_revenue || categories.total_revenue) | number:'1.2-2' }} PLN
+              </span>
+            </p>
+            <p class="text-sm text-muted-foreground mt-2">
+              {{ 'STATISTICS.ACTIVE_CATEGORIES' | translate }}: 
+              <span class="font-bold text-foreground">
+                {{ categories.summary?.active_categories || categories.categories.length }}
+              </span>
+            </p>
+            <p *ngIf="categories.summary?.total_orders" class="text-sm text-muted-foreground mt-2">
+              {{ 'STATISTICS.TOTAL_ORDERS' | translate }}: 
+              <span class="font-bold text-foreground">
+                {{ categories.summary?.total_orders }}
+              </span>
+            </p>
           </div>
 
           <!-- Category Revenue Distribution Chart -->
@@ -536,6 +602,16 @@ Chart.register(...registerables);
               class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg font-semibold transition-colors"
             >
               {{ 'STATISTICS.APPLY_FILTERS' | translate }}
+            </button>
+            <button
+              (click)="generateTopProductsPDF()"
+              [disabled]="isGeneratingPDF || !(topProducts$ | async)"
+              class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              PDF
             </button>
           </div>
         </div>
@@ -637,6 +713,25 @@ Chart.register(...registerables);
           </div>
         </div>
       </div>
+
+      <!-- Success/Error Messages -->
+      <div *ngIf="pdfMessage" class="fixed bottom-4 right-4 z-50 max-w-md">
+        <div [class]="pdfMessage.type === 'success' ? 'bg-green-500' : 'bg-red-500'" 
+             class="text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3">
+          <svg *ngIf="pdfMessage.type === 'success'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          <svg *ngIf="pdfMessage.type === 'error'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+          <span>{{ pdfMessage.text }}</span>
+          <button (click)="pdfMessage = null" class="ml-auto">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   `,
   styles: [`
@@ -682,6 +777,9 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
   topProductsLimit: number = 10;
 
   analyticsTabs: Array<{id: 'monthly' | 'yearly' | 'categories' | 'products', label: string}> = [];
+
+  isGeneratingPDF = false;
+  pdfMessage: { type: 'success' | 'error', text: string } | null = null;
 
   constructor(
     private apiService: ApiService,
@@ -1196,6 +1294,175 @@ export class AdvancedStatisticsComponent implements OnInit, AfterViewInit, OnDes
 
   hideAllProductViews(): void {
     this.productActiveViews = [];
+  }
+
+  generatePDF(): void {
+    this.isGeneratingPDF = true;
+    this.pdfMessage = null;
+
+    this.apiService.generateStatisticsPDF().subscribe({
+      next: (response: Blob) => {
+        const url = window.URL.createObjectURL(response);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `statistics_${new Date().toISOString().split('T')[0]}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        
+        this.isGeneratingPDF = false;
+        this.pdfMessage = { 
+          type: 'success', 
+          text: this.translate.instant('STATISTICS.PDF_SUCCESS') 
+        };
+        setTimeout(() => this.pdfMessage = null, 5000);
+      },
+      error: (error) => {
+        console.error('PDF generation error:', error);
+        this.isGeneratingPDF = false;
+        this.pdfMessage = { 
+          type: 'error', 
+          text: this.translate.instant('STATISTICS.PDF_ERROR') 
+        };
+        setTimeout(() => this.pdfMessage = null, 5000);
+      }
+    });
+  }
+
+  generateMonthlyPDF(): void {
+    this.isGeneratingPDF = true;
+    this.pdfMessage = null;
+
+    const startDate = new Date(this.monthlyStartDate);
+    const endDate = new Date(this.monthlyEndDate);
+
+    this.apiService.generateMonthlyStatisticsPDF(startDate, endDate).subscribe({
+      next: (response: Blob) => {
+        const url = window.URL.createObjectURL(response);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `monthly_statistics_${this.monthlyStartDate}_${this.monthlyEndDate}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        
+        this.isGeneratingPDF = false;
+        this.pdfMessage = { 
+          type: 'success', 
+          text: this.translate.instant('STATISTICS.PDF_SUCCESS') 
+        };
+        setTimeout(() => this.pdfMessage = null, 5000);
+      },
+      error: (error) => {
+        console.error('Monthly PDF generation error:', error);
+        this.isGeneratingPDF = false;
+        this.pdfMessage = { 
+          type: 'error', 
+          text: this.translate.instant('STATISTICS.PDF_ERROR') 
+        };
+        setTimeout(() => this.pdfMessage = null, 5000);
+      }
+    });
+  }
+
+  generateYearlyPDF(): void {
+    this.isGeneratingPDF = true;
+    this.pdfMessage = null;
+
+    this.apiService.generateYearlyStatisticsPDF().subscribe({
+      next: (response: Blob) => {
+        const url = window.URL.createObjectURL(response);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `yearly_statistics_${new Date().getFullYear()}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        
+        this.isGeneratingPDF = false;
+        this.pdfMessage = { 
+          type: 'success', 
+          text: this.translate.instant('STATISTICS.PDF_SUCCESS') 
+        };
+        setTimeout(() => this.pdfMessage = null, 5000);
+      },
+      error: (error) => {
+        console.error('Yearly PDF generation error:', error);
+        this.isGeneratingPDF = false;
+        this.pdfMessage = { 
+          type: 'error', 
+          text: this.translate.instant('STATISTICS.PDF_ERROR') 
+        };
+        setTimeout(() => this.pdfMessage = null, 5000);
+      }
+    });
+  }
+
+  generateCategoryPDF(): void {
+    this.isGeneratingPDF = true;
+    this.pdfMessage = null;
+
+    const startDate = new Date(this.categoryStartDate);
+    const endDate = new Date(this.categoryEndDate);
+
+    this.apiService.generateCategoryPerformancePDF(startDate, endDate).subscribe({
+      next: (response: Blob) => {
+        const url = window.URL.createObjectURL(response);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `category_performance_${this.categoryStartDate}_${this.categoryEndDate}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        
+        this.isGeneratingPDF = false;
+        this.pdfMessage = { 
+          type: 'success', 
+          text: this.translate.instant('STATISTICS.PDF_SUCCESS') 
+        };
+        setTimeout(() => this.pdfMessage = null, 5000);
+      },
+      error: (error) => {
+        console.error('Category PDF generation error:', error);
+        this.isGeneratingPDF = false;
+        this.pdfMessage = { 
+          type: 'error', 
+          text: this.translate.instant('STATISTICS.PDF_ERROR') 
+        };
+        setTimeout(() => this.pdfMessage = null, 5000);
+      }
+    });
+  }
+
+  generateTopProductsPDF(): void {
+    this.isGeneratingPDF = true;
+    this.pdfMessage = null;
+
+    const startDate = new Date(this.topProductsStartDate);
+    const endDate = new Date(this.topProductsEndDate);
+
+    this.apiService.generateTopProductsPDF(startDate, endDate, this.topProductsLimit).subscribe({
+      next: (response: Blob) => {
+        const url = window.URL.createObjectURL(response);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `top_products_${this.topProductsStartDate}_${this.topProductsEndDate}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        
+        this.isGeneratingPDF = false;
+        this.pdfMessage = { 
+          type: 'success', 
+          text: this.translate.instant('STATISTICS.PDF_SUCCESS') 
+        };
+        setTimeout(() => this.pdfMessage = null, 5000);
+      },
+      error: (error) => {
+        console.error('Top Products PDF generation error:', error);
+        this.isGeneratingPDF = false;
+        this.pdfMessage = { 
+          type: 'error', 
+          text: this.translate.instant('STATISTICS.PDF_ERROR') 
+        };
+        setTimeout(() => this.pdfMessage = null, 5000);
+      }
+    });
   }
 
   ngOnDestroy(): void {
