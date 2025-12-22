@@ -32,7 +32,7 @@ Chart.register(...registerables);
       <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
         <div class="flex justify-between items-start">
           <div>
-            <h2 class="text-3xl font-bold mb-4">📊 {{ 'STATISTICS.TITLE' | translate }}</h2>
+            <h2 class="text-3xl font-bold mb-4">{{ 'STATISTICS.TITLE' | translate }}</h2>
             <p class="text-blue-100">{{ 'STATISTICS.SUBTITLE' | translate }}</p>
           </div>
           <button
@@ -212,13 +212,13 @@ Chart.register(...registerables);
                 (click)="showAllMonthlyViews()"
                 class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors ml-auto"
               >
-                👁️ {{ 'STATISTICS.SHOW_ALL' | translate }}
+                {{ 'STATISTICS.SHOW_ALL' | translate }}
               </button>
               <button
                 (click)="hideAllMonthlyViews()"
                 class="bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                ✖️ {{ 'STATISTICS.HIDE_ALL' | translate }}
+                {{ 'STATISTICS.HIDE_ALL' | translate }}
               </button>
             </div>
           </div>

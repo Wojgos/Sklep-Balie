@@ -67,10 +67,10 @@ import { TranslateModule } from '@ngx-translate/core';
           <div class="space-y-4">
             <h3 class="font-semibold">{{ 'FOOTER.CONTACT_INFO' | translate }}</h3>
             <div class="space-y-2 text-sm text-muted-foreground">
-              <p>📧 info&#64;barrelgarden.pl</p>
-              <p>📞 +48 123 456 789</p>
-              <p>📍 ul. Wiejska 45<br>00-001 Białystok</p>
-              <p>🕒 {{ 'FOOTER.OPENING_HOURS' | translate }}</p>
+              <p>info&#64;barrelgarden.pl</p>
+              <p>+48 123 456 789</p>
+              <p>ul. Wiejska 45<br>00-001 Białystok</p>
+              <p>{{ 'FOOTER.OPENING_HOURS' | translate }}</p>
             </div>
           </div>
         </div>
