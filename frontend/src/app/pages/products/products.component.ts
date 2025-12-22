@@ -189,7 +189,12 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
           </div>
 
           <!-- Products Grid/List -->
-          <div *ngIf="filteredProducts.length > 0; else noResults">
+          <div *ngIf="isLoading" class="text-center py-16">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mb-4"></div>
+            <p class="text-muted-foreground">{{ 'PRODUCTS.LOADING' | translate }}</p>
+          </div>
+
+          <div *ngIf="!isLoading && filteredProducts.length > 0">
             <!-- Grid View -->
             <div *ngIf="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
               <bg-product-card 
@@ -302,6 +307,7 @@ export class ProductsComponent implements OnInit, OnDestroy {
   filteredProducts: Product[] = [];
   paginatedProducts: Product[] = [];
   categories: Category[] = [];
+  isLoading: boolean = true;
 
   searchTerm: string = '';
   selectedCategory: string = '';
@@ -324,6 +330,26 @@ export class ProductsComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // Pobierz dane z resolvera
+    this.route.data.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(({ data }) => {
+      this.allProducts = data.products;
+      this.categories = data.categories;
+      this.isLoading = false;
+      
+      // Sprawdź parametry query
+      this.route.queryParams.pipe(
+        takeUntil(this.destroy$)
+      ).subscribe(params => {
+        if (params['category']) {
+          this.selectedCategory = params['category'];
+        }
+        this.applyFilters();
+      });
+    });
+
+    // Obserwuj zmiany języka i przeładuj dane
     this.languageService.currentLanguage$.pipe(
       takeUntil(this.destroy$),
       switchMap(() => combineLatest([
@@ -333,15 +359,7 @@ export class ProductsComponent implements OnInit, OnDestroy {
     ).subscribe(([products, categories]) => {
       this.allProducts = products;
       this.categories = categories;
-      
-      this.route.queryParams.pipe(
-        takeUntil(this.destroy$)
-      ).subscribe(params => {
-        if (params['category']) {
-          this.selectedCategory = params['category'];
-        }
-        this.applyFilters();
-      });
+      this.applyFilters();
     });
   }
 

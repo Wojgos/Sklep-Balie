@@ -5,7 +5,7 @@
       class="pagination-btn"
       [disabled]="!hasPrevious"
       (click)="goToFirst()"
-      title="Pierwsza strona">
+      [title]="'PAGINATION.FIRST_PAGE' | translate">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5" />
       </svg>
@@ -16,7 +16,7 @@
       class="pagination-btn"
       [disabled]="!hasPrevious"
       (click)="goToPrevious()"
-      title="Poprzednia strona">
+      [title]="'PAGINATION.PREVIOUS_PAGE' | translate">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
       </svg>
@@ -38,7 +38,7 @@
       class="pagination-btn"
       [disabled]="!hasNext"
       (click)="goToNext()"
-      title="Następna strona">
+      [title]="'PAGINATION.NEXT_PAGE' | translate">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
       </svg>
@@ -49,7 +49,7 @@
       class="pagination-btn"
       [disabled]="!hasNext"
       (click)="goToLast()"
-      title="Ostatnia strona">
+      [title]="'PAGINATION.LAST_PAGE' | translate">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 4.5l7.5 7.5-7.5 7.5m6-15l7.5 7.5-7.5 7.5" />
       </svg>
@@ -59,11 +59,11 @@
   <!-- Info and page size selector -->
   <div class="pagination-info">
     <span class="items-info">
-      Pokazuję {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, totalItems) }} z {{ totalItems }} elementów
+      {{ 'PAGINATION.SHOWING' | translate }} {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, totalItems) }} {{ 'PAGINATION.OF' | translate }} {{ totalItems }} {{ 'PAGINATION.ITEMS' | translate }}
     </span>
     
     <div class="page-size-selector">
-      <label>Elementy na stronę:</label>
+      <label>{{ 'PAGINATION.ITEMS_PER_PAGE' | translate }}:</label>
       <select [value]="pageSize" (change)="changePageSize(+$any($event.target).value)">
         <option [value]="10">10</option>
         <option [value]="25">25</option>

@@ -540,6 +540,7 @@
   "PRODUCTS": {
     "TITLE": "Wszystkie Produkty",
     "SUBTITLE": "Odkryj naszą pełną kolekcję drewnianych produktów ogrodowych",
+    "LOADING": "Ładowanie produktów...",
     "SEARCH": "Szukaj",
     "SEARCH_PLACEHOLDER": "Szukaj produktów...",
     "CATEGORY": "Kategoria",
@@ -868,5 +869,15 @@
     "YOU": "Ty",
     "CUSTOMER_SERVICE": "Obsługa klienta",
     "UNKNOWN": "Nieznany"
+  },
+  "PAGINATION": {
+    "FIRST_PAGE": "Pierwsza strona",
+    "PREVIOUS_PAGE": "Poprzednia strona",
+    "NEXT_PAGE": "Następna strona",
+    "LAST_PAGE": "Ostatnia strona",
+    "SHOWING": "Pokazuję",
+    "OF": "z",
+    "ITEMS": "elementów",
+    "ITEMS_PER_PAGE": "Elementy na stronę"
   }
 }

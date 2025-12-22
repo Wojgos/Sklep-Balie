@@ -540,6 +540,7 @@
   "PRODUCTS": {
     "TITLE": "All Products",
     "SUBTITLE": "Discover our complete collection of wooden garden products",
+    "LOADING": "Loading products...",
     "SEARCH": "Search",
     "SEARCH_PLACEHOLDER": "Search products...",
     "CATEGORY": "Category",
@@ -868,5 +869,15 @@
     "YOU": "You",
     "CUSTOMER_SERVICE": "Customer Service",
     "UNKNOWN": "Unknown"
+  },
+  "PAGINATION": {
+    "FIRST_PAGE": "First page",
+    "PREVIOUS_PAGE": "Previous page",
+    "NEXT_PAGE": "Next page",
+    "LAST_PAGE": "Last page",
+    "SHOWING": "Showing",
+    "OF": "of",
+    "ITEMS": "items",
+    "ITEMS_PER_PAGE": "Items per page"
   }
 }
