@@ -2,10 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LanguageService } from '../../services/language.service';
 
-/**
- * Komponent do przełączania języka aplikacji
- * Można go dodać do header'a lub innego miejsca w UI
- */
+
 @Component({
   selector: 'bg-language-switcher',
   standalone: true,
