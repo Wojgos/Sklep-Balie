@@ -2,10 +2,6 @@ import { Injectable, Injector } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
 
-/**
- * Serwis do zarządzania językiem aplikacji
- * Obsługuje wielojęzyczność dla backendu django-parler i UI (ngx-translate)
- */
 @Injectable({
   providedIn: 'root'
 })
@@ -25,26 +21,18 @@ export class LanguageService {
     this.currentLanguage$ = this.currentLanguageSubject.asObservable();
   }
   
-  /**
-   * Initialize TranslateService (called after construction)
-   */
+
   private initTranslate(): void {
     if (!this.translate) {
       this.translate = this.injector.get(TranslateService);
     }
   }
 
-  /**
-   * Pobiera aktualnie wybrany język
-   */
+
   getCurrentLanguage(): string {
     return this.currentLanguageSubject.value;
   }
 
-  /**
-   * Ustawia nowy język
-   * @param language Kod języka (np. 'pl', 'en')
-   */
   setLanguage(language: string): void {
     if (this.SUPPORTED_LANGUAGES.includes(language)) {
       localStorage.setItem(this.STORAGE_KEY, language);
@@ -63,9 +51,7 @@ export class LanguageService {
     }
   }
 
-  /**
-   * Pobiera język z localStorage lub zwraca domyślny
-   */
+
   private getStoredLanguage(): string {
     const stored = localStorage.getItem(this.STORAGE_KEY);
     return stored && this.SUPPORTED_LANGUAGES.includes(stored) 
@@ -73,16 +59,11 @@ export class LanguageService {
       : this.DEFAULT_LANGUAGE;
   }
 
-  /**
-   * Zwraca listę obsługiwanych języków
-   */
+
   getSupportedLanguages(): string[] {
     return [...this.SUPPORTED_LANGUAGES];
   }
 
-  /**
-   * Resetuje język do domyślnego
-   */
   resetToDefault(): void {
     this.setLanguage(this.DEFAULT_LANGUAGE);
   }

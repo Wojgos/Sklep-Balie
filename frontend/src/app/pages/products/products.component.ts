@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Observable, combineLatest, map, Subject, takeUntil, switchMap } from 'rxjs';
+import { Observable, combineLatest, map, Subject, takeUntil, switchMap, of, debounceTime, distinctUntilChanged, catchError } from 'rxjs';
 import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../services/api.service';
 import { LanguageService } from '../../services/language.service';
@@ -42,8 +42,8 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
                 <div class="relative">
                   <input
                     type="text"
-                    [(ngModel)]="searchTerm"
-                    (ngModelChange)="applyFilters()"
+                    [ngModel]="searchTerm"
+                    (ngModelChange)="onSearchChange($event)"
                     [placeholder]="'PRODUCTS.SEARCH_PLACEHOLDER' | translate"
                     class="w-full px-4 py-2 pl-10 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                   />
@@ -146,7 +146,7 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
                 </button>
                 <button
                   *ngIf="searchTerm"
-                  (click)="searchTerm = ''; applyFilters()"
+                  (click)="onSearchChange('')"
                   class="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm hover:bg-primary/20 transition-colors"
                 >
                   "{{ searchTerm }}"
@@ -304,12 +304,14 @@ type SortOption = 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'ratin
 })
 export class ProductsComponent implements OnInit, OnDestroy {
   allProducts: Product[] = [];
+  searchResults: Product[] = [];
   filteredProducts: Product[] = [];
   paginatedProducts: Product[] = [];
   categories: Category[] = [];
   isLoading: boolean = true;
 
   searchTerm: string = '';
+  private searchSubject = new Subject<string>();
   selectedCategory: string = '';
   minPrice: number | null = null;
   maxPrice: number | null = null;
@@ -335,6 +337,7 @@ export class ProductsComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe(({ data }) => {
       this.allProducts = data.products;
+      this.searchResults = [...this.allProducts];
       this.categories = data.categories;
       this.isLoading = false;
       
@@ -349,6 +352,26 @@ export class ProductsComponent implements OnInit, OnDestroy {
       });
     });
 
+    // Obsługa wyszukiwania z backendu
+    this.searchSubject.pipe(
+      takeUntil(this.destroy$),
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(term => {
+        this.isLoading = true;
+        if (!term.trim()) {
+          return of(this.allProducts);
+        }
+        return this.apiService.searchProducts(term).pipe(
+          catchError(() => of([]))
+        );
+      })
+    ).subscribe(products => {
+      this.searchResults = products;
+      this.isLoading = false;
+      this.applyFilters();
+    });
+
     // Obserwuj zmiany języka i przeładuj dane
     this.languageService.currentLanguage$.pipe(
       takeUntil(this.destroy$),
@@ -359,7 +382,13 @@ export class ProductsComponent implements OnInit, OnDestroy {
     ).subscribe(([products, categories]) => {
       this.allProducts = products;
       this.categories = categories;
-      this.applyFilters();
+      
+      if (this.searchTerm) {
+        this.searchSubject.next(this.searchTerm);
+      } else {
+        this.searchResults = [...this.allProducts];
+        this.applyFilters();
+      }
     });
   }
 
@@ -369,15 +398,10 @@ export class ProductsComponent implements OnInit, OnDestroy {
   }
 
   applyFilters(): void {
-    let filtered = [...this.allProducts];
+    let filtered = [...this.searchResults];
 
-    if (this.searchTerm.trim()) {
-      const term = this.searchTerm.toLowerCase();
-      filtered = filtered.filter(p => 
-        p.name.toLowerCase().includes(term) ||
-        (p.description?.toLowerCase().includes(term))
-      );
-    }
+    // Wyszukiwanie jest teraz obsługiwane przez backend (searchSubject)
+    // if (this.searchTerm.trim()) { ... }
 
     if (this.selectedCategory) {
       const allowedCategories = this.getDescendantCategoryIds(this.selectedCategory);
@@ -447,6 +471,10 @@ export class ProductsComponent implements OnInit, OnDestroy {
     this.minPrice = null;
     this.maxPrice = null;
     this.sortOption = 'newest';
+    
+    this.searchResults = [...this.allProducts];
+    this.searchSubject.next('');
+    
     this.applyFilters();
   }
 
@@ -483,6 +511,11 @@ export class ProductsComponent implements OnInit, OnDestroy {
 
   navigateToProduct(productId: string): void {
     this.router.navigate(['/product', productId]);
+  }
+
+  onSearchChange(term: string): void {
+    this.searchTerm = term;
+    this.searchSubject.next(term);
   }
 }
 
