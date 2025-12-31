@@ -659,8 +659,8 @@ export class ApiService {
         description: product.description || '',
         category_write: product.categoryId,
         price: product.price,
-        stock: product.stock || 0,
-        image: product.image || ''
+        stock: product.stock || 0
+        // image: product.image || '' // Backend oczekuje pliku
       };
       
       console.log('Creating product with JSON payload:', payload);
@@ -701,7 +701,8 @@ export class ApiService {
       if (product.categoryId) payload.category_write = product.categoryId;
       if (product.price !== undefined) payload.price = product.price;
       if (product.stock !== undefined) payload.stock = product.stock;
-      if (product.image !== undefined) payload.image = product.image;
+      // Nie wysyłamy image jeśli to tylko URL (string) - backend oczekuje pliku lub nic
+      // if (product.image !== undefined) payload.image = product.image;
       
       console.log('Updating product with JSON payload:', payload);
       

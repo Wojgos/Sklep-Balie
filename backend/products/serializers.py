@@ -187,7 +187,7 @@ class ProductSerializer(serializers.ModelSerializer):
     )
     price = serializers.DecimalField(max_digits=10, decimal_places=2, write_only=True, required=False)
     stock = serializers.IntegerField(write_only=True, required=False, default=0)
-    image = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    image = serializers.ImageField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = Product
