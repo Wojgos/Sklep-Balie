@@ -1,7 +1,7 @@
 # Format: słowo, synonim, synonim
 
 # Główne produkty
-balia, bania, jacuzzi, hot tub, spa, whirpool
+balia, bania, beczka, jacuzzi, hot tub, spa, whirpool
 wkład, insert, niecka, shell
 pokrywa, cover, lid, wieko, przykrycie
 piec, piecyk, heater, stove, furnace

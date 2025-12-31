@@ -5,8 +5,6 @@ from elasticsearch_dsl import analyzer, token_filter
 
 from .models import Product, AttributeValue
 
-# --- 1. DEFINICJA FILTRÓW I ANALIZATORÓW ---
-
 # Filtr synonimów (wspólny dla obu języków)
 # Używamy synonym_graph, aby poprawnie obsługiwać frazy wielowyrazowe (np. "hot tub")
 synonym_graph_filter = token_filter(
@@ -21,32 +19,28 @@ english_stemmer_filter = token_filter(
     name='english'
 )
 
-# Analizator POLSKI
 polish_analyzer = analyzer(
     'polish_analyzer',
     tokenizer='standard',
     filter=[
         'lowercase',
         synonym_graph_filter,
-        # Tu usunęliśmy stemmer, który powodował błąd 400
     ]
 )
 
-# Analizator ANGIELSKI (Pełna wersja)
 english_analyzer = analyzer(
     'english_analyzer',
     tokenizer='standard',
     filter=[
         'lowercase',
         synonym_graph_filter,
-        english_stemmer_filter  # Tu stemming działa
+        english_stemmer_filter
     ]
 )
 
 
 @registry.register_document
 class ProductDocument(Document):
-    # --- 2. POLA DOKUMENTU ---
 
     name_pl = TextField(analyzer=polish_analyzer)
     name_en = TextField(analyzer=english_analyzer)
@@ -68,7 +62,6 @@ class ProductDocument(Document):
         model = Product
         fields = []
 
-    # --- 3. METODY PRZYGOTOWANIA DANYCH ---
 
     def prepare_name_pl(self, instance):
         return instance.safe_translation_getter('name', language_code='pl')
