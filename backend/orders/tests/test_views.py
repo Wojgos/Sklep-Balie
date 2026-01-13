@@ -41,7 +41,6 @@ def test_create_order_success(api_client, user, variant):
         ]
     }
 
-    # Ważne: Wymuszamy język PL, aby pasował do danych w fixturze
     with patch('orders.views.send_invoice_email_task.delay') as mock_task:
         response = api_client.post(url, data, format='json', HTTP_ACCEPT_LANGUAGE='pl')
 
@@ -54,7 +53,6 @@ def test_create_order_success(api_client, user, variant):
     assert order.total_price == Decimal('200.00')
 
     variant.refresh_from_db()
-    # Variant starts with 50 stock (from conftest), order takes 2, so 48 remaining
     assert variant.stock == 48
 
 
