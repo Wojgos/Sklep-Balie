@@ -1,7 +1,7 @@
 # BarrelGarden – e-commerce store (Django + Angular)
 
 Full-stack online store for wooden hot tubs and garden spas, built as a **BSc engineering thesis** at
-Bialystok University of Technology (*"Advanced online store with a customer communication module and product management"*, team of 2).
+Bialystok University of Technology (*"Advanced online store with a customer communication module and product management"*).
 
 The backend (Django REST Framework) owns all business rules – prices, discounts, loyalty points and stock levels –
 and the Angular SPA only displays them through a versioned REST API (`/api/v1/`).
@@ -99,8 +99,3 @@ frontend/src/app/
   components/   header, cart drawer, search bar, product card, chatbot, notifications
   guards/  interceptors/  resolvers/  services/
 ```
-
-## Authors
-
-- **Wojciech Gosiewski** – [@Wojgos](https://github.com/Wojgos)
-- **Arkadiusz Gnidziejko**
