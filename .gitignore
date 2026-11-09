@@ -68,3 +68,7 @@ celerybeat.pid
 /backend/celerybeat*
 
 /backend/media/
+
+# Python test coverage
+.coverage
+htmlcov/
